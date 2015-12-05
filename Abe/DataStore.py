@@ -88,6 +88,9 @@ CHAIN_CONFIG = [
     {"chain":"Unbreakablecoin"},
     #{"chain":"",
     # "code3":"", "address_version":"\x", "magic":""},
+# MULTICHAIN START
+    {"chain":"MultiChain"}
+# MULTICHAIN END
     ]
 
 NULL_PUBKEY_HASH = "\0" * Chain.PUBKEY_HASH_LENGTH
@@ -1502,6 +1505,10 @@ store._ddl['txout_approx'],
                 ]
         elif script_type == Chain.SCRIPT_TYPE_BURN:
             txout['binaddr'] = NULL_PUBKEY_HASH
+        # MULTICHAIN START
+        elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN:
+            txout['binaddr'] = data
+        # MULTICHAIN END
         else:
             txout['binaddr'] = None
 
@@ -2549,6 +2556,14 @@ store._ddl['txout_approx'],
         requires the txindex configuration option.  Requires chain_id
         in the datadir table.
         """
+
+# MULTICHAIN START
+        # Expand ~ in multichain folder to user home directory
+        dircfg['dirname'] = os.path.expanduser(dircfg['dirname'])
+        # Extract chain name from last path component of multichain folder
+        chain_name = os.path.basename(dircfg['dirname'])
+# MULTICHAIN END
+
         chain_id = dircfg['chain_id']
         if chain_id is None:
             store.log.error("no chain_id")
@@ -2574,9 +2589,11 @@ store._ddl['txout_approx'],
         url = "http://" + rpcuser + ":" + rpcpassword + "@" + rpcconnect \
             + ":" + str(rpcport)
 
+# MULTICHAIN START
         def rpc(func, *params):
-            store.rpclog.info("RPC>> %s %s", func, params)
-            ret = util.jsonrpc(url, func, *params)
+            store.rpclog.info("RPC>> %s %s %s", chain_name, func, params)
+            ret = util.jsonrpc(chain_name, url, func, *params)
+# MULTICHAIN END
 
             if (store.rpclog.isEnabledFor(logging.INFO)):
                 store.rpclog.info("RPC<< %s",

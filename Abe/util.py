@@ -143,12 +143,23 @@ class JsonrpcException(Exception):
 class JsonrpcMethodNotFound(JsonrpcException):
     pass
 
-def jsonrpc(url, method, *params):
+# MULTICHAIN START
+# MultiChain requires chain_name argument in JSON requests.
+def jsonrpc(chain_name, url, method, *params):
     import json, urllib
     postdata = json.dumps({"jsonrpc": "2.0",
+                           "chain_name": chain_name,
+# MULTICHAIN END
                            "method": method, "params": params, "id": "x"})
     respdata = urllib.urlopen(url, postdata).read()
     resp = json.loads(respdata)
+
+# MULTICHAIN START
+#     print("URL:  ", url)
+#     print("POST: ", postdata)
+#     print("RESP: ", resp)
+# MULTICHAIN END
+
     if resp.get('error') is not None:
         if resp['error']['code'] == -32601:
             raise JsonrpcMethodNotFound(resp['error'], method, params)

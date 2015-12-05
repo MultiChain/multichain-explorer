@@ -26,6 +26,12 @@ def create(policy, **kwargs):
 PUBKEY_HASH_LENGTH = 20
 MAX_MULTISIG_KEYS = 3
 
+# MULTICHAIN START
+# Template to match a MultiChain permission or asset transaction which puts a payload before OP_DROP
+SCRIPT_MULTICHAIN_TEMPLATE = [
+    opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG, opcodes.OP_PUSHDATA4, opcodes.OP_DROP ]
+# MULTICHAIN END
+
 # Template to match a pubkey hash ("Bitcoin address transaction") in
 # txout_scriptPubKey.  OP_PUSHDATA4 matches any data push.
 SCRIPT_ADDRESS_TEMPLATE = [
@@ -47,6 +53,9 @@ SCRIPT_TYPE_ADDRESS = 3
 SCRIPT_TYPE_BURN = 4
 SCRIPT_TYPE_MULTISIG = 5
 SCRIPT_TYPE_P2SH = 6
+# MULTICHAIN START
+SCRIPT_TYPE_MULTICHAIN = 7
+# MULTICHAIN END
 
 
 class BaseChain(object):
@@ -190,6 +199,14 @@ class BaseChain(object):
             pubkey_hash = decoded[2][1]
             if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
                 return SCRIPT_TYPE_ADDRESS, pubkey_hash
+
+# MULTICHAIN START
+# Return script type and address
+        elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
+            pubkey_hash = decoded[2][1]
+            if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
+                return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
+# MULTICHAIN END
 
         elif deserialize.match_decoded(decoded, SCRIPT_PUBKEY_TEMPLATE):
             pubkey = decoded[0][1]

@@ -38,15 +38,15 @@ import util  # Added functions.
 import base58
 
 __version__ = version.__version__
-
-ABE_APPNAME = "Abe"
+# MULTICHAIN START
+ABE_APPNAME = "MultiChain Explorer"
 ABE_VERSION = __version__
-ABE_URL = 'https://github.com/bitcoin-abe/bitcoin-abe'
+ABE_URL = 'https://github.com/multichain/multichain-explorer'
 
-COPYRIGHT_YEARS = '2011'
-COPYRIGHT = "Abe developers"
-COPYRIGHT_URL = 'https://github.com/bitcoin-abe'
-
+COPYRIGHT_YEARS = '2011-2015'
+COPYRIGHT = "Coin Sciences Ltd and Abe developers"
+COPYRIGHT_URL = 'https://github.com/multichain/multichain-explorer'
+# MULTICHAIN END
 DONATIONS_BTC = '1PWC7PNHL1SgvZaN7xEtygenKjWobWsCuf'
 DONATIONS_NMC = 'NJ3MSELK1cWnqUa6xhF2wUYAnz3RSrWXcK'
 
@@ -58,18 +58,25 @@ EPOCH1970 = calendar.timegm(TIME1970)
 # under Internet Explorer.
 DEFAULT_CONTENT_TYPE = "text/html; charset=utf-8"
 DEFAULT_HOMEPAGE = "chains";
+# MULTICHAIN START
 DEFAULT_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css"
-     href="%(dotdot)s%(STATIC_PATH)sabe.css" />
-    <link rel="shortcut icon" href="%(dotdot)s%(STATIC_PATH)sfavicon.ico" />
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
     <title>%(title)s</title>
+
+    <!-- Bootstrap and Theme -->
+    <link href="%(dotdot)s%(STATIC_PATH)scss/bootstrap.min.css" rel="stylesheet">
+    <link href="%(dotdot)s%(STATIC_PATH)scss/bootstrap-theme.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1><a href="%(dotdot)s%(HOMEPAGE)s"><img
-     src="%(dotdot)s%(STATIC_PATH)slogo32.png" alt="Abe logo" /></a> %(h1)s
+    <div class="container">
+    <h1><a href="%(dotdot)s%(HOMEPAGE)s"><img src="%(dotdot)s%(STATIC_PATH)slogo32.png" alt="MultiChain logo" /></a> %(h1)s
     </h1>
     %(body)s
     <p><a href="%(dotdot)sq">API</a> (machine-readable pages)</p>
@@ -78,14 +85,16 @@ DEFAULT_TEMPLATE = """
             Powered by <a href="%(ABE_URL)s">%(APPNAME)s</a>
         </span>
         %(download)s
-        Tips appreciated!
-        <a href="%(dotdot)saddress/%(DONATIONS_BTC)s">BTC</a>
-        <a href="%(dotdot)saddress/%(DONATIONS_NMC)s">NMC</a>
     </p>
+    </div>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
 </body>
 </html>
 """
-
+# MULTICHAIN END
 DEFAULT_LOG_FORMAT = "%(message)s"
 
 DEFAULT_DECIMALS = 8
@@ -151,6 +160,15 @@ NETHASH_SVG_TEMPLATE = """\
 
 # How many addresses to accept in /unspent/ADDR|ADDR|...
 MAX_UNSPENT_ADDRESSES = 200
+
+# MULTICHAIN START
+def html_keyvalue_tablerow(key, *values):
+    """
+    Return string for a two column table row.
+    Where the first element is the key and everything else is treated as the value
+    """
+    return '<tr><td>', key, '</td><td>', list(values), '</td></tr>'
+# MULTICHAIN END
 
 def make_store(args):
     store = DataStore.new(args)
@@ -287,12 +305,16 @@ class Abe:
         return getattr(abe, 'handle_' + cmd, None)
 
     def handle_chains(abe, page):
-        page['title'] = ABE_APPNAME + ' Search'
+# MULTICHAIN START
+        page['title'] = ABE_APPNAME
+# MULTICHAIN END
         body = page['body']
         body += [
             abe.search_form(page),
-            '<table>\n',
-            '<tr><th>Currency</th><th>Code</th><th>Block</th><th>Time</th>',
+# MULTICHAIN START
+            '<table class="table table-striped">\n',
+            '<tr><th>Chain</th><th>Code</th><th>Block</th><th>Time</th>',
+# MULTICHAIN END
             '<th>Started</th><th>Age (days)</th><th>Coins Created</th>',
             '<th>Avg Coin Age</th><th>',
             '% <a href="https://en.bitcoin.it/wiki/Bitcoin_Days_Destroyed">',
@@ -482,7 +504,9 @@ class Abe:
         extra = False
         #extra = True
         body += ['<p>', nav, '</p>\n',
-                 '<table><tr><th>Block</th><th>Approx. Time</th>',
+# MULTICHAIN START
+                 '<table class="table table-striped"><tr><th>Block</th><th>Approx. Time</th>',
+# MULTICHAIN END
                  '<th>Transactions</th><th>Value Out</th>',
                  '<th>Difficulty</th><th>Outstanding</th>',
                  '<th>Average Age</th><th>Chain Age</th>',
@@ -564,64 +588,59 @@ class Abe:
         is_stake_chain = chain.has_feature('nvc_proof_of_stake')
         is_stake_block = is_stake_chain and b['is_proof_of_stake']
 
-        body += ['<p>']
+# MULTICHAIN START
+        body += ['<h3>Summary</h3>\n']
+        body += ['<table class="table table-bordered table-condensed">']
+
         if is_stake_chain:
-            body += [
-                'Proof of Stake' if is_stake_block else 'Proof of Work',
-                ': ',
-                format_satoshis(b['generated'], chain), ' coins generated<br />\n']
-        body += ['Hash: ', b['hash'], '<br />\n']
+            body += html_keyvalue_tablerow('Proof of Stake' if is_stake_block else 'Proof of Work', format_satoshis(b['generated'], chain), ' coins generated')
+
+        body += html_keyvalue_tablerow('Hash', b['hash'])
 
         if b['hashPrev'] is not None:
-            body += ['Previous Block: <a href="', dotdotblock,
-                     b['hashPrev'], '">', b['hashPrev'], '</a><br />\n']
+            body += html_keyvalue_tablerow('Previous Block', '<a href="', dotdotblock,
+                     b['hashPrev'], '">', b['hashPrev'], '</a>')
+
         if b['next_block_hashes']:
-            body += ['Next Block: ']
+            body += ['<tr><td>Next Block</td>']
         for hash in b['next_block_hashes']:
-            body += ['<a href="', dotdotblock, hash, '">', hash, '</a><br />\n']
+            body += ['<td><a href="', dotdotblock, hash, '">', hash, '</a></td>']
+        if b['next_block_hashes']:
+            body += ['</tr>']
 
-        body += [
-            ['Height: ', b['height'], '<br />\n']
-            if b['height'] is not None else '',
+        body += html_keyvalue_tablerow('Height', b['height'] if b['height'] is not None else '')
+        body += html_keyvalue_tablerow('Version', b['version'])
+        body += html_keyvalue_tablerow('Transaction Merkle Root', b['hashMerkleRoot'])
+        body += html_keyvalue_tablerow('Time', b['nTime'] , ' (' , format_time(b['nTime']) , ')')
+        body += html_keyvalue_tablerow('Difficulty', format_difficulty(util.calculate_difficulty(b['nBits'])) , ' (Bits: %x)' % (b['nBits'])) 
+        body += html_keyvalue_tablerow('Cumulative Difficulty', format_difficulty(util.work_to_difficulty(b['chain_work'])) if b['chain_work'] is not None else '')
 
-            'Version: ', b['version'], '<br />\n',
-            'Transaction Merkle Root: ', b['hashMerkleRoot'], '<br />\n',
-            'Time: ', b['nTime'], ' (', format_time(b['nTime']), ')<br />\n',
-            'Difficulty: ', format_difficulty(util.calculate_difficulty(b['nBits'])),
-            ' (Bits: %x)' % (b['nBits'],), '<br />\n',
 
-            ['Cumulative Difficulty: ', format_difficulty(
-                    util.work_to_difficulty(b['chain_work'])), '<br />\n']
-            if b['chain_work'] is not None else '',
+        body += html_keyvalue_tablerow('Nonce', b['nNonce'])
+        body += html_keyvalue_tablerow('Transactions',len(b['transactions']))
+        body += html_keyvalue_tablerow('Value out', format_satoshis(b['value_out'], chain)) 
+        body += html_keyvalue_tablerow('Transaction Fees', format_satoshis(b['fees'], chain)) 
 
-            'Nonce: ', b['nNonce'], '<br />\n',
-            'Transactions: ', len(b['transactions']), '<br />\n',
-            'Value out: ', format_satoshis(b['value_out'], chain), '<br />\n',
-            'Transaction Fees: ', format_satoshis(b['fees'], chain), '<br />\n',
+        body += html_keyvalue_tablerow('Average Coin Age', '%6g' % (b['satoshi_seconds'] / 86400.0 / b['chain_satoshis']) + ' days' if b['chain_satoshis'] and (b['satoshi_seconds'] is not None) else '')
 
-            ['Average Coin Age: %6g' % (b['satoshi_seconds'] / 86400.0 / b['chain_satoshis'],),
-             ' days<br />\n']
-            if b['chain_satoshis'] and (b['satoshi_seconds'] is not None) else '',
+        body += html_keyvalue_tablerow('Coin-days Destroyed', '' if b['satoshis_destroyed'] is None else format_satoshis(b['satoshis_destroyed'] / 86400.0, chain))
 
-            '' if b['satoshis_destroyed'] is None else
-            ['Coin-days Destroyed: ',
-             format_satoshis(b['satoshis_destroyed'] / 86400.0, chain), '<br />\n'],
+        body += html_keyvalue_tablerow('Cumulative Coin-days Destroyed', '%6g%%' %
+             (100 * (1 - float(b['satoshi_seconds']) / b['chain_satoshi_seconds'])) if b['chain_satoshi_seconds'] else '')
 
-            ['Cumulative Coin-days Destroyed: %6g%%<br />\n' %
-             (100 * (1 - float(b['satoshi_seconds']) / b['chain_satoshi_seconds']),)]
-            if b['chain_satoshi_seconds'] else '',
+        # ['sat=',b['chain_satoshis'],';sec=',seconds,';ss=',b['satoshi_seconds'],
+        # ';total_ss=',b['chain_satoshi_seconds'],';destroyed=',b['satoshis_destroyed']]
+        # if abe.debug else '',
 
-            ['sat=',b['chain_satoshis'],';sec=',seconds,';ss=',b['satoshi_seconds'],
-             ';total_ss=',b['chain_satoshi_seconds'],';destroyed=',b['satoshis_destroyed']]
-            if abe.debug else '',
+        body += ['</table>']
 
-            '</p>\n']
 
         body += ['<h3>Transactions</h3>\n']
 
-        body += ['<table><tr><th>Transaction</th><th>Fee</th>'
+        body += ['<table class="table table-striped"><tr><th>Transaction</th><th>Fee</th>'
                  '<th>Size (kB)</th><th>From (amount)</th><th>To (amount)</th>'
                  '</tr>\n']
+# MULTICHAIN END
 
         for tx in b['transactions']:
             body += ['<tr><td><a href="../tx/' + tx['hash'] + '">',
@@ -723,7 +742,10 @@ class Abe:
             body += ['</tr>\n']
 
         body += abe.short_link(page, 't/' + hexb58(tx['hash'][:14]))
-        body += ['<p>Hash: ', tx['hash'], '<br />\n']
+# MULTICHAIN START
+        body += ['<table class="table table-bordered table-condensed">']
+        body += html_keyvalue_tablerow('Hash', tx['hash'])
+# MULTICHAIN END
         chain = None
         is_coinbase = None
 
@@ -736,31 +758,36 @@ class Abe:
                              + tx_cc['chain'].id + ', ' + chain.id)
 
             blk_hash = tx_cc['block_hash']
-            body += [
-                'Appeared in <a href="../block/', blk_hash, '">',
+# MULTICHAIN START
+            body += html_keyvalue_tablerow('Appeared in', 
+                '<a href="../block/', blk_hash, '">',
                 escape(tx_cc['chain'].name), ' ',
                 tx_cc['block_height'] if tx_cc['in_longest'] else [blk_hash[:10], '...', blk_hash[-4:]],
-                '</a> (', format_time(tx_cc['block_nTime']), ')<br />\n']
+                '</a> (', format_time(tx_cc['block_nTime']), ')'
+                )
+# MULTICHAIN END
 
         if chain is None:
             abe.log.warning('Assuming default chain for Transaction ' + tx['hash'])
             chain = abe.get_default_chain()
-
-        body += [
-            'Number of inputs: ', len(tx['in']),
-            ' (<a href="#inputs">Jump to inputs</a>)<br />\n',
-            'Total in: ', format_satoshis(tx['value_in'], chain), '<br />\n',
-            'Number of outputs: ', len(tx['out']),
-            ' (<a href="#outputs">Jump to outputs</a>)<br />\n',
-            'Total out: ', format_satoshis(tx['value_out'], chain), '<br />\n',
-            'Size: ', tx['size'], ' bytes<br />\n',
-            'Fee: ', format_satoshis(0 if is_coinbase else
+# MULTICHAIN START
+        body += html_keyvalue_tablerow('Number of inputs', len(tx['in']),
+            ' (<a href="#inputs">Jump to inputs</a>)')
+        body += html_keyvalue_tablerow('Total in', format_satoshis(tx['value_in'], chain))
+        body += html_keyvalue_tablerow('Number of outputs', len(tx['out']),
+            ' (<a href="#outputs">Jump to outputs</a>)')
+        body += html_keyvalue_tablerow('Total out', format_satoshis(tx['value_out'], chain)) 
+        body += html_keyvalue_tablerow('Size', tx['size'], ' bytes')
+        body += html_keyvalue_tablerow('Fee', format_satoshis(0 if is_coinbase else
                                      (tx['value_in'] and tx['value_out'] and
-                                      tx['value_in'] - tx['value_out']), chain),
-            '<br />\n',
-            '<a href="../rawtx/', tx['hash'], '">Raw transaction</a><br />\n']
-        body += ['</p>\n',
-                 '<a name="inputs"><h3>Inputs</h3></a>\n<table>\n',
+                                      tx['value_in'] - tx['value_out']), chain))
+        body += ['</table>']
+        body += ['<p class="text-right"><a href="../rawtx/', tx['hash'], '">Raw transaction</a></p>']
+# MULTICHAIN END
+
+# MULTICHAIN START
+        body += ['<a name="inputs"><h3>Inputs</h3></a>\n<table class="table table-striped">\n',
+# MULTICHAIN END
                  '<tr><th>Index</th><th>Previous output</th><th>Amount</th>',
                  '<th>From address</th>']
         if abe.store.keep_scriptsig:
@@ -770,7 +797,9 @@ class Abe:
             row_to_html(txin, 'i', 'o',
                         'Generation' if is_coinbase else 'Unknown')
         body += ['</table>\n',
-                 '<a name="outputs"><h3>Outputs</h3></a>\n<table>\n',
+# MULTICHAIN START
+                 '<a name="outputs"><h3>Outputs</h3></a>\n<table class="table table-striped">\n',
+# MULTICHAIN END
                  '<tr><th>Index</th><th>Redeemed at input</th><th>Amount</th>',
                  '<th>To address</th><th>ScriptPubKey</th></tr>\n']
         for txout in tx['out']:
@@ -856,8 +885,11 @@ class Abe:
         else:
             link = address[0 : abe.shortlink_type]
         body += abe.short_link(page, 'a/' + link)
+# MULTICHAIN START
+        body += ['<table class="table-bordered table-condensed">']
 
-        body += ['<p>Balance: '] + format_amounts(balance, True)
+        body += html_keyvalue_tablerow('Balance', format_amounts(balance, True))
+# MULTICHAIN END
 
         if 'subbinaddr' in history:
             chain = page['chain']
@@ -869,23 +901,26 @@ class Abe:
                         break
                 if chain is None:
                     chain = chains[0]
-
-            body += ['<br />\nEscrow']
+# MULTICHAIN START
+            tmp = []
             for subbinaddr in history['subbinaddr']:
-                body += [' ', hash_to_address_link(chain.address_version, subbinaddr, page['dotdot'], 10) ]
+                tmp += [' ', hash_to_address_link(chain.address_version, subbinaddr, page['dotdot'], 10) ]
+            body += html_keyvalue_tablerow('Escrow', tmp)
+# MULTICHAIN END
 
         for chain in chains:
             balance[chain.id] = 0  # Reset for history traversal.
+# MULTICHAIN START
+        body += html_keyvalue_tablerow('Transactions in' , counts[0])
+        body += html_keyvalue_tablerow('Received', format_amounts(received, False))
+        body += html_keyvalue_tablerow('Transactions out', counts[1])
+        body += html_keyvalue_tablerow('Sent', format_amounts(sent, False))
+        body += ['</table>']
 
-        body += ['<br />\n',
-                 'Transactions in: ', counts[0], '<br />\n',
-                 'Received: ', format_amounts(received, False), '<br />\n',
-                 'Transactions out: ', counts[1], '<br />\n',
-                 'Sent: ', format_amounts(sent, False), '<br />\n']
-
-        body += ['</p>\n'
+        body += [
                  '<h3>Transactions</h3>\n'
-                 '<table class="addrhist">\n<tr><th>Transaction</th><th>Block</th>'
+                 '<table class="table table-striped">\n<tr><th>Transaction</th><th>Block</th>'
+# MULTICHAIN END
                  '<th>Approx. Time</th><th>Amount</th><th>Balance</th>'
                  '<th>Currency</th></tr>\n']
 
@@ -920,13 +955,16 @@ class Abe:
     def search_form(abe, page):
         q = (page['params'].get('q') or [''])[0]
         return [
+# MULTICHAIN START
             '<p>Search by address, block number or hash, transaction or'
-            ' public key hash, or chain name:</p>\n'
-            '<form action="', page['dotdot'], 'search"><p>\n'
-            '<input name="q" size="64" value="', escape(q), '" />'
-            '<button type="submit">Search</button>\n'
-            '<br />Address or hash search requires at least the first ',
-            HASH_PREFIX_MIN, ' characters.</p></form>\n']
+            ' public key hash, or chain name:</label></p>'
+            '<form class="form-inline" action="', page['dotdot'], 'search"><p>\n'
+            '<div class="form-group">'
+            '<input id="search1" type="text" name="q" size="64" value="', escape(q), '" />'
+            '<button type="submit" class="btn btn-default">Search</button>\n'
+            '<p class="help-block">Address or hash search requires at least the first ',
+            HASH_PREFIX_MIN, ' characters.</p></div></form>\n']
+# MULTICHAIN END
 
     def handle_search(abe, page):
         page['title'] = 'Search'
