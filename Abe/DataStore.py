@@ -512,6 +512,56 @@ class DataStore(object):
         store.log.debug("Falling back to default (Bitcoin) policy.")
         return Chain.create(store.default_chain)
 
+# MULTICHAIN START
+    def get_url_by_chain(store, chain):
+        dirname = store.get_dirname_by_id(chain.id)
+        conffile = chain.datadir_conf_file_name
+        conffile = os.path.join(dirname, conffile)
+        try:
+            conf = dict([line.strip().split("=", 1)
+                         if "=" in line
+                         else (line.strip(), True)
+                         for line in open(conffile)
+                         if line != "" and line[0] not in "#\r\n"])
+        except Exception, e:
+            store.log.error("failed to load %s: %s", conffile, e)
+            return None
+
+        rpcuser     = conf.get("rpcuser", "")
+        rpcpassword = conf["rpcpassword"]
+        rpcconnect  = conf.get("rpcconnect", "127.0.0.1")
+        rpcport     = conf.get("rpcport", chain.datadir_rpcport)
+        url = "http://" + rpcuser + ":" + rpcpassword + "@" + rpcconnect \
+            + ":" + str(rpcport)
+        return url
+
+    def get_multichain_name_by_id(store, chain_id):
+        dirname = store.get_dirname_by_id( chain_id)
+        if dirname is None:
+            return None
+        return os.path.basename(dirname)
+
+    def get_dirname_by_id(store, chain_id):
+        '''
+        Get the chain name of a multichain network, given the chain id.
+        :param store:
+        :param chain_id:
+        :return:
+        '''
+        chain_id = int(chain_id)
+        row = store.selectrow("""
+                SELECT dirname
+                  FROM datadir
+                 WHERE chain_id = ?""", (chain_id,))
+        if row is None:
+            return None
+        dirname, = row
+        return dirname
+
+
+# MULTICHAIN END
+
+
     def get_ddl(store, key):
         return store._ddl[key]
 
