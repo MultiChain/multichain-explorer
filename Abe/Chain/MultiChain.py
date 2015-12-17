@@ -19,6 +19,7 @@ from .Sha256Chain import Sha256Chain
 class MultiChain(Sha256Chain):
     def __init__(chain, **kwargs):
         chain.name = 'MultiChain'
+        chain.dirname = ''
         chain.code3 = '???'
         # MultiChain handshake is randomly created, so use Bitcoin compatible network settings as the default.
         chain.address_version = '\x00'
