@@ -88,9 +88,9 @@ DEFAULT_TEMPLATE = """
     </p>
     </div>
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="%(dotdot)s%(STATIC_PATH)sjs/jquery-1.11.3.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="js/bootstrap.min.js"></script>
+    <script src="%(dotdot)s%(STATIC_PATH)sjs/bootstrap.min.js"></script>
 </body>
 </html>
 """
@@ -314,6 +314,7 @@ class Abe:
 # MULTICHAIN START
             '<table class="table table-striped">\n',
             '<tr><th>Chain</th><th>Code</th><th>Block</th><th>Time</th>',
+            '<th>Assets</th>'
 # MULTICHAIN END
             '<th>Started</th><th>Age (days)</th><th>Coins Created</th>',
             '<th>Avg Coin Age</th><th>',
@@ -338,6 +339,23 @@ class Abe:
                 abe.log.warning("Store does not know chain: %s", name)
                 continue
 
+# MULTICHAIN START
+            url = abe.store.get_url_by_chain(chain)
+            multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+            num_assets = 0
+            try:
+                resp = util.jsonrpc(multichain_name, url, "listassets")
+                num_assets = len(resp)
+            except util.JsonrpcException as e:
+                #msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+                #if e.code != -5:  # -5: transaction not in index.
+                num_assets = -1
+                pass
+            except IOError as e:
+                num_assets = -1
+
+# MULTICHAIN END
+
             body += [
                 '<tr><td><a href="chain/', escape(name), '">',
                 escape(name), '</a></td><td>', escape(chain.code3), '</td>']
@@ -349,6 +367,16 @@ class Abe:
                 body += [
                     '<td><a href="block/', hash, '">', height, '</a></td>',
                     '<td>', format_time(nTime), '</td>']
+
+# MULTICHAIN START
+                body += '<td>'
+                if chain.__class__.__name__ is "MultiChain":
+                    if num_assets == -1:
+                        body += '<span class="label label-danger">No Connection</span>'
+                    elif num_assets>=0:
+                        body += ['<a href="assets/%d">' % int(chain.id), num_assets, '</a>']
+                body += '</td>'
+# MULTICHAIN END
 
                 if row[6] is not None and row[7] is not None:
                     (seconds, satoshis, ss, total_ss) = (
@@ -505,7 +533,7 @@ class Abe:
         #extra = True
         body += ['<p>', nav, '</p>\n',
 # MULTICHAIN START
-                 '<table class="table table-striped"><tr><th>Block</th><th>Approx. Time</th>',
+                 '<table class="table table-striped"><tr><th>Block</th><th>Miner</th><th>Approx. Time</th>',
 # MULTICHAIN END
                  '<th>Transactions</th><th>Value Out</th>',
                  '<th>Difficulty</th><th>Outstanding</th>',
@@ -537,10 +565,27 @@ class Abe:
             else:
                 percent_destroyed = '%5g%%' % (100.0 - (100.0 * ss / total_ss))
 
+# MULTICHAIN START
+            miner_address = ''
+            miner_block = None
+            try:
+                miner_block = abe.store.export_block(chain, block_number=height)
+            except DataStore.MalformedHash:
+                pass
+
+            if miner_block is not None:
+                miner_txout = miner_block['transactions'][0]['out'][0]
+                miner_address = abe.format_addresses(miner_txout, page['dotdot'], chain)
+                miner_address = miner_address[0:6]
+# MULTICHAIN END
+
             body += [
                 '<tr><td><a href="', page['dotdot'], 'block/',
                 abe.store.hashout_hex(hash),
                 '">', height, '</a>'
+# MULTICHAIN START
+                '</td><td>', miner_address,
+# MULTICHAIN END
                 '</td><td>', format_time(int(nTime)),
                 '</td><td>', num_tx,
                 '</td><td>', format_satoshis(value_out, chain),
@@ -576,7 +621,9 @@ class Abe:
                 in_longest = cc['in_longest']
 
         if in_longest:
-            page['title'] = [escape(chain.name), ' ', b['height']]
+# MULTICHAIN START
+            page['title'] = [escape(chain.name), ' - Block ', b['height']]
+# MULTICHAIN END
             page['h1'] = ['<a href="', page['dotdot'], 'chain/',
                           escape(chain.name), '?hi=', b['height'], '">',
                           escape(chain.name), '</a> ', b['height']]
@@ -589,7 +636,17 @@ class Abe:
         is_stake_block = is_stake_chain and b['is_proof_of_stake']
 
 # MULTICHAIN START
-        body += ['<h3>Summary</h3>\n']
+        if b['hashPrev'] is not None or b['next_block_hashes'] is not None:
+            body += ['<nav><ul class="pager">']
+            if b['hashPrev'] is not None:
+                body += ['<li class="previous"><a href="', dotdotblock,
+                     b['hashPrev'], '"><span aria-hidden="true">&larr;</span> Older</a></li>']
+            if b['next_block_hashes']:
+                body += ['<li class="next"><a href="', dotdotblock, b['next_block_hashes'][0], '">Newer<span aria-hidden="true">&rarr;</span></a></li>']
+            body += ['</ul></nav>']
+
+
+        body += ['<h3>Block Summary</h3>\n']
         body += ['<table class="table table-bordered table-condensed">']
 
         if is_stake_chain:
@@ -609,6 +666,11 @@ class Abe:
             body += ['</tr>']
 
         body += html_keyvalue_tablerow('Height', b['height'] if b['height'] is not None else '')
+
+        miner_txout = b['transactions'][0]['out'][0]
+        miner_address = abe.format_addresses(miner_txout, page['dotdot'], chain)
+        body += html_keyvalue_tablerow('Miner', miner_address)
+
         body += html_keyvalue_tablerow('Version', b['version'])
         body += html_keyvalue_tablerow('Transaction Merkle Root', b['hashMerkleRoot'])
         body += html_keyvalue_tablerow('Time', b['nTime'] , ' (' , format_time(b['nTime']) , ')')
@@ -679,6 +741,10 @@ class Abe:
         body += '</table>\n'
 
     def handle_block(abe, page):
+
+        z = page['env']['PATH_INFO']
+        abe.store.log.debug(">>> HANDLE_BLOCK CALLED WITH PATH_INFO = %s" % z)
+
         block_hash = wsgiref.util.shift_path_info(page['env'])
         if block_hash in (None, '') or page['env']['PATH_INFO'] != '':
             raise PageNotFound()
@@ -697,6 +763,13 @@ class Abe:
         if tx_hash in (None, '') or page['env']['PATH_INFO'] != '':
             raise PageNotFound()
 
+# MULTICHAIN START
+        output_json = False
+        if tx_hash.endswith('.json'):
+            tx_hash = tx_hash[:-5]
+            output_json = True
+# MULTICHAIN END
+
         tx_hash = tx_hash.lower()  # Case-insensitive, BBE compatible
         page['title'] = ['Transaction ', tx_hash[:10], '...', tx_hash[-4:]]
         body = page['body']
@@ -704,6 +777,12 @@ class Abe:
         if not is_hash_prefix(tx_hash):
             body += ['<p class="error">Not a valid transaction hash.</p>']
             return
+
+# MULTICHAIN START
+        if output_json:
+            body += ['<p class="error">JSON output not yet implemented.</p>']
+            return
+# MULTICHAIN END
 
         try:
             # XXX Should pass chain to export_tx to help parse scripts.
@@ -782,7 +861,11 @@ class Abe:
                                      (tx['value_in'] and tx['value_out'] and
                                       tx['value_in'] - tx['value_out']), chain))
         body += ['</table>']
-        body += ['<p class="text-right"><a href="../rawtx/', tx['hash'], '">Raw transaction</a></p>']
+        body += ['<p class="text-right">']
+        body += [' <a role="button" class="btn btn-default btn-xs" href="../rawtx/', tx['hash'], '">Bitcoin JSON</a>']
+        body += [' <a role="button" class="btn btn-default btn-xs" href="../rpctxjson/', tx['hash'], '">MultiChain JSON</a>']
+        body += [' <a role="button" class="btn btn-default btn-xs" href="../rpctxraw/', tx['hash'], '">MultiChain Hex</a>']
+        body += ['</p>']
 # MULTICHAIN END
 
 # MULTICHAIN START
@@ -809,6 +892,268 @@ class Abe:
 
     def handle_rawtx(abe, page):
         abe.do_raw(page, abe.do_rawtx)
+
+# MULTICHAIN START
+
+    # Experimental handler, so we can show permissions
+    def handle_mcaddress(abe, page):
+        # Shift chain id
+        chain_id = wsgiref.util.shift_path_info(page['env'])
+        if chain_id in (None, ''):
+            raise PageNotFound()
+
+        chain = abe.store.get_chain_by_id(chain_id)
+        if chain is None:
+            raise PageNotFound()
+
+        # Shift asset ref
+        address = wsgiref.util.shift_path_info(page['env'])
+        if address in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+
+        #page['content_type'] = 'text/html'
+        page['title'] = "Address " + address
+        body = page['body']
+
+        url = abe.store.get_url_by_chain(chain)
+        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+
+        # If the HTML link for this handler gets only created for MultiChain networks, we don't need to check class.
+        #if chain.__class__.__name__ is "MultiChain":
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listpermissions", "all", address)
+            s = json.dumps(resp, sort_keys=True, indent=2)
+            body += ['<h3>Permissions</h3><pre>', s, '</pre>']
+        except util.JsonrpcException as e:
+            msg= "Failed to get permissions for address: JSON-RPC error({0}): {1}".format(e.code, e.message)
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+            #return s
+        except IOError as e:
+            msg= "Failed to get permissions for address: I/O error({0}): {1}".format(e.errno, e.strerror)
+            body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
+            #page['title'] = 'IO ERROR'
+            #return s
+
+    # Given an asset reference, display info about asset.
+    def handle_assetref(abe, page):
+        # Shift chain id
+        chain_id = wsgiref.util.shift_path_info(page['env'])
+        if chain_id in (None, ''):
+            raise PageNotFound()
+
+        chain = abe.store.get_chain_by_id(chain_id)
+        if chain is None:
+            raise PageNotFound()
+
+        # Shift asset ref
+        assetref = wsgiref.util.shift_path_info(page['env'])
+        if assetref in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+
+        #page['content_type'] = 'text/html'
+        page['title'] = chain.name
+        body = page['body']
+
+        url = abe.store.get_url_by_chain(chain)
+        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+
+        # get block height from assetref
+        m = re.search('^(\d+)-\d+-\d+$', assetref)
+        height = int(m.group(1))
+
+        # ...so no need to export block
+        # try:
+        #     b = abe.store.export_block(chain, block_number=height)
+        # except DataStore.MalformedHash:
+        #     body += ['<p class="error">Not in correct format.</p>']
+        #     return
+        # if b is None:
+        #     body += ['<p class="error">Block not found.</p>']
+        #     return
+
+        # get asset information and issue tx as json
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listassets", assetref)
+            asset = resp[0]
+            issuetxid = asset['issuetxid']
+            resp = util.jsonrpc(multichain_name, url, "getrawtransaction", issuetxid, 1)
+            issuetx = resp
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            #if e.code != -5:  # -5: transaction not in index.
+            # JSON-RPC error(-8): Asset with this reference not found: 5-264-60087
+            body += [ msg ]
+            return
+        except IOError as e:
+            msg = "Network connection error"
+            body += [ msg ]
+            return
+
+        blocktime = issuetx['blocktime']
+        blockhash = issuetx['blockhash']
+        raw_units = issuetx['vout'][0]['assets'][0]['raw']
+        display_qty = issuetx['vout'][0]['assets'][0]['qty']
+        name = issuetx['vout'][0]['assets'][0]['name']
+        address_to = issuetx['vout'][0]['scriptPubKey']['addresses'][0]
+        address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
+        native_amount = issuetx['vout'][0]['value']
+
+        body += ['<h3>Asset Summary "' + name.capitalize() + '"</h3>\n']
+        body += ['<table class="table table-bordered table-condensed">']
+
+        body += html_keyvalue_tablerow('Issue Block Height', '<a href="../../block/', blockhash, '">', height, '</a>')
+#                                                                                                                '' b['height'] if b['height'] is not None else '')
+        body += html_keyvalue_tablerow('Issue Block Time', blocktime , ' (' , format_time(blocktime) , ')')
+        body += html_keyvalue_tablerow('Issue TXID', '<a href="../../tx/' + issuetxid + '">', issuetxid, '</a>')
+        body += html_keyvalue_tablerow('Asset Reference', '<a href="../../assetref/' + chain_id + '/' + assetref + '">' + assetref + '</a>')
+        body += html_keyvalue_tablerow('Name', '<a href="../../assetref/' + chain_id + '/' + assetref + '">' + name + '</a>')
+        body += html_keyvalue_tablerow('Raw units issued', raw_units)
+        body += html_keyvalue_tablerow('Display quantity', display_qty)
+        body += html_keyvalue_tablerow('Native amount sent', format_satoshis(native_amount, chain))
+        body += html_keyvalue_tablerow('Issuer Address', '<a href="../../mcaddress/' + chain_id + '/' + address_from + '">', address_from, '</a>')
+        body += html_keyvalue_tablerow('Recipient Address ', '<a href="../../mcaddress/' + chain_id + '/' + address_to + '">', address_to, '</a>')
+        body += ['</table>']
+
+        #body += ['<h3>', asset['name'], '(Asset Reference ', assetref, ')', '</h3>']
+        body += ['<p class="text-right">']
+        body += ['<button href="#RawJson" class="btn btn-default btn-xs" data-toggle="collapse">MultiChain JSON</button>']
+        body += ['<div id="RawJson" class="collapse"><pre>', json.dumps(resp, sort_keys=True, indent=2), '</pre></div></p>']
+        #body += [' <a role="button" class="btn btn-default btn-xs" href="../rawtx/', tx['hash'], '">Bitcoin JSON</a>']
+
+    # Page to show the assets that exist on a chain
+    def handle_assets(abe, page):
+        chain_id = wsgiref.util.shift_path_info(page['env'])
+        if chain_id in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+        chain = abe.store.get_chain_by_id(chain_id)
+        if chain is None:
+            raise PageNotFound()
+
+        page['content_type'] = 'text/html'
+        page['title'] = chain.name
+        body = page['body']
+
+        url = abe.store.get_url_by_chain(chain)
+        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+        num_assets = 0
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listassets")
+            num_assets = len(resp)
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            #if e.code != -5:  # -5: transaction not in index.
+            body += [ msg ]
+            return
+        except IOError as e:
+            msg = "Network connection error"
+            body += [ msg ]
+            return
+
+        if num_assets is 0:
+            body += [ "No assets issued"]
+            return
+
+        body += ['<h3>Assets</h3>']
+
+        body += ['<table class="table table-striped"><tr><th>Asset Name</th><th>Asset Reference</th>'
+                 '<th>Genesis Transaction</th><th>Multiple</th><th>Units</th><th>Details</th>'
+                 '<th>Display Quantity</th><th>Issue Raw Quantity</th>'
+                 '</tr>']
+
+        for asset in resp:
+            num_keys = len(asset['details'])
+            details = str(asset['details']) if num_keys > 0 else ''
+            issueqty = str(asset['issueqty'])
+            issueraw = str(asset['issueraw'])
+            body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'] + '</a>',
+                     '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
+                     '</td><td><a href="../../tx/' + asset['issuetxid'] + '">',
+                     asset['issuetxid'][:20], '...</a>',
+                     '</td><td>', asset['multiple'],
+                     '</td><td>', asset['units'],
+                     '</td><td>', details,
+                     '</td><td>', issueqty,
+                     '</td><td>', issueraw,
+                     '</td></tr>']
+
+        body += ['</table>']
+
+    # Experimental handler for getting json and raw hex data from RPC calls
+    def do_rpc(abe, page, func):
+        page['content_type'] = 'text/plain; charset="UTF-8"'
+
+        # this removes the standard html template
+        #page['template'] = '%(body)s'
+
+        page['body'] = func(page, page['chain'])
+
+    def handle_rpctxjson(abe, page):
+        page['decode_json']=True
+        abe.do_rpc(page, abe.do_rpc_tx)
+
+    def handle_rpctxraw(abe, page):
+        abe.do_rpc(page, abe.do_rpc_tx)
+
+    def do_rpc_tx(abe, page, chain):
+        tx_hash = wsgiref.util.shift_path_info(page['env'])
+        if tx_hash in (None, '') or page['env']['PATH_INFO'] != '' \
+                or not is_hash_prefix(tx_hash):
+            return 'ERROR: Not in correct format'  # BBE compatible
+
+        tx = abe.store.export_tx(tx_hash=tx_hash.lower(), format='browser')
+        if tx is None:
+            return 'ERROR: Transaction does not exist.'  # BBE compatible
+
+        decode_json_flag = 0
+        if page.get('decode_json', False) is True:
+            decode_json_flag = 1
+
+        chain = None
+        for tx_cc in tx['chain_candidates']:
+            if chain is None:
+                chain = tx_cc['chain']
+                #is_coinbase = (tx_cc['tx_pos'] == 0)
+            elif tx_cc['chain'].id != chain.id:
+                abe.log.warning('Transaction ' + tx['hash'] + ' in multiple chains: '
+                             + tx_cc['chain'].id + ', ' + chain.id)
+
+        chain_name = abe.store.get_multichain_name_by_id(chain.id)
+        url = abe.store.get_url_by_chain(chain)
+
+        s = ""
+        # s = ("chain: %r" % chain)
+        # s += "\nchain.name = %s" % chain.name
+        # s += "\nchain.code3 = %s" % chain.code3
+        # s += "\nchain.id = %s" % chain.id
+        # s += "\nchain.datadir_conf_file_name = %s" % chain.datadir_conf_file_name
+        # s += "\nchain_name = %s" % chain_name
+        # s += "\nurl = %s" % url
+
+        try:
+            resp = util.jsonrpc(chain_name, url, "getrawtransaction", tx_hash, decode_json_flag)
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            #if e.code != -5:  # -5: transaction not in index.
+            s = '<div class="alert alert-danger" role="warning">' + msg + '</div>'
+            page['content_type'] = 'text/html'
+            return s
+        except IOError as e:
+            msg= "I/O error({0}): {1}".format(e.errno, e.strerror)
+            s = '<div class="alert alert-danger" role="alert">' + msg + '</div>'
+            page['title'] = 'IO ERROR'
+            page['content_type'] = 'text/html'
+            return s
+
+        if decode_json_flag is 1:
+            s = json.dumps(resp, sort_keys=True, indent=2)
+        else:
+            s = resp
+
+        # this removes the standard html template, we are ok returning text now, no error.
+        page['template'] = '%(body)s'
+
+        return s
+# MULTICHAIN END
 
     def do_rawtx(abe, page, chain):
         tx_hash = wsgiref.util.shift_path_info(page['env'])
