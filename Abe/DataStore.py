@@ -2521,6 +2521,11 @@ store._ddl['txout_approx'],
         if script_type in (Chain.SCRIPT_TYPE_ADDRESS, Chain.SCRIPT_TYPE_P2SH):
             return store.pubkey_hash_to_id(data)
 
+# MULTICHAIN START
+        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN:
+            return store.pubkey_hash_to_id(data)
+# MULTICHAIN END
+
         if script_type == Chain.SCRIPT_TYPE_PUBKEY:
             return store.pubkey_to_id(chain, data)
 
