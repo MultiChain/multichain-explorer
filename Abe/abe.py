@@ -37,6 +37,10 @@ import deserialize
 import util  # Added functions.
 import base58
 
+# MULTICHAIN START
+import Chain
+# MULTICHAIN END
+
 __version__ = version.__version__
 # MULTICHAIN START
 ABE_APPNAME = "MultiChain Explorer"
@@ -705,8 +709,57 @@ class Abe:
 # MULTICHAIN END
 
         for tx in b['transactions']:
-            body += ['<tr><td><a href="../tx/' + tx['hash'] + '">',
-                     tx['hash'][:10], '...</a>'
+# MULTICHAIN START
+            # Describe MultiChain specific transaction
+            label = None
+            labeltype = 'success'
+            try:
+                mytx = abe.store.export_tx(tx_hash = tx['hash'], format = 'browser')
+            except DataStore.MalformedHash:
+                mytx = None
+
+            if mytx is not None:
+                for txout in mytx['out']:
+                    if label is not None:
+                        # we have found the main purpose of this tx
+                        break
+                    script_type, data = chain.parse_txout_script(txout['binscript'])
+                    if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                        data = util.get_multichain_op_drop_data(txout['binscript'])
+                        if data is not None:
+                            opdrop_type, val = util.parse_op_drop_data(data)
+                            if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                                label = 'Issue Asset'
+                            elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                                label = 'Send Asset'
+                            elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
+                                label = 'Update Permissions'
+                            else:
+                                label = 'Unrecognized OP_DROP command'
+                                labeltype = 'danger'
+                        else:
+                            label = 'Unrecognized MultiChain command'
+                            labeltype = 'danger'
+
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+                        opreturn_type, val = util.parse_op_return_data(data)
+                        if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
+                            label = 'Issue Asset'
+                        #else:
+                            #Do nothing
+                            #label = 'Unrecognized OP_RETURN metadata'
+
+            if label is None:
+                labelclass = ''
+            else:
+                labelclass='class="' + labeltype + '"'
+            body += ['<tr ' + labelclass + '><td><a href="../tx/' + tx['hash'] + '">',
+                     tx['hash'][:10], '...</a>']
+
+            if label is not None:
+                body += ['<div><span class="label label-' + labeltype + '">', label, '</span></div>']
+            body += [
+# MULTICHAIN END
                      '</td><td>', format_satoshis(tx['fees'], chain),
                      '</td><td>', tx['size'] / 1000.0,
                      '</td><td>']
@@ -817,7 +870,88 @@ class Abe:
                 '<td>', format_satoshis(row['value'], chain), '</td>\n',
                 '<td>', abe.format_addresses(row, '../', chain), '</td>\n']
             if row['binscript'] is not None:
-                body += ['<td>', escape(decode_script(row['binscript'])), '</td>\n']
+# MULTICHAIN START
+                body += ['<td>', escape(decode_script(row['binscript'])) ]
+
+                msg = None
+                msgtype = 'success'
+                script_type, data = chain.parse_txout_script(row['binscript'])
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                    # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
+                    data = util.get_multichain_op_drop_data(row['binscript'])
+                    if data is not None:
+                        opdrop_type, val = util.parse_op_drop_data(data)
+                        label = util.get_op_drop_type_description(opdrop_type)
+                        if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                            msg = "MultiChain: Issue %d units of new asset" % val
+                        elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                            quantity = val['quantity']
+                            assetref = val['assetref']
+                            link = '<a href="../../assetref/' + chain.id + '/' + assetref + '">' + assetref + '</a>'
+                            msg = "MultiChain: Send %d units of asset %s" % (quantity, assetref)
+                        elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
+                            msg = "MultiChain: " + val['type'].capitalize() + " "
+
+                            if val['all'] is True:
+                                msg += ' all permissions'
+                            else:
+                                permissions = []
+                                if val['connect']:
+                                    permissions += ['Connect']
+                                if val['send']:
+                                    permissions += ['Send']
+                                if val['receive']:
+                                    permissions += ['Receive']
+                                if val['issue']:
+                                    permissions += ['Issue']
+                                if val['mine']:
+                                    permissions += ['Mine']
+                                if val['admin']:
+                                    permissions += ['Admin']
+
+                                msg += ' permission to '
+                                msg += ', '.join("{}".format(item) for item in permissions)
+
+                            if val['type'] is 'grant' and (val['endblock']!=0 or val['endblock']!=4294967295):
+                                msg += ' (block range {} - {})'.format(val['startblock'], val['endblock'])
+                            #msg += 'Revok ' if val['type'] is 'revoke
+                            #msg += ', '.join("{!s}={!r}".format(k,v) for (k,v) in val.iteritems())
+                        else:
+                            msg = 'Unrecognized MultiChain command'
+                            msgtype = 'danger'
+
+                        # msg += '<p/>'
+                        # msg += util.long_hex(data)
+
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+                    opreturn_type, val = util.parse_op_return_data(data)
+                    label = util.get_op_return_type_description(opreturn_type)
+                    if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
+                        msg = 'MultiChain: Asset metadata'
+                        msg += '<p>'
+                        msg += 'Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
+                        fields = val['fields']
+                        if len(fields)>0:
+                            msg += ', '
+                            msg += ', '.join("{}={}".format(k.capitalize(),v) for (k,v) in fields.iteritems())
+                            # {!s}={!r} creates single quotes around data
+                    elif is_coinbase:
+                        msg = 'MultiChain: Miner block signature'
+                        msgtype = 'info'
+                    else:
+                        msg = 'Unrecognized MultiChain metadata'
+                        msgtype = 'danger'
+                        # msg += '<p/>'
+                        # msg += util.long_hex(data)
+
+                # Add MultiChain HTML
+                if msg is not None:
+                    body += ['<div class="alert alert-'+msgtype+'" role="alert">',
+                             msg,
+                             '</div>']
+
+                body += [ '</td>\n']
+# MULTICHAIN END
             body += ['</tr>\n']
 
         body += abe.short_link(page, 't/' + hexb58(tx['hash'][:14]))
@@ -1061,8 +1195,9 @@ class Abe:
                  '</tr>']
 
         for asset in resp:
-            num_keys = len(asset['details'])
-            details = str(asset['details']) if num_keys > 0 else ''
+# MULTICHAIN START
+            details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
+# MULTICHAIN END
             issueqty = str(asset['issueqty'])
             issueraw = str(asset['issueraw'])
             body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'] + '</a>',

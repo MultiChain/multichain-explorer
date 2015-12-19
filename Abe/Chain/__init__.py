@@ -30,6 +30,11 @@ MAX_MULTISIG_KEYS = 3
 # Template to match a MultiChain permission or asset transaction which puts a payload before OP_DROP
 SCRIPT_MULTICHAIN_TEMPLATE = [
     opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG, opcodes.OP_PUSHDATA4, opcodes.OP_DROP ]
+
+# Matches all opcodes < PUSHDATA4
+# See: https://en.bitcoin.it/wiki/Script
+SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE = [ opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
+
 # MULTICHAIN END
 
 # Template to match a pubkey hash ("Bitcoin address transaction") in
@@ -55,6 +60,7 @@ SCRIPT_TYPE_MULTISIG = 5
 SCRIPT_TYPE_P2SH = 6
 # MULTICHAIN START
 SCRIPT_TYPE_MULTICHAIN = 7
+SCRIPT_TYPE_MULTICHAIN_OP_RETURN = 8
 # MULTICHAIN END
 
 
@@ -201,11 +207,17 @@ class BaseChain(object):
                 return SCRIPT_TYPE_ADDRESS, pubkey_hash
 
 # MULTICHAIN START
-# Return script type and address
+        # Return script type and address
         elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
             pubkey_hash = decoded[2][1]
             if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
                 return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
+
+        # Return script type and metadata byte array
+        elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):
+            metadata = decoded[1][1]
+            return SCRIPT_TYPE_MULTICHAIN_OP_RETURN, metadata
+
 # MULTICHAIN END
 
         elif deserialize.match_decoded(decoded, SCRIPT_PUBKEY_TEMPLATE):

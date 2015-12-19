@@ -22,6 +22,12 @@
 import re
 import base58
 import Crypto.Hash.SHA256 as SHA256
+# MULTICHAIN START
+import binascii
+import struct
+import deserialize
+import Chain
+# MULTICHAIN END
 
 try:
     import Crypto.Hash.RIPEMD160 as RIPEMD160
@@ -208,3 +214,146 @@ def hex2b(s):
     return s.decode('hex')
 def b2hex(b):
     return b.encode('hex')
+
+# MULTICHAIN START
+OP_DROP_TYPE_UNKNOWN = 0
+OP_DROP_TYPE_ISSUE_ASSET = 1
+OP_DROP_TYPE_SEND_ASSET = 2
+OP_DROP_TYPE_PERMISSION = 3
+
+OP_RETURN_TYPE_UNKNOWN = 0
+OP_RETURN_TYPE_ISSUE_ASSET = 1
+
+def get_op_drop_type_description(t):
+    if t == OP_DROP_TYPE_ISSUE_ASSET:
+        return "Issue Asset"
+    elif t == OP_DROP_TYPE_SEND_ASSET:
+        return "Send Asset"
+    elif t == OP_DROP_TYPE_PERMISSION:
+        return "Permission"
+    return "Unrecognized Command"
+
+def get_op_return_type_description(t):
+    if t == OP_RETURN_TYPE_ISSUE_ASSET:
+        return "Issue Asset"
+    return "Unrecognized Metadata"
+
+
+# https://docs.python.org/2/library/struct.html
+def parse_op_drop_data(data):
+    '''
+    Return TYPE, DATA where the format of DATA depends on TYPE.
+
+    * OP_DROP_TYPE_ISSUE_ASSET - DATA is the quantity of raw units issued
+    * OP_DROP_TYPE_SEND_ASSET  - DATA is a dictionary of key values: asset reference, quantity
+    * OP_DROP_TYPE_PERMISSION  -  DATA is a dictionary of key values: Permission flags, type (grant/revoke), block range, time
+
+    :param data:
+    :return:
+    '''
+    # print "parse_op_drop_data: = %s" % binascii.hexlify(data)
+    rettype = OP_DROP_TYPE_UNKNOWN
+    retval = None
+    if data[0:4]==bytearray.fromhex(u'73706b67'):
+        (qty,) = struct.unpack("<Q",data[4:12]);
+        rettype = OP_DROP_TYPE_ISSUE_ASSET
+        retval = qty
+    elif data[0:4]==bytearray.fromhex(u'73706b71'):
+        # prefix: if txid begins ce8a..., 0x8ace = 35534 is the correct prefix.
+        (block,offset,prefix,quantity) = struct.unpack("<LLHQ", data[4:])
+        assetref = "%d-%d-%d" % (block,offset,prefix)
+        #print "ASSET SENT %d-%d-%d QTY %d" % (block,offset,prefix,quantity)
+        rettype = OP_DROP_TYPE_SEND_ASSET
+        retval = {'assetref':assetref, 'quantity':quantity}
+    elif data[0:4]==bytearray.fromhex(u'73706b70'):
+        # 4 byte bitmap uint32, uint32 from, unit32 to, uint32 timestamp
+        # bitmap connect=1, send=2, receive=4, issue=16, mine=256, admin=4096.
+        (bitmap, block_from, block_to, timestamp) = struct.unpack("<LLLL", data[4:])
+        revoke = True if block_from==0 and block_to==0 else False
+        # print "op_drop payload is ", long_hex(data[4:])
+        # print "bitmap %s, %d-%d, time %d" % (str(bin(bitmap))[2:], block_from, block_to, timestamp)
+        # literal d = {'x':obj}
+        connect = (bitmap & 1) > 0
+        send = (bitmap & 2) > 0
+        receive = (bitmap & 4) > 0
+        issue = (bitmap & 16) > 0
+        mine = (bitmap & 256) > 0
+        admin = (bitmap & 4096) > 0
+        allsum = 1+2+4+16+256+4096
+        all = (bitmap & allsum) == allsum
+        rettype = OP_DROP_TYPE_PERMISSION
+        retval = {'connect':connect, 'send':send, 'receive':receive, 'issue':issue, 'mine':mine, 'admin':admin,
+                  'all':all,
+                  'type':'revoke' if revoke is True else 'grant',
+                  'startblock':block_from, 'endblock':block_to}
+    return rettype, retval
+
+def parse_op_return_data(data):
+    '''
+    Return TYPE, DATA where the format of DATA depends on TYPE.
+
+    * OP_RETURN_TYPE_ISSUE_ASSET  - DATA is a dictionary of key values: multiplier, name
+
+    :param data:
+    :return:
+    '''
+    rettype = OP_RETURN_TYPE_UNKNOWN
+    retval = None
+    if data[0:4]==bytearray.fromhex(u'53504b61'):
+        (multiplier,) = struct.unpack("<L", data[4:8])
+        pos = 8
+        searchdata = data[pos:]
+        assetname= searchdata[:searchdata.index("\0")]
+        pos = pos + len(assetname) + 1
+
+        # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
+        fields = dict()
+        while pos<len(data):
+            searchdata = data[pos:]
+            fname = searchdata[:searchdata.index("\0")]
+            # print "field name: ", fname, " field name len: ", len(fname)
+            pos = pos + len(fname) + 1
+            # print "pos of vle: ", pos
+            #subdata = subdata[len(fname):]
+
+            flen = ord(data[pos:pos+1])
+            pos += 1
+            # print "pos of payload: ", pos
+            if flen == 253:
+                (size,) = struct.unpack('<H', subdata[1:])
+                flen = size
+                pos += 2
+            elif flen == 254:
+                (size,) = struct.unpack('<I', subdata[1:])
+                flen = size
+                pos += 4
+            elif flen == 255:
+                (size,) = struct.unpack('<Q', subdata[1:])
+                flen = size
+                pos += 8
+            # print "pos of payload: ", pos
+            # print "payload length: ", flen
+            fields[fname]=data[pos:pos+flen]
+            pos += flen
+
+        rettype = OP_RETURN_TYPE_ISSUE_ASSET
+        retval = {'multiplier':multiplier, 'name':str(assetname), 'fields':fields}
+
+    return rettype, retval
+
+def get_multichain_op_drop_data(script):
+    '''
+    Get OP DROP data.
+    :param script: script byte data
+    :return:
+    '''
+    try:
+        decoded = [x for x in deserialize.script_GetOp(script)]
+    except Exception:
+        return None
+    data = None
+    if deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_TEMPLATE):
+        data = decoded[5][1]
+    return data
+
+# MULTICHAIN END
