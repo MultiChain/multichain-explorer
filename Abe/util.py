@@ -260,7 +260,8 @@ def parse_op_drop_data(data):
         retval = qty
     elif data[0:4]==bytearray.fromhex(u'73706b71'):
         # prefix: if txid begins ce8a..., 0x8ace = 35534 is the correct prefix.
-        (block,offset,prefix,quantity) = struct.unpack("<LLHQ", data[4:])
+        # TODO: multiple assets... extra data after 18 bytes so must set correct end position.
+        (block,offset,prefix,quantity) = struct.unpack("<LLHQ", data[4:4+18])
         assetref = "%d-%d-%d" % (block,offset,prefix)
         #print "ASSET SENT %d-%d-%d QTY %d" % (block,offset,prefix,quantity)
         rettype = OP_DROP_TYPE_SEND_ASSET
