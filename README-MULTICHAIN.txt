@@ -19,7 +19,15 @@ Follow the MultiChain documentation to create a chain.  Skip this if you already
 
 Launch the chain to make sure it is running and that the genesis block has been found.
 
-3. Configure MCE
+3. Update multichain.conf
+
+The multichain.conf file should have a rpcuser and rpcpassword defined.  You should add the following entries:
+rpcport=1234
+address-checksum-value=11223344
+Where both values can be found in params.dat.
+In the future, we will try to automate this step (along with other manual configuration steps).
+
+4. Configure the Explorer
 
 The example MCE config files can be used as a template for your chain.
 
