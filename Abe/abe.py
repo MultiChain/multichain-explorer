@@ -887,8 +887,8 @@ class Abe:
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                             quantity = val['quantity']
                             assetref = val['assetref']
-                            link = '<a href="../../assetref/' + chain.id + '/' + assetref + '">' + assetref + '</a>'
-                            msg = "MultiChain: Send %d units of asset %s" % (quantity, assetref)
+                            link = '<a href="../../assetref/' + str(chain.id) + '/' + assetref + '">' + assetref + '</a>'
+                            msg = "MultiChain: Send %d units of asset %s" % (quantity, link)
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                             msg = "MultiChain: " + val['type'].capitalize() + " "
 
