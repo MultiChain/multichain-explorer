@@ -45,7 +45,7 @@ On a remote server:
 
 Typically you are connected to your remote server via SSH, so to avoid the connection terminating and shutting down MCE, use nohup:
 
-nohup python -m Abe.abe --config my_multichain.conf
+nohup python -m Abe.abe --config my_multichain.conf &
 
 In your browser visit:
 http://IP_address_of_server:PORT
