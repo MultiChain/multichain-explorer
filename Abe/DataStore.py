@@ -37,6 +37,11 @@ import deserialize
 import util
 import base58
 
+# MULTICHAIN START
+import binascii
+checksum_dict = {}
+# MULTICHAIN END
+
 SCHEMA_TYPE = "Abe"
 SCHEMA_VERSION = SCHEMA_TYPE + "40"
 
@@ -513,6 +518,35 @@ class DataStore(object):
         return Chain.create(store.default_chain)
 
 # MULTICHAIN START
+    def get_address_checksum_value_by_chain(store, chain):
+        '''
+        Hack to get address-checksum-value from multichain.conf.
+        Value should be copied from params.dat, as hex string, with no leading 0x
+        :param store:
+        :param chain:
+        :return:
+        '''
+        k = str(chain.id)
+        if k in checksum_dict:
+            return checksum_dict[k]
+
+        dirname = store.get_dirname_by_id(chain.id)
+        conffile = chain.datadir_conf_file_name
+        conffile = os.path.join(dirname, conffile)
+        try:
+            conf = dict([line.strip().split("=", 1)
+                         if "=" in line
+                         else (line.strip(), True)
+                         for line in open(conffile)
+                         if line != "" and line[0] not in "#\r\n"])
+        except Exception, e:
+            store.log.error("failed to load %s: %s", conffile, e)
+            return None
+
+        checksum = conf.get("address-checksum-value","00000000")
+        checksum_dict[k] = binascii.a2b_hex(checksum)
+        return checksum
+
     def get_url_by_chain(store, chain):
         dirname = store.get_dirname_by_id(chain.id)
         conffile = chain.datadir_conf_file_name

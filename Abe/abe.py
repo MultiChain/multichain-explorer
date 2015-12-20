@@ -432,16 +432,21 @@ class Abe:
         return abe.store.get_default_chain()
 
     def format_addresses(abe, data, dotdot, chain):
+# MULTICHAIN START
+        checksum = abe.store.get_address_checksum_value_by_chain(chain)
+# MULTICHAIN END
         if data['binaddr'] is None:
             return 'Unknown'
         if 'subbinaddr' in data:
             # Multisig or known P2SH.
-            ret = [hash_to_address_link(chain.script_addr_vers, data['binaddr'], dotdot, text='Escrow'),
+# MULTICHAIN START
+            ret = [hash_to_address_link(chain.script_addr_vers, data['binaddr'], dotdot, text='Escrow', checksum=checksum),
                    ' ', data['required_signatures'], ' of']
             for binaddr in data['subbinaddr']:
-                ret += [' ', hash_to_address_link(data['address_version'], binaddr, dotdot, 10)]
+                ret += [' ', hash_to_address_link(data['address_version'], binaddr, dotdot, 10, checksum=checksum)]
             return ret
-        return hash_to_address_link(data['address_version'], data['binaddr'], dotdot)
+        return hash_to_address_link(data['address_version'], data['binaddr'], dotdot, checksum=checksum)
+# MULTICHAIN END
 
     def call_handler(abe, page, cmd):
         handler = abe.get_handler(cmd)
@@ -1347,7 +1352,13 @@ class Abe:
                     vers = chain.address_version
                     if page['chain'] is not None and version == page['chain'].script_addr_vers:
                         vers = chain.script_addr_vers or vers
-                    other = util.hash_to_address(vers, binaddr)
+# MULTICHAIN START
+                    checksum = abe.store.get_address_checksum_value_by_chain(chain)
+                    if checksum is None:
+                        other = util.hash_to_address(vers, binaddr)
+                    else:
+                        other = util.hash_to_address(vers, binaddr, checksum)
+# MULTICHAIN END
                     if other != address:
                         ret[-1] = ['<a href="', page['dotdot'],
                                    'address/', other,
@@ -2324,13 +2335,17 @@ def format_difficulty(diff):
         idiff = idiff / 1000
     return str(idiff) + ret
 
-def hash_to_address_link(version, hash, dotdot, truncate_to=None, text=None):
+def hash_to_address_link(version, hash, dotdot, truncate_to=None, text=None, checksum=None):
     if hash == DataStore.NULL_PUBKEY_HASH:
         return 'Destroyed'
     if hash is None:
         return 'UNKNOWN'
-    addr = util.hash_to_address(version, hash)
-
+# MULTICHAIN START
+    if checksum is None:
+        addr = util.hash_to_address(version, hash)
+    else:
+        addr = util.hash_to_address_multichain(version, hash, checksum)
+# MULTICHAIN END
     if text is not None:
         visible = text
     elif truncate_to is None:

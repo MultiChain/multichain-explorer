@@ -122,6 +122,36 @@ def hash_to_address(version, hash):
     vh = version + hash
     return base58.b58encode(vh + double_sha256(vh)[:4])
 
+# MULTICHAIN START
+def hash_to_address_multichain(version, hash, checksum):
+    '''
+    Format address the MultiChain way, with version bytes and checksum bytes.
+    http://www.multichain.com/developers/address-format/
+
+    :param version:
+    :param hash:
+    :param checksum:
+    :return:
+    '''
+    n = len(version)
+    pos = 0
+    i =0
+    vh = ''
+    while i<n:
+        vh += version[i:i+1]
+        vh += hash[pos:pos+5]
+        i = i + 1
+        pos = pos + 5
+    vh += hash[pos:]
+
+    dh = double_sha256(vh)
+    a = dh[:4]
+    b = checksum
+    newchecksum = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a, b[:len(a)])])
+    vh += newchecksum[:4]
+    return base58.b58encode(vh)
+# MULTICHAIN END
+
 def decode_check_address(address):
     if possible_address(address):
         version, hash = decode_address(address)
