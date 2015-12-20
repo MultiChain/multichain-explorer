@@ -1,3 +1,13 @@
+MultiChain Explorer (fork of ABE)
+=================================
+
+For MultiChain instructions, please see README-MULTICHAIN.txt:
+
+https://github.com/MultiChain/multichain-explorer/blob/master/README-MULTICHAIN.txt
+
+Original ABE README.txt
+=======================
+
 Abe: a free block chain browser for Bitcoin-based currencies.
 https://github.com/bitcoin-abe/bitcoin-abe
 
