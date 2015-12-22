@@ -275,7 +275,7 @@ def parse_op_drop_data(data):
     Return TYPE, DATA where the format of DATA depends on TYPE.
 
     * OP_DROP_TYPE_ISSUE_ASSET - DATA is the quantity of raw units issued
-    * OP_DROP_TYPE_SEND_ASSET  - DATA is a dictionary of key values: asset reference, quantity
+    * OP_DROP_TYPE_SEND_ASSET  - DATA is a list of dictionary of key values: asset reference, quantity
     * OP_DROP_TYPE_PERMISSION  -  DATA is a dictionary of key values: Permission flags, type (grant/revoke), block range, time
 
     :param data:
@@ -290,12 +290,17 @@ def parse_op_drop_data(data):
         retval = qty
     elif data[0:4]==bytearray.fromhex(u'73706b71'):
         # prefix: if txid begins ce8a..., 0x8ace = 35534 is the correct prefix.
-        # TODO: multiple assets... extra data after 18 bytes so must set correct end position.
-        (block,offset,prefix,quantity) = struct.unpack("<LLHQ", data[4:4+18])
-        assetref = "%d-%d-%d" % (block,offset,prefix)
-        #print "ASSET SENT %d-%d-%d QTY %d" % (block,offset,prefix,quantity)
+        assets = []
+        pos = 4
+        datalen=len(data)
+        while (pos+18)<=datalen:
+            (block,offset,prefix,quantity) = struct.unpack("<LLHQ", data[pos:pos+18])
+            assetref = "%d-%d-%d" % (block,offset,prefix)
+            #print "ASSET SENT %d-%d-%d QTY %d" % (block,offset,prefix,quantity)
+            assets.append( {'assetref':assetref, 'quantity':quantity} )
+            pos += 18
         rettype = OP_DROP_TYPE_SEND_ASSET
-        retval = {'assetref':assetref, 'quantity':quantity}
+        retval = assets
     elif data[0:4]==bytearray.fromhex(u'73706b70'):
         # 4 byte bitmap uint32, uint32 from, unit32 to, uint32 timestamp
         # bitmap connect=1, send=2, receive=4, issue=16, mine=256, admin=4096.

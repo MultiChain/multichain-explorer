@@ -890,10 +890,14 @@ class Abe:
                         if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                             msg = "MultiChain: Issue %d units of new asset" % val
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
-                            quantity = val['quantity']
-                            assetref = val['assetref']
-                            link = '<a href="../../assetref/' + str(chain.id) + '/' + assetref + '">' + assetref + '</a>'
-                            msg = "MultiChain: Send %d units of asset %s" % (quantity, link)
+                            msg = "Send "
+                            msgparts = []
+                            for dict in val:
+                                quantity = dict['quantity']
+                                assetref = dict['assetref']
+                                link = '<a href="../../assetref/' + str(chain.id) + '/' + assetref + '">' + assetref + '</a>'
+                                msgparts.append("%d units of asset %s" % (quantity, link))
+                            msg += ', '.join(msgparts)
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                             msg = "MultiChain: " + val['type'].capitalize() + " "
 
