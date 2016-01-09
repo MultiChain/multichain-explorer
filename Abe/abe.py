@@ -317,13 +317,17 @@ class Abe:
             abe.search_form(page),
 # MULTICHAIN START
             '<table class="table table-striped">\n',
-            '<tr><th>Chain</th><th>Code</th><th>Block</th><th>Time</th>',
+            '<tr><th>Chain</th>',
+            #'<th>Code</th>',
+            '<th>Block</th>',
+            #'<th>Time</th>',
             '<th>Assets</th>'
+            '<th>Started</th><th>Age (days)</th>',
+            #'<th>Coins Created</th>',
+            #'<th>Avg Coin Age</th><th>',
+            #'% <a href="https://en.bitcoin.it/wiki/Bitcoin_Days_Destroyed">',
+            #'CoinDD</a></th>',
 # MULTICHAIN END
-            '<th>Started</th><th>Age (days)</th><th>Coins Created</th>',
-            '<th>Avg Coin Age</th><th>',
-            '% <a href="https://en.bitcoin.it/wiki/Bitcoin_Days_Destroyed">',
-            'CoinDD</a></th>',
             '</tr>\n']
         now = time.time() - EPOCH1970
 
@@ -358,11 +362,10 @@ class Abe:
             except IOError as e:
                 num_assets = -1
 
-# MULTICHAIN END
-
             body += [
                 '<tr><td><a href="chain/', escape(name), '">',
-                escape(name), '</a></td><td>', escape(chain.code3), '</td>']
+                escape(name), '</a></td>']  #<td>', escape(chain.code3), '</td>']
+# MULTICHAIN END
 
             if row[1] is not None:
                 (height, nTime, hash) = (
@@ -370,9 +373,10 @@ class Abe:
 
                 body += [
                     '<td><a href="block/', hash, '">', height, '</a></td>',
-                    '<td>', format_time(nTime), '</td>']
-
 # MULTICHAIN START
+                    ]
+                    #'<td>', format_time(nTime), '</td>']
+
                 body += '<td>'
                 if chain.__class__.__name__ is "MultiChain":
                     if num_assets == -1:
@@ -389,30 +393,30 @@ class Abe:
                     started = nTime - seconds
                     chain_age = now - started
                     since_block = now - nTime
-
-                    if satoshis == 0:
-                        avg_age = '&nbsp;'
-                    else:
-                        avg_age = '%5g' % ((float(ss) / satoshis + since_block)
-                                           / 86400.0)
-
-                    if chain_age <= 0:
-                        percent_destroyed = '&nbsp;'
-                    else:
-                        more = since_block * satoshis
-                        denominator = total_ss + more
-                        if denominator <= 0:
-                            percent_destroyed = '&nbsp;'
-                        else:
-                            percent_destroyed = '%5g%%' % (
-                                100.0 - (100.0 * (ss + more) / denominator))
+# MULTICHAIN START
+#                     if satoshis == 0:
+#                         avg_age = '&nbsp;'
+#                     else:
+#                         avg_age = '%5g' % ((float(ss) / satoshis + since_block)
+#                                            / 86400.0)
+#                     if chain_age <= 0:
+#                         percent_destroyed = '&nbsp;'
+#                     else:
+#                         more = since_block * satoshis
+#                         denominator = total_ss + more
+#                         if denominator <= 0:
+#                             percent_destroyed = '&nbsp;'
+#                         else:
+#                             percent_destroyed = '%5g%%' % (
+#                                 100.0 - (100.0 * (ss + more) / denominator))
 
                     body += [
                         '<td>', format_time(started)[:10], '</td>',
-                        '<td>', '%5g' % (chain_age / 86400.0), '</td>',
-                        '<td>', format_satoshis(satoshis, chain), '</td>',
-                        '<td>', avg_age, '</td>',
-                        '<td>', percent_destroyed, '</td>']
+                        '<td>', "{0:.1f}".format(chain_age / 86400.0), '</td>']
+                        # '<td>', format_satoshis(satoshis, chain), '</td>',
+                        # '<td>', avg_age, '</td>',
+                        # '<td>', percent_destroyed, '</td>']
+# MULTICHAIN END
 
             body += ['</tr>\n']
         body += ['</table>\n']
