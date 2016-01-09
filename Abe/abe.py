@@ -319,7 +319,7 @@ class Abe:
             '<table class="table table-striped">\n',
             '<tr><th>Chain</th>',
             #'<th>Code</th>',
-            '<th>Block</th>',
+            '<th>Number of Blocks</th>',
             #'<th>Time</th>',
             '<th>Assets</th>'
             '<th>Started</th><th>Age (days)</th>',
@@ -372,9 +372,9 @@ class Abe:
                     int(row[1]), int(row[2]), abe.store.hashout_hex(row[3]))
 
                 body += [
-                    '<td><a href="block/', hash, '">', height, '</a></td>',
 # MULTICHAIN START
-                    ]
+                    '<td><a href="chain/', escape(name), '">', height, '</a></td>']
+                    #'<td><a href="block/', hash, '">', height, '</a></td>',                    ]
                     #'<td>', format_time(nTime), '</td>']
 
                 body += '<td>'
