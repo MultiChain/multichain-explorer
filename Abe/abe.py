@@ -322,7 +322,8 @@ class Abe:
             '<th>Blocks</th>',
             '<th>Transactions</th>',
             #'<th>Time</th>',
-            '<th>Assets</th>'
+            '<th>Assets</th>',
+            '<th>Addresses</th>',
             '<th>Peers</th>'
             '<th>Started</th><th>Age (days)</th>',
             #'<th>Coins Created</th>',
@@ -377,6 +378,14 @@ class Abe:
             if sumrow:
                 num_txs = sumrow[0]
 
+            # get num of addresses used via SQL
+            num_addresses = 0
+            countrow = abe.store.selectrow("""
+                SELECT COUNT(DISTINCT(pubkey_hash)) FROM txout_detail WHERE chain_id = ?
+            """, (chain.id,))
+            if countrow:
+                num_addresses = countrow[0]
+
             body += [
                 '<tr><td><a href="chain/', escape(name), '">',
                 escape(name), '</a></td>']  #<td>', escape(chain.code3), '</td>']
@@ -399,6 +408,9 @@ class Abe:
                         body += '<span class="label label-danger">No Connection</span>'
                     elif num_assets>=0:
                         body += ['<a href="assets/%d">' % int(chain.id), num_assets, '</a>']
+                else:
+                    body += ['<td></td>']
+                body += ['<td>', num_addresses, '</td>']
                 body += '</td>'
 # MULTICHAIN END
 
