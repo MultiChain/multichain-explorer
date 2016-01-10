@@ -320,6 +320,7 @@ class Abe:
             '<tr><th>Chain</th>',
             #'<th>Code</th>',
             '<th>Blocks</th>',
+            '<th>Transactions</th>',
             #'<th>Time</th>',
             '<th>Assets</th>'
             '<th>Peers</th>'
@@ -368,6 +369,14 @@ class Abe:
                 num_assets = -1
                 num_peers = -1
 
+            # Get num of transactions via SQL
+            num_txs = 0
+            sumrow = abe.store.selectrow("""
+                SELECT SUM(block_num_tx) FROM chain_summary WHERE chain_id = ?
+            """, (chain.id,))
+            if sumrow:
+                num_txs = sumrow[0]
+
             body += [
                 '<tr><td><a href="chain/', escape(name), '">',
                 escape(name), '</a></td>']  #<td>', escape(chain.code3), '</td>']
@@ -379,7 +388,8 @@ class Abe:
 
                 body += [
 # MULTICHAIN START
-                    '<td><a href="chain/', escape(name), '">', height, '</a></td>']
+                    '<td><a href="chain/', escape(name), '">', height, '</a></td>',
+                    '<td>', num_txs, '</td>']
                     #'<td><a href="block/', hash, '">', height, '</a></td>',                    ]
                     #'<td>', format_time(nTime), '</td>']
 
