@@ -319,9 +319,10 @@ class Abe:
             '<table class="table table-striped">\n',
             '<tr><th>Chain</th>',
             #'<th>Code</th>',
-            '<th>Number of Blocks</th>',
+            '<th>Blocks</th>',
             #'<th>Time</th>',
             '<th>Assets</th>'
+            '<th>Peers</th>'
             '<th>Started</th><th>Age (days)</th>',
             #'<th>Coins Created</th>',
             #'<th>Avg Coin Age</th><th>',
@@ -351,16 +352,21 @@ class Abe:
             url = abe.store.get_url_by_chain(chain)
             multichain_name = abe.store.get_multichain_name_by_id(chain.id)
             num_assets = 0
+            num_peers = 0
             try:
                 resp = util.jsonrpc(multichain_name, url, "listassets")
                 num_assets = len(resp)
+                resp = util.jsonrpc(multichain_name, url, "getpeerinfo")
+                num_peers = len(resp)
             except util.JsonrpcException as e:
                 #msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
                 #if e.code != -5:  # -5: transaction not in index.
                 num_assets = -1
+                num_peers = -1
                 pass
             except IOError as e:
                 num_assets = -1
+                num_peers = -1
 
             body += [
                 '<tr><td><a href="chain/', escape(name), '">',
@@ -411,6 +417,7 @@ class Abe:
 #                                 100.0 - (100.0 * (ss + more) / denominator))
 
                     body += [
+                        '<td>', num_peers, '</td>',
                         '<td>', format_time(started)[:10], '</td>',
                         '<td>', "{0:.1f}".format(chain_age / 86400.0), '</td>']
                         # '<td>', format_satoshis(satoshis, chain), '</td>',
