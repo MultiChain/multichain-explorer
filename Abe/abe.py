@@ -397,7 +397,7 @@ class Abe:
 
                 body += [
 # MULTICHAIN START
-                    '<td><a href="chain/', escape(name), '">', height, '</a></td>',
+                    '<td><a href="blocks/', escape(name), '">', height, '</a></td>',
                     '<td>', num_txs, '</td>']
                     #'<td><a href="block/', hash, '">', height, '</a></td>',                    ]
                     #'<td>', format_time(nTime), '</td>']
@@ -487,7 +487,20 @@ class Abe:
             raise PageNotFound()
         handler(page)
 
+# MULTICHAIN_START
     def handle_chain(abe, page):
+        symbol = wsgiref.util.shift_path_info(page['env'])
+        chain = abe.chain_lookup_by_name(symbol)
+        page['chain'] = chain
+
+        #page['content_type'] = 'text/html'
+        page['title'] = chain.name
+        body = page['body']
+        body += ['CHAIN SUMMARY PAGE COMING SOON']
+
+
+    def handle_blocks(abe, page):
+# MULTICHAIN_END
         symbol = wsgiref.util.shift_path_info(page['env'])
         chain = abe.chain_lookup_by_name(symbol)
         page['chain'] = chain
