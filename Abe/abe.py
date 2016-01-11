@@ -493,10 +493,55 @@ class Abe:
         chain = abe.chain_lookup_by_name(symbol)
         page['chain'] = chain
 
+        if chain is None:
+            abe.log.warning("Store does not know chain: %s", name)
+            raise PageNotFound()
+            #continue
+
         #page['content_type'] = 'text/html'
         page['title'] = chain.name
         body = page['body']
-        body += ['CHAIN SUMMARY PAGE COMING SOON']
+
+        url = abe.store.get_url_by_chain(chain)
+        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+
+        info_resp = None
+        params_resp = None
+        try:
+            info_resp = util.jsonrpc(multichain_name, url, "getinfo")
+            params_resp = util.jsonrpc(multichain_name, url, "getblockchainparams")
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+            return
+        except IOError as e:
+            msg= "I/O error({0}): {1}".format(e.errno, e.strerror)
+            body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
+            #page['title'] = 'IO ERROR'
+            return
+
+        body += ['<div class="container"><div class="row"><div class="col-md-6">']
+        body += ['<h3>General Information</h3>']
+        body += ['<table class="table table-bordered table-striped table-condensed">']
+        #body += ['<colgroup><col class="col-md-4"><col class="col-md-8"></colgroup>']
+        for k,v in sorted(info_resp.items()):
+            if k in ('nodeaddress', 'port'):
+                continue
+            if k in ('relayfee'):
+                #v = '%.8g' % v # doesn't work?
+                v = ('%.20f' % v).rstrip('0')  # so instead we force the number of decimal places and strip zeros
+            body += html_keyvalue_tablerow(k, v)
+        body += ['</table>']
+        body += ['</div><div class="col-md-6">']
+        body += ['<h3>Blockchain Parameters</h3>']
+        body += ['<table class="table table-bordered table-striped table-condensed">']
+        #body += ['<colgroup><col class="col-md-4"><col class="col-md-8"></colgroup>']
+        for k,v in sorted(params_resp.items()):
+            if k in ('default-network-port', 'default-rpc-port'):
+                continue
+            body += html_keyvalue_tablerow(k, v)
+        body += ['</table>']
+        body += ['</div></div></div>'] # col, row, container
 
 
     def handle_blocks(abe, page):
