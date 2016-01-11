@@ -640,13 +640,14 @@ class Abe:
         body += ['<p>', nav, '</p>\n',
 # MULTICHAIN START
                  '<table class="table table-striped"><tr><th>Block</th><th>Miner</th><th>Approx. Time</th>',
-# MULTICHAIN END
-                 '<th>Transactions</th><th>Value Out</th>',
-                 '<th>Difficulty</th><th>Outstanding</th>',
+                 '<th>Transactions</th>',
+                 #'<th>Value Out</th>',
+                 #'<th>Difficulty</th><th>Outstanding</th>',
                  '<th>Average Age</th><th>Chain Age</th>',
-                 '<th>% ',
-                 '<a href="https://en.bitcoin.it/wiki/Bitcoin_Days_Destroyed">',
-                 'CoinDD</a></th>',
+                 #'<th>% ',
+                 #'<a href="https://en.bitcoin.it/wiki/Bitcoin_Days_Destroyed">',
+                 #'CoinDD</a></th>',
+# MULTICHAIN END
                  ['<th>Satoshi-seconds</th>',
                   '<th>Total ss</th>']
                  if extra else '',
@@ -691,18 +692,18 @@ class Abe:
                 '">', height, '</a>'
 # MULTICHAIN START
                 '</td><td>', miner_address,
-# MULTICHAIN END
                 '</td><td>', format_time(int(nTime)),
                 '</td><td>', num_tx,
-                '</td><td>', format_satoshis(value_out, chain),
-                '</td><td>', util.calculate_difficulty(int(nBits)),
-                '</td><td>', format_satoshis(satoshis, chain),
+                #'</td><td>', format_satoshis(value_out, chain),
+                #'</td><td>', util.calculate_difficulty(int(nBits)),
+                #'</td><td>', format_satoshis(satoshis, chain),
                 '</td><td>', avg_age,
                 '</td><td>', '%5g' % (seconds / 86400.0),
-                '</td><td>', percent_destroyed,
+                #'</td><td>', percent_destroyed,
                 ['</td><td>', '%8g' % ss,
                  '</td><td>', '%8g' % total_ss] if extra else '',
                 '</td></tr>\n']
+# MULTICHAIN END
 
         body += ['</table>\n<p>', nav, '</p>\n']
 
