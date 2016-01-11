@@ -351,8 +351,8 @@ class Abe:
                 continue
 
 # MULTICHAIN START
-            num_txs = abe.store.get_number_of_transactions(chain.id)
-            num_addresses = abe.store.get_number_of_addresses(chain.id)
+            num_txs = abe.store.get_number_of_transactions(chain)
+            num_addresses = abe.store.get_number_of_addresses(chain)
             try:
                 num_peers = abe.store.get_number_of_peers(chain)
                 num_assets = abe.store.get_number_of_assets(chain)
@@ -469,7 +469,7 @@ class Abe:
         page['chain'] = chain
 
         if chain is None:
-            abe.log.warning("Store does not know chain: %s", name)
+            abe.log.warning("Store does not know chain: %s", symbol)
             raise PageNotFound()
             #continue
 
@@ -479,6 +479,17 @@ class Abe:
 
         url = abe.store.get_url_by_chain(chain)
         multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+
+        # high level stats
+        num_txs = abe.store.get_number_of_transactions(chain)
+        num_addresses = abe.store.get_number_of_addresses(chain)
+        try:
+            num_peers = abe.store.get_number_of_peers(chain)
+            num_assets = abe.store.get_number_of_assets(chain)
+        except Exception as e:
+            abe.log.warning(e)
+            num_assets = -1
+            num_peers = -1
 
         info_resp = None
         params_resp = None
@@ -496,6 +507,15 @@ class Abe:
             return
 
         body += ['<div class="container"><div class="row"><div class="col-md-6">']
+        body += ['<h3>Summary</h3>']
+        body += ['<table class="table table-bordered table-striped table-condensed">']
+        body += ['<td>Blocks</td>','<td><a href="/blocks/', escape(chain.name), '">', info_resp['blocks'], '</a></td>']
+        #body += html_keyvalue_tablerow('Blocks', info_resp['blocks'])
+        body += html_keyvalue_tablerow('Transactions', num_txs)
+        body += ['<td>Assets</td>', '<td><a href="/assets/%d">' % int(chain.id), num_assets, '</a></td>']
+        #body += html_keyvalue_tablerow('Assets', num_assets)
+        body += html_keyvalue_tablerow('Addresses', num_addresses)
+        body += ['</table>']
         body += ['<h3>General Information</h3>']
         body += ['<table class="table table-bordered table-striped table-condensed">']
         #body += ['<colgroup><col class="col-md-4"><col class="col-md-8"></colgroup>']

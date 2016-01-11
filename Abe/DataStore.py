@@ -3436,7 +3436,7 @@ store._ddl['txout_approx'],
         return ret
 
 # MULTICHAIN START
-    def get_number_of_transactions(store, chain_id):
+    def get_number_of_transactions(store, chain):
         """
         Add up the number of tx in each block which belongs to chain of chain_id
         :param chain_id:
@@ -3445,12 +3445,12 @@ store._ddl['txout_approx'],
         result = -1
         sumrow = store.selectrow("""
             SELECT SUM(block_num_tx) FROM chain_summary WHERE chain_id = ?
-        """, (chain_id,))
+        """, (chain.id,))
         if sumrow:
             result = sumrow[0]
         return result
 
-    def get_number_of_addresses(store, chain_id):
+    def get_number_of_addresses(store, chain):
         """
         Count the number of unique pubkeys found in txouts for a chain_id
         :param chain_id:
@@ -3459,7 +3459,7 @@ store._ddl['txout_approx'],
         result = -1
         countrow = store.selectrow("""
             SELECT COUNT(DISTINCT(pubkey_hash)) FROM txout_detail WHERE chain_id = ?
-        """, (chain_id,))
+        """, (chain.id,))
         if countrow:
             result = countrow[0]
         return result
