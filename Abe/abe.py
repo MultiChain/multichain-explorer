@@ -807,7 +807,8 @@ class Abe:
 
         body += ['<h3>Transactions</h3>\n']
 
-        body += ['<table class="table table-striped"><tr><th>Transaction</th><th>Fee</th>'
+        body += ['<table class="table table-striped"><tr><th>Transaction</th>'
+                 #<th>Fee</th>'
                  '<th>Size (kB)</th><th>From (amount)</th><th>To (amount)</th>'
                  '</tr>\n']
 # MULTICHAIN END
@@ -858,21 +859,24 @@ class Abe:
             else:
                 labelclass='class="' + labeltype + '"'
             body += ['<tr ' + labelclass + '><td><a href="../tx/' + tx['hash'] + '">',
-                     tx['hash'][:10], '...</a>']
+                     tx['hash'][:16], '...</a>']
 
             if label is not None:
                 body += ['<div><span class="label label-' + labeltype + '">', label, '</span></div>']
             body += [
+                     #'</td><td>', format_satoshis(tx['fees'], chain),
 # MULTICHAIN END
-                     '</td><td>', format_satoshis(tx['fees'], chain),
                      '</td><td>', tx['size'] / 1000.0,
                      '</td><td>']
 
             if tx is b['transactions'][0]:
                 body += [
                     'POS ' if is_stake_block else '',
-                    'Generation: ', format_satoshis(b['generated'], chain), ' + ',
-                    format_satoshis(b['fees'], chain), ' total fees']
+# MULTICHAIN START
+                    'Generation: ', format_satoshis(b['generated'], chain),
+                    #' + ', format_satoshis(b['fees'], chain), ' total fees'
+                ]
+# MULTICHAIN END
             else:
                 for txin in tx['in']:
                     body += [abe.format_addresses(txin, page['dotdot'], chain), ': ',
