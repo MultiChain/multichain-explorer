@@ -3435,5 +3435,90 @@ store._ddl['txout_approx'],
                 ret = fb
         return ret
 
+# MULTICHAIN START
+    def get_number_of_transactions(store, chain_id):
+        """
+        Add up the number of tx in each block which belongs to chain of chain_id
+        :param chain_id:
+        :return: number of tx, or -1 if there was an error
+        """
+        result = -1
+        sumrow = store.selectrow("""
+            SELECT SUM(block_num_tx) FROM chain_summary WHERE chain_id = ?
+        """, (chain_id,))
+        if sumrow:
+            result = sumrow[0]
+        return result
+
+    def get_number_of_addresses(store, chain_id):
+        """
+        Count the number of unique pubkeys found in txouts for a chain_id
+        :param chain_id:
+        :return: number of addresses, or -1 if there was an error
+        """
+        result = -1
+        countrow = store.selectrow("""
+            SELECT COUNT(DISTINCT(pubkey_hash)) FROM txout_detail WHERE chain_id = ?
+        """, (chain_id,))
+        if countrow:
+            result = countrow[0]
+        return result
+
+    def get_number_of_assets(store, chain):
+        """
+        Get the number of assets issued in a chain
+        :param chain:
+        :return: integer number of assets
+        """
+        resp = store.get_assets(chain)
+        if resp is not None:
+            return len(resp)
+        return 0
+
+    def get_assets(store, chain):
+        """
+        Get the result of listassets json-rpc command as json object
+        :param chain:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listassets")
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
+    def get_number_of_peers(store, chain):
+        """
+        Get the number of connected peers
+        :param chain:
+        :return: Integer number of nodes
+        """
+        resp = store.get_peerinfo(chain)
+        if resp is not None:
+            return len(resp)
+        return 0
+
+    def get_peerinfo(store, chain):
+        """
+        Get info about connected peers by invoking json-rpc command getpeerinfo
+        :param chain:
+        :return: JSON object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "getpeerinfo")
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
 def new(args):
     return DataStore(args)

@@ -351,40 +351,15 @@ class Abe:
                 continue
 
 # MULTICHAIN START
-            url = abe.store.get_url_by_chain(chain)
-            multichain_name = abe.store.get_multichain_name_by_id(chain.id)
-            num_assets = 0
-            num_peers = 0
+            num_txs = abe.store.get_number_of_transactions(chain.id)
+            num_addresses = abe.store.get_number_of_addresses(chain.id)
             try:
-                resp = util.jsonrpc(multichain_name, url, "listassets")
-                num_assets = len(resp)
-                resp = util.jsonrpc(multichain_name, url, "getpeerinfo")
-                num_peers = len(resp)
-            except util.JsonrpcException as e:
-                #msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
-                #if e.code != -5:  # -5: transaction not in index.
+                num_peers = abe.store.get_number_of_peers(chain)
+                num_assets = abe.store.get_number_of_assets(chain)
+            except Exception as e:
+                abe.log.warning(e)
                 num_assets = -1
                 num_peers = -1
-                pass
-            except IOError as e:
-                num_assets = -1
-                num_peers = -1
-
-            # Get num of transactions via SQL
-            num_txs = 0
-            sumrow = abe.store.selectrow("""
-                SELECT SUM(block_num_tx) FROM chain_summary WHERE chain_id = ?
-            """, (chain.id,))
-            if sumrow:
-                num_txs = sumrow[0]
-
-            # get num of addresses used via SQL
-            num_addresses = 0
-            countrow = abe.store.selectrow("""
-                SELECT COUNT(DISTINCT(pubkey_hash)) FROM txout_detail WHERE chain_id = ?
-            """, (chain.id,))
-            if countrow:
-                num_addresses = countrow[0]
 
             body += [
                 '<tr><td><a href="chain/', escape(name), '">',
