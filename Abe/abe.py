@@ -781,20 +781,21 @@ class Abe:
         body += html_keyvalue_tablerow('Version', b['version'])
         body += html_keyvalue_tablerow('Transaction Merkle Root', b['hashMerkleRoot'])
         body += html_keyvalue_tablerow('Time', b['nTime'] , ' (' , format_time(b['nTime']) , ')')
-        body += html_keyvalue_tablerow('Difficulty', format_difficulty(util.calculate_difficulty(b['nBits'])) , ' (Bits: %x)' % (b['nBits'])) 
-        body += html_keyvalue_tablerow('Cumulative Difficulty', format_difficulty(util.work_to_difficulty(b['chain_work'])) if b['chain_work'] is not None else '')
+        if False:
+            body += html_keyvalue_tablerow('Difficulty', format_difficulty(util.calculate_difficulty(b['nBits'])) , ' (Bits: %x)' % (b['nBits']))
+            body += html_keyvalue_tablerow('Cumulative Difficulty', format_difficulty(util.work_to_difficulty(b['chain_work'])) if b['chain_work'] is not None else '')
 
 
         body += html_keyvalue_tablerow('Nonce', b['nNonce'])
         body += html_keyvalue_tablerow('Transactions',len(b['transactions']))
-        body += html_keyvalue_tablerow('Value out', format_satoshis(b['value_out'], chain)) 
+        if False:
+            body += html_keyvalue_tablerow('Value out', format_satoshis(b['value_out'], chain))
         body += html_keyvalue_tablerow('Transaction Fees', format_satoshis(b['fees'], chain)) 
 
-        body += html_keyvalue_tablerow('Average Coin Age', '%6g' % (b['satoshi_seconds'] / 86400.0 / b['chain_satoshis']) + ' days' if b['chain_satoshis'] and (b['satoshi_seconds'] is not None) else '')
-
-        body += html_keyvalue_tablerow('Coin-days Destroyed', '' if b['satoshis_destroyed'] is None else format_satoshis(b['satoshis_destroyed'] / 86400.0, chain))
-
-        body += html_keyvalue_tablerow('Cumulative Coin-days Destroyed', '%6g%%' %
+        if False:
+            body += html_keyvalue_tablerow('Average Coin Age', '%6g' % (b['satoshi_seconds'] / 86400.0 / b['chain_satoshis']) + ' days' if b['chain_satoshis'] and (b['satoshi_seconds'] is not None) else '')
+            body += html_keyvalue_tablerow('Coin-days Destroyed', '' if b['satoshis_destroyed'] is None else format_satoshis(b['satoshis_destroyed'] / 86400.0, chain))
+            body += html_keyvalue_tablerow('Cumulative Coin-days Destroyed', '%6g%%' %
              (100 * (1 - float(b['satoshi_seconds']) / b['chain_satoshi_seconds'])) if b['chain_satoshi_seconds'] else '')
 
         # ['sat=',b['chain_satoshis'],';sec=',seconds,';ss=',b['satoshi_seconds'],
