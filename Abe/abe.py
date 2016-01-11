@@ -317,8 +317,8 @@ class Abe:
             abe.search_form(page),
 # MULTICHAIN START
             '<table class="table table-striped">\n',
-            '<tr><th>Chain</th>',
-            #'<th>Code</th>',
+            '<tr><th>Status</th>',
+            '<th>Chain</th>',
             '<th>Blocks</th>',
             '<th>Transactions</th>',
             #'<th>Time</th>',
@@ -353,16 +353,25 @@ class Abe:
 # MULTICHAIN START
             num_txs = abe.store.get_number_of_transactions(chain)
             num_addresses = abe.store.get_number_of_addresses(chain)
+            connection_status = True
             try:
                 num_peers = abe.store.get_number_of_peers(chain)
                 num_assets = abe.store.get_number_of_assets(chain)
             except Exception as e:
+                connection_status = False
                 abe.log.warning(e)
                 num_assets = -1
                 num_peers = -1
 
+            body += ['<tr><td>']
+            if connection_status is True:
+                body += '<span class="label label-success">Connected</span>'
+            else:
+                body += '<span class="label label-danger">No Connection</span>'
+            body += ['</td>']
+
             body += [
-                '<tr><td><a href="chain/', escape(name), '">',
+                '<td><a href="chain/', escape(name), '">',
                 escape(name), '</a></td>']  #<td>', escape(chain.code3), '</td>']
 # MULTICHAIN END
 
@@ -380,7 +389,7 @@ class Abe:
                 body += '<td>'
                 if chain.__class__.__name__ is "MultiChain":
                     if num_assets == -1:
-                        body += '<span class="label label-danger">No Connection</span>'
+                        body += '?'
                     elif num_assets>=0:
                         body += ['<a href="assets/%d">' % int(chain.id), num_assets, '</a>']
                 else:
@@ -414,7 +423,9 @@ class Abe:
 #                                 100.0 - (100.0 * (ss + more) / denominator))
 
                     body += [
-                        '<td>', num_peers, '</td>',
+                        '<td>',
+                        '?' if num_peers is -1 else num_peers,
+                        '</td>',
                         '<td>', format_time(started)[:10], '</td>',
                         '<td>', "{0:.1f}".format(chain_age / 86400.0), '</td>']
                         # '<td>', format_satoshis(satoshis, chain), '</td>',
