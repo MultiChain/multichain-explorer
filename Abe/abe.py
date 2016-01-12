@@ -1235,6 +1235,7 @@ class Abe:
             body += [ msg ]
             return
 
+        num_details = len(asset['details'].items())
         blocktime = issuetx['blocktime']
         blockhash = issuetx['blockhash']
         raw_units = issuetx['vout'][0]['assets'][0]['raw']
@@ -1265,6 +1266,12 @@ class Abe:
         body += ['<button href="#RawJson" class="btn btn-default btn-xs" data-toggle="collapse">MultiChain JSON</button>']
         body += ['<div id="RawJson" class="collapse"><pre>', json.dumps(resp, sort_keys=True, indent=2), '</pre></div></p>']
         #body += [' <a role="button" class="btn btn-default btn-xs" href="../rawtx/', tx['hash'], '">Bitcoin JSON</a>']
+
+        if num_details > 0:
+            body += ['<h3>Metadata</h3>']
+            #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
+            body += ['<div><pre>', json.dumps(asset['details'], sort_keys=True, indent=2), '</pre></div>']
+
 
     # Page to show the assets that exist on a chain
     def handle_assets(abe, page):
