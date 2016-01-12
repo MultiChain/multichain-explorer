@@ -1268,10 +1268,17 @@ class Abe:
         #body += [' <a role="button" class="btn btn-default btn-xs" href="../rawtx/', tx['hash'], '">Bitcoin JSON</a>']
 
         if num_details > 0:
-            body += ['<h3>Metadata</h3>']
+            body += ['<h3>Asset Metadata</h3>']
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
-            body += ['<div><pre>', json.dumps(asset['details'], sort_keys=True, indent=2), '</pre></div>']
-
+            #body += ['<div><pre>', json.dumps(asset['details'], sort_keys=True, indent=2), '</pre></div>']
+            body += ['<table class="table table-bordered table-striped table-condensed">']
+            for k,v in sorted(asset['details'].items()):
+                try:
+                    v.decode('ascii')
+                except UnicodeDecodeError:
+                    v = util.long_hex(v)
+                body += html_keyvalue_tablerow(k, v)
+            body += ['</table>']
 
     # Page to show the assets that exist on a chain
     def handle_assets(abe, page):
