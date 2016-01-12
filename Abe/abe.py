@@ -1025,7 +1025,7 @@ class Abe:
                                 msg += ', '.join("{}".format(item) for item in permissions)
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
-                                msg += ' (block range {} - {})'.format(val['startblock'], val['endblock'])
+                                msg += ' (blocks {} - {} only)'.format(val['startblock'], val['endblock'])
                             #msg += 'Revok ' if val['type'] is 'revoke
                             #msg += ', '.join("{!s}={!r}".format(k,v) for (k,v) in val.iteritems())
                         else:
