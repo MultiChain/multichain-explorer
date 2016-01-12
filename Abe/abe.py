@@ -1004,25 +1004,27 @@ class Abe:
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                             msg = val['type'].capitalize() + " "
 
-                            if val['all'] is True:
-                                msg += ' all permissions'
-                            else:
-                                permissions = []
-                                if val['connect']:
-                                    permissions += ['Connect']
-                                if val['send']:
-                                    permissions += ['Send']
-                                if val['receive']:
-                                    permissions += ['Receive']
-                                if val['issue']:
-                                    permissions += ['Issue']
-                                if val['mine']:
-                                    permissions += ['Mine']
-                                if val['admin']:
-                                    permissions += ['Admin']
+                            # if val['all'] is True:
+                            #     msg += ' all permissions'
+                            # else:
+                            permissions = []
+                            if val['connect']:
+                                permissions += ['Connect']
+                            if val['send']:
+                                permissions += ['Send']
+                            if val['receive']:
+                                permissions += ['Receive']
+                            if val['issue']:
+                                permissions += ['Issue']
+                            if val['mine']:
+                                permissions += ['Mine']
+                            if val['admin']:
+                                permissions += ['Admin']
+                            if val['activate']:
+                                permissions += ['Activate']
 
-                                msg += ' permission to '
-                                msg += ', '.join("{}".format(item) for item in permissions)
+                            msg += ' permission to '
+                            msg += ', '.join("{}".format(item) for item in permissions)
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                                 msg += ' (blocks {} - {} only)'.format(val['startblock'], val['endblock'])

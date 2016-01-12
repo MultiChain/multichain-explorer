@@ -315,11 +315,12 @@ def parse_op_drop_data(data):
         issue = (bitmap & 16) > 0
         mine = (bitmap & 256) > 0
         admin = (bitmap & 4096) > 0
-        allsum = 1+2+4+16+256+4096
-        all = (bitmap & allsum) == allsum
+        activate = (bitmap & 8192) > 0
+        #allsum = 1+2+4+16+256+4096+8192
+        #all = (bitmap & allsum) == allsum
         rettype = OP_DROP_TYPE_PERMISSION
-        retval = {'connect':connect, 'send':send, 'receive':receive, 'issue':issue, 'mine':mine, 'admin':admin,
-                  'all':all,
+        retval = {'connect':connect, 'send':send, 'receive':receive, 'issue':issue, 'mine':mine, 'admin':admin, 'activate':activate,
+                  #'all':all,
                   'type':'revoke' if revoke is True else 'grant',
                   'startblock':block_from, 'endblock':block_to}
     return rettype, retval
