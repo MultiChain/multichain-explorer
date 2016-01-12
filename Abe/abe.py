@@ -1041,14 +1041,28 @@ class Abe:
                     opreturn_type, val = util.parse_op_return_data(data)
                     label = util.get_op_return_type_description(opreturn_type)
                     if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
-                        msg = 'Asset metadata'
-                        msg += '<p>'
-                        msg += 'Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
+
+                        msg = 'Issued asset details:'
+                        msg += '<table class="table table-bordered table-condensed">'
+                        msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Name',val['name'])
+                        msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Multiplier',val['multiplier'])
+                        #'Name'='Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
                         fields = val['fields']
-                        if len(fields)>0:
-                            msg += ', '
-                            msg += ', '.join("{}={}".format(k.capitalize(),v) for (k,v) in fields.iteritems())
-                            # {!s}={!r} creates single quotes around data
+                        for k,v in sorted(fields.items()):
+                            try:
+                                v.decode('ascii')
+                            except UnicodeDecodeError:
+                                v = util.long_hex(v)
+                            msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
+                            #html_keyvalue_tablerow(k, v)
+                        msg += '</table>'
+                        # msg += '<p>'
+                        # msg += 'Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
+                        # fields = val['fields']
+                        # if len(fields)>0:
+                        #     msg += ', '
+                        #     msg += ', '.join("{}={}".format(k.capitalize(),v) for (k,v) in fields.iteritems())
+                        #     # {!s}={!r} creates single quotes around data
                     elif is_coinbase:
                         msg = 'Miner block signature'
                         msgtype = 'info'
@@ -1060,9 +1074,10 @@ class Abe:
 
                 # Add MultiChain HTML
                 if msg is not None:
-                    body += ['<div class="alert alert-'+msgtype+'" role="alert">',
-                             msg,
-                             '</div>']
+                    body += ['<div class="panel panel-default panel-'+msgtype+'"><div class="panel-body">'+msg+'</div></div>']
+                    #body += ['<div class="alert alert-'+msgtype+'" role="alert">',
+                    #         msg,
+                    #         '</div>']
 
                 body += [ '</td>\n']
 # MULTICHAIN END
