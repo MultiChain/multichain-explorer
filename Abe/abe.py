@@ -1103,7 +1103,8 @@ class Abe:
             ' (<a href="#outputs">Jump to outputs</a>)')
         body += html_keyvalue_tablerow('Total out', format_satoshis(tx['value_out'], chain)) 
         body += html_keyvalue_tablerow('Size', tx['size'], ' bytes')
-        body += html_keyvalue_tablerow('Fee', format_satoshis(0 if is_coinbase else
+        if False:
+            body += html_keyvalue_tablerow('Fee', format_satoshis(0 if is_coinbase else
                                      (tx['value_in'] and tx['value_out'] and
                                       tx['value_in'] - tx['value_out']), chain))
         body += ['</table>']
