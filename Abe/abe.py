@@ -991,7 +991,7 @@ class Abe:
                         opdrop_type, val = util.parse_op_drop_data(data)
                         label = util.get_op_drop_type_description(opdrop_type)
                         if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
-                            msg = "MultiChain: Issue %d units of new asset" % val
+                            msg = "Issue %d units of new asset" % val
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                             msg = "Send "
                             msgparts = []
@@ -1002,7 +1002,7 @@ class Abe:
                                 msgparts.append("%d units of asset %s" % (quantity, link))
                             msg += ', '.join(msgparts)
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
-                            msg = "MultiChain: " + val['type'].capitalize() + " "
+                            msg = val['type'].capitalize() + " "
 
                             if val['all'] is True:
                                 msg += ' all permissions'
@@ -1039,7 +1039,7 @@ class Abe:
                     opreturn_type, val = util.parse_op_return_data(data)
                     label = util.get_op_return_type_description(opreturn_type)
                     if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
-                        msg = 'MultiChain: Asset metadata'
+                        msg = 'Asset metadata'
                         msg += '<p>'
                         msg += 'Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
                         fields = val['fields']
@@ -1048,7 +1048,7 @@ class Abe:
                             msg += ', '.join("{}={}".format(k.capitalize(),v) for (k,v) in fields.iteritems())
                             # {!s}={!r} creates single quotes around data
                     elif is_coinbase:
-                        msg = 'MultiChain: Miner block signature'
+                        msg = 'Miner block signature'
                         msgtype = 'info'
                     else:
                         msg = 'Unrecognized MultiChain metadata'
