@@ -1302,25 +1302,27 @@ class Abe:
         body += ['<h3>Assets</h3>']
 
         body += ['<table class="table table-striped"><tr><th>Asset Name</th><th>Asset Reference</th>'
-                 '<th>Genesis Transaction</th><th>Multiple</th><th>Units</th><th>Details</th>'
-                 '<th>Display Quantity</th><th>Issue Raw Quantity</th>'
+                 '<th>Issue Transaction</th>'
+                 '<th>Display Quantity</th><th>Units</th>'
                  '</tr>']
 
         for asset in resp:
-# MULTICHAIN START
-            details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
-# MULTICHAIN END
-            issueqty = str(asset['issueqty'])
-            issueraw = str(asset['issueraw'])
+            #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
+            multiple = asset['multiple']
+            s = str(1.0/multiple)
+            p = s[::-1].find('.')
+            if p is -1:
+                fmt = "%d"
+            else:
+                fmt = "%.{}f".format(p)
+            issueqty = fmt % asset['issueqty']
+            #issueraw = str(asset['issueraw'])
             body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'] + '</a>',
                      '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
                      '</td><td><a href="../../tx/' + asset['issuetxid'] + '">',
                      asset['issuetxid'][:20], '...</a>',
-                     '</td><td>', asset['multiple'],
-                     '</td><td>', asset['units'],
-                     '</td><td>', details,
                      '</td><td>', issueqty,
-                     '</td><td>', issueraw,
+                     '</td><td>', asset['units'],
                      '</td></tr>']
 
         body += ['</table>']
