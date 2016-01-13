@@ -1344,10 +1344,10 @@ class Abe:
             s = str(1.0/multiple)
             p = s[::-1].find('.')
             if p is -1:
-                fmt = "%d"
+                fmt = "{:d}"
             else:
-                fmt = "%.{}f".format(p)
-            issueqty = fmt % asset['issueqty']
+                fmt = "{:." + "{}".format(p) + "f}"
+            issueqty = fmt.format( asset['issueqty'] )
             #issueraw = str(asset['issueraw'])
             body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'] + '</a>',
                      '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
