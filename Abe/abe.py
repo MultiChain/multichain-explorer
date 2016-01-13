@@ -991,7 +991,14 @@ class Abe:
                         opdrop_type, val = util.parse_op_drop_data(data)
                         label = util.get_op_drop_type_description(opdrop_type)
                         if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
-                            msg = "Issue %d units of new asset" % val
+                            # Not the most efficient way, but will suffice for now until assets are stored in a database table.
+                            try:
+                                asset = abe.store.get_asset_by_name(chain, tx['hash'])
+                                display_amount = util.format_display_quantity(asset, val)
+                                msg = "Issue {} units of new asset".format(display_amount)
+                            except Exception as e:
+                                msg = "Issue {:d} raw units of new asset".format(val)
+
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                             msg = "Send "
                             msgparts = []
@@ -999,7 +1006,15 @@ class Abe:
                                 quantity = dict['quantity']
                                 assetref = dict['assetref']
                                 link = '<a href="../../assetref/' + str(chain.id) + '/' + assetref + '">' + assetref + '</a>'
-                                msgparts.append("%d units of asset %s" % (quantity, link))
+
+                                # Not the most efficient way, but will suffice for now until assets are stored in a database table.
+                                try:
+                                    asset = abe.store.get_asset_by_name(chain, assetref)
+                                    display_amount = util.format_display_quantity(asset, quantity)
+                                    msgparts.append("{} units of asset {}".format(display_amount, link))
+                                except Exception as e:
+                                    msgparts.append("{} raw units of asset {}".format(quantity, link))
+
                             msg += ', '.join(msgparts)
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                             msg = val['type'].capitalize() + " "
@@ -1350,14 +1365,7 @@ class Abe:
 
         for asset in resp:
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
-            multiple = asset['multiple']
-            s = str(1.0/multiple)
-            p = s[::-1].find('.')
-            if p is -1:
-                fmt = "{:d}"
-            else:
-                fmt = "{:." + "{}".format(p) + "f}"
-            issueqty = fmt.format( asset['issueqty'] )
+            issueqty = util.format_display_quantity(asset, asset['issueqty'])
             #issueraw = str(asset['issueraw'])
             body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'] + '</a>',
                      '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',

@@ -393,4 +393,21 @@ def get_multichain_op_drop_data(script):
         data = decoded[5][1]
     return data
 
+def format_display_quantity(asset, rawqty):
+    """
+    Return string containing display quantity of a raw amount formatted based on asset multiple
+    :param asset:
+    :param rawunits:
+    :return:
+    """
+    multiple = asset['multiple']
+    s = str(1.0/multiple)
+    p = s[::-1].find('.')
+    if p is -1:
+        fmt = "{:d}"
+    else:
+        fmt = "{:." + "{}".format(p) + "f}"
+    return fmt.format( rawqty )
+
+
 # MULTICHAIN END
