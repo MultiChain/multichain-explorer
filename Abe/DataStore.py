@@ -3492,6 +3492,25 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
+    def get_asset_by_name(store, chain, name):
+        """
+        Get the asset by name from listassets json-rpc command as json object
+        :param chain:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listassets", name)
+            if len(resp) > 0 :
+                resp = resp[0]
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
     def get_number_of_peers(store, chain):
         """
         Get the number of connected peers

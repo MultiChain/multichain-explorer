@@ -1044,7 +1044,17 @@ class Abe:
 
                         msg = 'Issued asset details:'
                         msg += '<table class="table table-bordered table-condensed">'
-                        msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Name',val['name'])
+
+                        # try to create a link for the asset
+                        assetName = val['name']
+                        assetLink = assetName
+                        try:
+                            asset = abe.store.get_asset_by_name(chain, assetName)
+                            assetLink = '<a href="../assetref/{}/{}">{}</a>'.format(chain.id, asset['assetref'], assetName)
+                        except Exception:
+                            pass
+
+                        msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Name',assetLink)
                         msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Multiplier',val['multiplier'])
                         #'Name'='Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
                         fields = val['fields']
