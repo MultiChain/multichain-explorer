@@ -1516,7 +1516,7 @@ class Abe:
                     if checksum is None:
                         other = util.hash_to_address(vers, binaddr)
                     else:
-                        other = util.hash_to_address(vers, binaddr, checksum)
+                        other = util.hash_to_address_multichain(vers, binaddr, checksum)
 # MULTICHAIN END
                     if other != address:
                         ret[-1] = ['<a href="', page['dotdot'],
