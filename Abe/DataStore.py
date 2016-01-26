@@ -40,6 +40,8 @@ import base58
 # MULTICHAIN START
 import binascii
 checksum_dict = {}
+
+import struct
 # MULTICHAIN END
 
 SCHEMA_TYPE = "Abe"
@@ -890,6 +892,37 @@ store._ddl['txout_approx'],
     lock_id       NUMERIC(10) NOT NULL PRIMARY KEY,
     pid           VARCHAR(255) NULL
 )""",
+# MULTICHAIN START
+
+# issued assets are stored here
+# op_drop has issue qty
+# op_return of issue asset has: name, multiplier
+# 2 steps to get all data.
+"""CREATE TABLE asset (
+    asset_id      NUMERIC(10) NOT NULL PRIMARY KEY,
+    tx_id         NUMERIC(26) NOT NULL,
+    chain_id      NUMERIC(10) NOT NULL,
+    name          VARCHAR(255) NOT NULL,
+    multiplier    NUMERIC(10) NOT NULL,
+    issue_qty     NUMERIC(30) NOT NULL,
+    prefix        NUMERIC(10) NOT NULL,
+    UNIQUE      (tx_id),
+    FOREIGN KEY (tx_id) REFERENCES tx (tx_id),
+    FOREIGN KEY (chain_id) REFERENCES chain (chain_id)
+)""",
+
+# raw units
+"""CREATE TABLE asset_address_balance (
+    asset_id      NUMERIC(10) NOT NULL,
+    pubkey_id     NUMERIC(26) NOT NULL,
+    balance       NUMERIC(30) NOT NULL,
+    PRIMARY KEY (asset_id, pubkey_id),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+    FOREIGN KEY (pubkey_id) REFERENCES pubkey (pubkey_id)
+)""",
+
+
+# MULTICHAIN END
 ):
             try:
                 store.ddl(stmt)
@@ -898,6 +931,9 @@ store._ddl['txout_approx'],
                 raise
 
         for key in ['chain', 'datadir',
+# MULTICHAIN START
+                    'asset',
+# MULTICHAIN END
                     'tx', 'txout', 'pubkey', 'txin', 'block']:
             store.create_sequence(key)
 
@@ -1900,6 +1936,85 @@ store._ddl['txout_approx'],
                           (txout_id, txin_id))
                 store.sql("DELETE FROM unlinked_txin WHERE txin_id = ?",
                           (txin_id,))
+# MULTICHAIN START
+            binscript = store.binout(txout['scriptPubKey'])
+            script_type, data = chain.parse_txout_script(binscript)
+            if pubkey_id is not None and script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                data = util.get_multichain_op_drop_data(binscript)
+                if data is not None:
+                    opdrop_type, val = util.parse_op_drop_data(data)
+                    if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                        (prefix, ) = struct.unpack("<H", dbhash[0:2])
+                        new_asset_id = store.new_id("asset")
+                        store.sql("""
+                            INSERT INTO asset (asset_id, tx_id, chain_id, name, multiplier, issue_qty, prefix)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                            (new_asset_id, dbhash, chain.id, "", 0, val, prefix ))
+                        store.sql("""
+                            INSERT INTO asset_address_balance (asset_id, pubkey_id, balance)
+                            VALUES (?,?,?)""",
+                            (new_asset_id, pubkey_id, val))
+                        # txout['scriptPubKey'] or binscript work fine here
+                        vers = chain.address_version
+                        the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
+                        checksum = store.get_address_checksum_value_by_chain(chain)
+                        if checksum is None:
+                            address = util.hash_to_address(vers, binaddr)
+                        else:
+                            address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
+                        #print "New asset issued to address: {}, balance {}".format(address, val)
+                    elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                        msgparts = []
+                        for dict in val:
+                            quantity = dict['quantity']
+                            assetref = dict['assetref']
+                            prefix = int( assetref.split('-')[-1] )
+                            vers = chain.address_version
+                            the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
+                            checksum = store.get_address_checksum_value_by_chain(chain)
+                            if checksum is None:
+                                address = util.hash_to_address(vers, binaddr)
+                            else:
+                                address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
+                            #print "Asset sent to: {}, sent amount {}".format(address, quantity)
+
+                            row = store.selectrow("""
+                                 SELECT asset_id FROM asset WHERE asset.prefix = ?
+                                 """, (prefix,))
+                            if row is None:
+                                break       # this should not happen!
+                            asset_id = row[0]
+
+                            # sqlite does not have UPSERT so get balance first before adding balance to destination address
+                            row = store.selectrow("""
+                                SELECT balance FROM asset_address_balance WHERE asset_id = ? AND pubkey_id = ?
+                                """, (asset_id, pubkey_id))
+                            if row is None:
+                                balance = quantity
+                                store.sql("""
+                                    INSERT INTO asset_address_balance (asset_id, pubkey_id, balance)
+                                    VALUES (?,?,?)""",
+                                (asset_id, pubkey_id, balance))
+                            else:
+                                balance = row[0] + quantity
+                                store.sql("""
+                                    UPDATE asset_address_balance
+                                       SET balance = ?
+                                     WHERE pubkey_id = ? AND asset_id =?
+                                     """, (balance, pubkey_id, asset_id))
+                    elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
+                        #print 'Permissions command detected'
+                        pass
+            elif pubkey_id is None and script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+                opreturn_type, val = util.parse_op_return_data(data)
+                # Extract mandatory metadata and update asset column
+                if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
+                    store.sql("""
+                        UPDATE asset
+                           SET name = ?, multiplier = ?
+                         WHERE tx_id = ?
+                         """, (val['name'], val['multiplier'], dbhash))
+# MULTICHAIN END
 
         # Import transaction inputs.
         tx['value_in'] = 0
@@ -1937,6 +2052,59 @@ store._ddl['txout_approx'],
                     ) VALUES (?, ?, ?)""",
                           (txin_id, store.hashin(txin['prevout_hash']),
                            store.intin(txin['prevout_n'])))
+
+# MULTICHAIN START
+            binscript = store.lookup_txout_scriptpubkey(txin['prevout_hash'], txin['prevout_n'])
+
+            if txout_id is not None and binscript is not None:
+                spent_tx_hash = store.hashout(txin['prevout_hash'])     # reverse out, otherwise it is backwards
+                vers = chain.address_version
+                the_script_type, pubkey_raw = chain.parse_txout_script(binscript)
+                checksum = store.get_address_checksum_value_by_chain(chain)
+                if checksum is None:
+                    address = util.hash_to_address(vers, pubkey_raw)
+                else:
+                    address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
+                pubkey_id = store.pubkey_to_id(chain, pubkey_raw)
+
+                #print "Multichain tx input = {} : {}".format(util.long_hex( spent_tx_hash ), txin['prevout_n'])
+
+                if the_script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                    data = util.get_multichain_op_drop_data(binscript)
+                    if data is not None:
+                        opdrop_type, val = util.parse_op_drop_data(data)
+                        if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                            # Spending issue asset tx
+                            #print "Issue {:d} raw units of new asset".format(val)
+                            (prefix, ) = struct.unpack("<H", spent_tx_hash[0:2])
+                            #print "Spending issued asset at {}, qty = {}, prefix={}".format(address, val, prefix)
+                            store.sql("""
+                                UPDATE asset_address_balance
+                                   SET balance = balance - ?
+                                 WHERE pubkey_id = ? AND
+                                        asset_id = (SELECT asset_id FROM asset WHERE prefix = ?)
+                                 """,
+                                      (val, pubkey_id, prefix))
+                        elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                            # Spending sent tx
+                            for dict in val:
+                                quantity = dict['quantity']
+                                assetref = dict['assetref']
+                                prefix = int( assetref.split('-')[-1] )
+                                #print "Spending sent asset at {}, qty = {}, prefix = {} ".format(address, quantity, prefix)
+
+                                store.sql("""
+                                UPDATE asset_address_balance
+                                   SET balance = balance - ?
+                                 WHERE pubkey_id = ? AND
+                                        asset_id = (SELECT asset_id FROM asset WHERE prefix = ?)
+                                 """,
+                                      (quantity, pubkey_id, prefix))
+
+                        elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
+                            #print 'Spending tx with Permissions command'
+                            pass
+# MULTICHAIN END
 
         # XXX Could populate PUBKEY.PUBKEY with txin scripts...
         # or leave that to an offline process.  Nothing in this program
@@ -2526,6 +2694,18 @@ store._ddl['txout_approx'],
                AND txout.txout_pos = ?""",
                   (store.hashin(tx_hash), txout_pos))
         return (None, None) if row is None else (row[0], int(row[1]))
+
+# MULTICHAIN START
+    def lookup_txout_scriptpubkey(store, tx_hash, txout_pos):
+        row = store.selectrow("""
+            SELECT txout_scriptPubKey
+              FROM txout, tx
+             WHERE txout.tx_id = tx.tx_id
+               AND tx.tx_hash = ?
+               AND txout.txout_pos = ?""",
+                  (store.hashin(tx_hash), txout_pos))
+        return None if row is None else row[0]
+# MULTICHAIN END
 
     def script_to_pubkey_id(store, chain, script):
         """Extract address and script type from transaction output script."""
