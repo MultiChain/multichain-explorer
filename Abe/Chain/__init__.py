@@ -191,6 +191,9 @@ class BaseChain(object):
         * SCRIPT_TYPE_BURN     - DATA is None
         * SCRIPT_TYPE_MULTISIG - DATA is {"m":M, "pubkeys":list_of_pubkeys}
         * SCRIPT_TYPE_P2SH     - DATA is the binary script hash
+# MULTICHAIN START
+        * SCRIPT_TYPE_MULTICHAIN - DATA is the binary public key (there is another method to get the OPDROP data)
+# MULTICHAIN END
         """
         if script is None:
             raise ValueError()
@@ -201,24 +204,22 @@ class BaseChain(object):
         return chain.parse_decoded_txout_script(decoded)
 
     def parse_decoded_txout_script(chain, decoded):
-        if deserialize.match_decoded(decoded, SCRIPT_ADDRESS_TEMPLATE):
-            pubkey_hash = decoded[2][1]
-            if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
-                return SCRIPT_TYPE_ADDRESS, pubkey_hash
-
 # MULTICHAIN START
         # Return script type and address
-        elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
-            pubkey_hash = decoded[2][1]
-            if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
-                return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
+        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
+            pubkey = decoded[2][1]
+            return SCRIPT_TYPE_MULTICHAIN, pubkey
 
         # Return script type and metadata byte array
         elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):
             metadata = decoded[1][1]
             return SCRIPT_TYPE_MULTICHAIN_OP_RETURN, metadata
-
 # MULTICHAIN END
+
+        elif deserialize.match_decoded(decoded, SCRIPT_ADDRESS_TEMPLATE):
+            pubkey_hash = decoded[2][1]
+            if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
+                return SCRIPT_TYPE_ADDRESS, pubkey_hash
 
         elif deserialize.match_decoded(decoded, SCRIPT_PUBKEY_TEMPLATE):
             pubkey = decoded[0][1]
