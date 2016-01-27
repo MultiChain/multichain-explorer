@@ -1297,6 +1297,8 @@ class Abe:
         body += html_keyvalue_tablerow('Issue TXID', '<a href="../../tx/' + issuetxid + '">', issuetxid, '</a>')
         body += html_keyvalue_tablerow('Asset Reference', '<a href="../../assetref/' + chain_id + '/' + assetref + '">' + assetref + '</a>')
         body += html_keyvalue_tablerow('Name', '<a href="../../assetref/' + chain_id + '/' + assetref + '">' + name + '</a>')
+        holders = abe.store.get_number_of_asset_holders(chain.id, assetref)
+        body += html_keyvalue_tablerow('Addresses holding units', holders)
         body += html_keyvalue_tablerow('Raw units issued', raw_units)
         body += html_keyvalue_tablerow('Display quantity', display_qty)
         body += html_keyvalue_tablerow('Native amount sent', format_satoshis(native_amount, chain))
@@ -1360,19 +1362,24 @@ class Abe:
 
         body += ['<table class="table table-striped"><tr><th>Asset Name</th><th>Asset Reference</th>'
                  '<th>Issue Transaction</th>'
-                 '<th>Display Quantity</th><th>Units</th>'
+                 '<th>Asset Holders</th>'
+                 '<th>Issued Quantity</th><th>Units</th>'
                  '</tr>']
 
         for asset in resp:
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
             issueqty = util.format_display_quantity(asset, asset['issueqty'])
+            holders = abe.store.get_number_of_asset_holders(chain.id, asset['assetref'])
+            s = "{:17f}".format(asset['units'])
+            units = s.rstrip('0').rstrip('.') if '.' in s else s
             #issueraw = str(asset['issueraw'])
             body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'] + '</a>',
                      '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
                      '</td><td><a href="../../tx/' + asset['issuetxid'] + '">',
                      asset['issuetxid'][:20], '...</a>',
+                     '</td><td>', holders,
                      '</td><td>', issueqty,
-                     '</td><td>', asset['units'],
+                     '</td><td>', units,
                      '</td></tr>']
 
         body += ['</table>']

@@ -3720,5 +3720,18 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
+    def get_number_of_asset_holders(store, chain_id, assetref):
+        prefix = int( assetref.split('-')[-1] )
+        row = store.selectrow("""
+            SELECT count (DISTINCT pubkey_id)
+            FROM asset_address_balance
+            WHERE balance>0 AND asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
+            """, (chain_id, prefix))
+        if row is None:
+            result = 0
+        else:
+            result = int(row[0])
+        return result
+
 def new(args):
     return DataStore(args)
