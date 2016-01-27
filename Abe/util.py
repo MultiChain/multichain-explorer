@@ -401,9 +401,14 @@ def format_display_quantity(asset, rawqty):
     :return:
     """
     multiple = asset['multiple']
-    s = str(1.0/multiple)
-    p = s[::-1].find('.')
-    if p is -1:
+    # Float division / rounding problems
+    #s = "{:.20f}".format(1.0/multiple) #str(1.0/multiple)
+    #p = s[::-1].find('.')
+
+    # assume base 10 to keep things simple
+    p = len(str(multiple)) - 1
+
+    if p is 0:
         fmt = "{:d}"
     else:
         fmt = "{:." + "{}".format(p) + "f}"
