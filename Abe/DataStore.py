@@ -911,6 +911,15 @@ store._ddl['txout_approx'],
     FOREIGN KEY (chain_id) REFERENCES chain (chain_id)
 )""",
 
+"""CREATE TABLE asset_txid (
+    asset_id      NUMERIC(10) NOT NULL,
+    tx_id         NUMERIC(26) NOT NULL,
+    txout_pos     NUMERIC(10) NOT NULL,
+    UNIQUE (asset_id, tx_id, txout_pos),
+    FOREIGN KEY (tx_id) REFERENCES tx (tx_id),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+)""",
+
 # raw units
 """CREATE TABLE asset_address_balance (
     asset_id      NUMERIC(10) NOT NULL,
@@ -1954,6 +1963,10 @@ store._ddl['txout_approx'],
                             INSERT INTO asset_address_balance (asset_id, pubkey_id, balance)
                             VALUES (?,?,?)""",
                             (new_asset_id, pubkey_id, val))
+                        store.sql("""
+                            INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
+                            VALUES (?,?,?)""",
+                            (new_asset_id, dbhash, pos))
                         # txout['scriptPubKey'] or binscript work fine here
                         vers = chain.address_version
                         the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
@@ -1985,6 +1998,11 @@ store._ddl['txout_approx'],
                                 break       # this should not happen!
                             asset_id = row[0]
 
+                            store.sql("""
+                            INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
+                            VALUES (?,?,?)""",
+                            (asset_id, dbhash, pos))
+
                             # sqlite does not have UPSERT so get balance first before adding balance to destination address
                             row = store.selectrow("""
                                 SELECT balance FROM asset_address_balance WHERE asset_id = ? AND pubkey_id = ?
@@ -2014,6 +2032,10 @@ store._ddl['txout_approx'],
                            SET name = ?, multiplier = ?
                          WHERE tx_id = ?
                          """, (val['name'], val['multiplier'], dbhash))
+                    store.sql("""
+                    INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
+                    VALUES ( (SELECT asset_id FROM asset WHERE tx_id = ? AND name = ?) , ?, ?)""",
+                    (dbhash, val['name'], dbhash, pos))
 # MULTICHAIN END
 
         # Import transaction inputs.
