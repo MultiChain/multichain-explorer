@@ -1384,6 +1384,27 @@ class Abe:
                 body += html_keyvalue_tablerow(k, v)
             body += ['</table>']
 
+        # List any transactions for this asset
+
+        body += ['<h3>Transactions</h3>\n']
+
+        body += ['<table class="table table-striped"><tr>'
+                 '<th>Transaction</th>'
+                 '<th>Index</th>'
+                 '<th>Block</th'
+                 '</tr>\n']
+
+        transactions = abe.store.get_transactions_for_asset(chain.id, assetref)
+        for tx in transactions:
+            labelclass=''
+            body += ['<tr ' + labelclass + '><td><a href="../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
+                     '</td><td>', tx['outpos'],
+                     '</td><td><a href="../../block/', tx['blockhash'], '">', tx['height'], '</a>',
+                     '</td></tr>']
+        body += ['</table>']
+# MULTICHAIN END
+
+
     # Page to show the assets that exist on a chain
     def handle_assets(abe, page):
         chain_id = wsgiref.util.shift_path_info(page['env'])

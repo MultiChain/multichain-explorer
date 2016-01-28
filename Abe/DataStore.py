@@ -3733,5 +3733,34 @@ store._ddl['txout_approx'],
             result = int(row[0])
         return result
 
+    def get_transactions_for_asset(store, chain_id, assetref):
+        def parse_row(row):
+            txhash, pos, height, blockhash = row
+            ret = {
+                "outpos": int(pos),
+                "hash": store.hashout_hex(txhash),
+                "height": int(height),
+                "blockhash": store.hashout_hex(blockhash)
+                }
+            return ret
+
+        prefix = int( assetref.split('-')[-1] )
+        rows = store.selectall("""
+            select t.tx_hash, a.txout_pos, bb.block_height, bb.block_hash from asset_txid a
+            join block_tx b on (a.tx_id=b.tx_id)
+            join tx t on (a.tx_id=t.tx_id)
+            join block bb on (b.block_id=bb.block_id)
+            where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
+            order by bb.block_height, b.tx_pos, a.txout_pos asc
+        """, (chain_id, prefix))
+
+        if rows is None:
+            return None
+
+        result = list(map(parse_row, rows))
+        return result
+
+
+
 def new(args):
     return DataStore(args)
