@@ -1972,7 +1972,7 @@ store._ddl['txout_approx'],
                         the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
                         checksum = store.get_address_checksum_value_by_chain(chain)
                         if checksum is None:
-                            address = util.hash_to_address(vers, binaddr)
+                            address = util.hash_to_address(vers, pubkey_raw)
                         else:
                             address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
                         #print "New asset issued to address: {}, balance {}".format(address, val)
@@ -1986,7 +1986,7 @@ store._ddl['txout_approx'],
                             the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
                             checksum = store.get_address_checksum_value_by_chain(chain)
                             if checksum is None:
-                                address = util.hash_to_address(vers, binaddr)
+                                address = util.hash_to_address(vers, pubkey_raw)
                             else:
                                 address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
                             #print "Asset sent to: {}, sent amount {}".format(address, quantity)
@@ -2383,7 +2383,7 @@ store._ddl['txout_approx'],
         return tx
 
     def export_address_history(store, address, chain=None, max_rows=-1, types=frozenset(['direct', 'escrow'])):
-        version, binaddr = util.decode_check_address(address)
+        version, binaddr = util.decode_check_address_multichain(chain.address_version if chain is not None else "\0", address)
         if binaddr is None:
             raise MalformedAddress("Invalid address")
 
