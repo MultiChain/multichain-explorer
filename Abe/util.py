@@ -150,6 +150,30 @@ def hash_to_address_multichain(version, hash, checksum):
     newchecksum = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a, b[:len(a)])])
     vh += newchecksum[:4]
     return base58.b58encode(vh)
+
+def decode_check_address_multichain(version, address):
+    if possible_address(address):
+        bytes = base58.b58decode(address, None)
+        # if len(bytes) < 25:
+        #     bytes = ('\0' * (25 - len(bytes))) + bytes
+
+        #print "base58 decoded len = {}".format(len(bytes))
+        bytes = bytes[:-4] # drop checksum
+        #print "no checksum        = {} ".format(len(bytes))
+        n = len(bytes)
+        skip = len(version)
+        #print "skip num bytes     = {} ".format(skip)
+        i =0
+        hash = '' #bytearray()
+        while i<n:
+            if skip>0 and i % 5 == 0:
+                skip = skip - 1
+            else:
+                hash += bytes[i]
+            i = i + 1
+        #print "ripemd length = {}, hex = {}".format(len(hash), long_hex(hash))
+        return version, hash #bytes[1:len(bytes)-4]
+    return None, None
 # MULTICHAIN END
 
 def decode_check_address(address):
