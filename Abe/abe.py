@@ -459,12 +459,12 @@ class Abe:
         if 'subbinaddr' in data:
             # Multisig or known P2SH.
 # MULTICHAIN START
-            ret = [hash_to_address_link(chain.script_addr_vers, data['binaddr'], dotdot, text='Escrow', checksum=checksum),
+            ret = [hash_to_address_link(chain.id, chain.script_addr_vers, data['binaddr'], dotdot, text='Escrow', checksum=checksum),
                    ' ', data['required_signatures'], ' of']
             for binaddr in data['subbinaddr']:
-                ret += [' ', hash_to_address_link(data['address_version'], binaddr, dotdot, 10, checksum=checksum)]
+                ret += [' ', hash_to_address_link(chain.id, data['address_version'], binaddr, dotdot, 10, checksum=checksum)]
             return ret
-        return hash_to_address_link(data['address_version'], data['binaddr'], dotdot, checksum=checksum)
+        return hash_to_address_link(chain.id, data['address_version'], data['binaddr'], dotdot, checksum=checksum)
 # MULTICHAIN END
 
     def call_handler(abe, page, cmd):
@@ -1184,7 +1184,7 @@ class Abe:
 
 # MULTICHAIN START
 
-    # Experimental handler, so we can show permissions
+    # Experimental handler, so we can show permissions and assets per address
     def handle_mcaddress(abe, page):
         # Shift chain id
         chain_id = wsgiref.util.shift_path_info(page['env'])
@@ -1207,12 +1207,28 @@ class Abe:
         url = abe.store.get_url_by_chain(chain)
         multichain_name = abe.store.get_multichain_name_by_id(chain.id)
 
+        # check the address
+        version, pubkeyhash = util.decode_check_address_multichain(chain.address_version, address)
+        if pubkeyhash is None:
+            raise PageNotFound()
+            #raise MalformedAddress("Invalid address")
+
         # If the HTML link for this handler gets only created for MultiChain networks, we don't need to check class.
         #if chain.__class__.__name__ is "MultiChain":
+        body += ['<h3>Permissions</h3>']
         try:
             resp = util.jsonrpc(multichain_name, url, "listpermissions", "all", address)
-            s = json.dumps(resp, sort_keys=True, indent=2)
-            body += ['<h3>Permissions</h3><pre>', s, '</pre>']
+            if len(resp) > 0 :
+                body += ['<ul>']
+                for permission in resp:
+                    name = permission['type'].capitalize()
+                    start = permission['startblock']
+                    end = permission['endblock']
+                    range = ""
+                    if not (start==0 and end==4294967295):
+                        range = " (blocks {} - {} only)".format(start, end)
+                    body += ['<li>', name, range, '</li>']
+                body += ['</ul>']
         except util.JsonrpcException as e:
             msg= "Failed to get permissions for address: JSON-RPC error({0}): {1}".format(e.code, e.message)
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
@@ -1222,6 +1238,49 @@ class Abe:
             body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
             #page['title'] = 'IO ERROR'
             #return s
+
+        body += ['<h3>Asset Balances</h3>']
+        try:
+            row = abe.store.selectrow("""select pubkey_id from pubkey where pubkey = ?""",
+                                      (abe.store.binin(pubkeyhash),) )
+            assets_resp = abe.store.get_assets(chain)
+            if len(assets_resp) is 0:
+                body += ['None']
+            elif row is not None:
+                pubkey_id = int(row[0])
+
+                # s = json.dumps(assets_resp, sort_keys=True, indent=2)
+                # body += ['<pre>', s, '</pre>']
+
+                body += ['<table class="table table-striped"><tr>'
+                         '<th>Asset Name</th>'
+                         '<th>Asset Reference</th>'
+                         '<th>Balance</th>'
+                         '</tr>']
+
+                assetdict = {}
+                for asset in assets_resp:
+                    assetdict[asset['name']] = asset
+
+                for row in abe.store.selectall("""
+                    select a.name, a.prefix, b.balance from asset_address_balance b join asset a on (a.asset_id=b.asset_id)
+                    where b.balance>0 and b.pubkey_id=?""",
+                                       (pubkey_id, )):
+                    name, prefix, balance = row
+                    if name is None:
+                        name=''
+                    asset = assetdict[name]
+                    assetref = asset['assetref']
+                    if assetref.endswith(str(prefix)):
+                        balance_display_qty = util.format_display_quantity(asset, balance)
+                        body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + assetref + '">' + name + '</a>',
+                             '</td><td><a href="../../assetref/' + chain_id + '/' + assetref + '">' + assetref + '</a>',
+                             '</td><td>', balance_display_qty,
+                             '</td></tr>']
+                body += ['</table>']
+        except Exception, e:
+            body += ['<div class="alert alert-danger" role="alert">', 'Failed to get asset information: '+str(e), '</div>']
+            pass
 
     # Given an asset reference, display info about asset.
     def handle_assetref(abe, page):
@@ -1561,7 +1620,7 @@ class Abe:
 # MULTICHAIN START
             tmp = []
             for subbinaddr in history['subbinaddr']:
-                tmp += [' ', hash_to_address_link(chain.address_version, subbinaddr, page['dotdot'], 10) ]
+                tmp += [' ', hash_to_address_link(chain.id, chain.address_version, subbinaddr, page['dotdot'], 10) ]
             body += html_keyvalue_tablerow('Escrow', tmp)
 # MULTICHAIN END
 
@@ -1601,8 +1660,9 @@ class Abe:
                 value = format_satoshis(elt['value'], chain)
 
             if 'binaddr' in elt:
-                value = hash_to_address_link(chain.script_addr_vers, elt['binaddr'], page['dotdot'], text=value)
-
+# MULTICHAIN START
+                value = hash_to_address_link(chain.id, chain.script_addr_vers, elt['binaddr'], page['dotdot'], text=value)
+# MULTICHAIN END
             body += [value, '</td><td class="balance">',
                      format_satoshis(balance[chain.id], chain),
                      '</td><td class="currency">', escape(chain.code3),
@@ -2029,7 +2089,9 @@ class Abe:
         if chain is None or addr is None:
             return 'Translates ADDRESS for use in CHAIN.\n' \
                 '/chain/CHAIN/q/translate_address/ADDRESS\n'
-        version, hash = util.decode_check_address(addr)
+# MULTICHAIN START
+        version, hash = util.decode_check_address_multichain(chain.address_version, addr)
+# MULTICHAIN END
         if hash is None:
             return addr + " (INVALID ADDRESS)"
         return util.hash_to_address(chain.address_version, hash)
@@ -2501,7 +2563,9 @@ def format_difficulty(diff):
         idiff = idiff / 1000
     return str(idiff) + ret
 
-def hash_to_address_link(version, hash, dotdot, truncate_to=None, text=None, checksum=None):
+# MULTICHAIN START
+def hash_to_address_link(chain_id, version, hash, dotdot, truncate_to=None, text=None, checksum=None):
+# MULTICHAIN END
     if hash == DataStore.NULL_PUBKEY_HASH:
         return 'Destroyed'
     if hash is None:
@@ -2518,9 +2582,9 @@ def hash_to_address_link(version, hash, dotdot, truncate_to=None, text=None, che
         visible = addr
     else:
         visible = addr[:truncate_to] + '...'
-
-    return ['<a href="', dotdot, 'address/', addr, '">', visible, '</a>']
-
+# MULTICHAIN START
+    return ['<a href="', dotdot, 'mcaddress/', chain_id, '/', addr, '">', visible, '</a>']
+# MULTICHAIN END
 def decode_script(script):
     if script is None:
         return ''
