@@ -907,7 +907,11 @@ class Abe:
                     if txout['value'] == 0:
                         continue
 
-                body += [abe.format_addresses(txout, page['dotdot'], chain), ': ',
+                if txout['binaddr'] is None:
+                    label = miner_address
+                else:
+                    label = abe.format_addresses(txout, page['dotdot'], chain)
+                body += [label, ': ',
                          format_satoshis(txout['value'], chain), '<br />']
 
             body += ['</td></tr>\n']
