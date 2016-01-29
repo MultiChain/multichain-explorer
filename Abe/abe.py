@@ -990,13 +990,23 @@ class Abe:
                     '<a href="', row['o_hash'], '#', other_ch, row['o_pos'],
                     '">', row['o_hash'][:10], '...:', row['o_pos'], '</a>']
 # MULTICHAIN START
+            # Decode earlier as we need to use script type
+            novalidaddress=False
+            if row['binscript'] is not None:
+                script_type, data = chain.parse_txout_script(row['binscript'])
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+                    novalidaddress = True
+
             if row['binaddr'] is None and row['o_hash'] is None:
-                try:
-                    blockjson = abe.store.get_block_by_hash(chain, blk_hash)
-                    miner = blockjson['miner']
-                    addressLabel = '<a href="' + page['dotdot'] + '/address/' + str(chain.id) + '/' + miner + '">' + miner + '</a>'
-                except Exception:
-                    addressLabel = 'Unknown (not connected)'
+                if novalidaddress is False:
+                    try:
+                        blockjson = abe.store.get_block_by_hash(chain, blk_hash)
+                        miner = blockjson['miner']
+                        addressLabel = '<a href="' + page['dotdot'] + '/address/' + str(chain.id) + '/' + miner + '">' + miner + '</a>'
+                    except Exception:
+                        addressLabel = 'Unknown (not connected)'
+                else:
+                    addressLabel = 'None'
             else:
                 addressLabel = abe.format_addresses(row, '../', chain)
             body += [
@@ -1006,10 +1016,8 @@ class Abe:
 
             if row['binscript'] is not None:
                 body += ['<td>', escape(decode_script(row['binscript'])) ]
-
                 msg = None
                 msgtype = 'success'
-                script_type, data = chain.parse_txout_script(row['binscript'])
                 if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
