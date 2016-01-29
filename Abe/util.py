@@ -277,6 +277,7 @@ OP_DROP_TYPE_PERMISSION = 3
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
+OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE = 2
 
 def get_op_drop_type_description(t):
     if t == OP_DROP_TYPE_ISSUE_ASSET:
@@ -399,6 +400,9 @@ def parse_op_return_data(data):
 
         rettype = OP_RETURN_TYPE_ISSUE_ASSET
         retval = {'multiplier':multiplier, 'name':str(assetname), 'fields':fields}
+    elif data[0:4]==bytearray.fromhex(u'53504b62'):
+        rettype = OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE
+        retval = data[4:]
 
     return rettype, retval
 
