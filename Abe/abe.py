@@ -743,6 +743,12 @@ class Abe:
         is_stake_block = is_stake_chain and b['is_proof_of_stake']
 
 # MULTICHAIN START
+        try:
+            blockjson = abe.store.get_block_by_hash(chain, b['hash'])
+        except Exception:
+            body += ['<p class="error">Not connected.</p>']
+            return
+
         if b['hashPrev'] is not None or b['next_block_hashes'] is not None:
             body += ['<nav><ul class="pager">']
             if b['hashPrev'] is not None:
@@ -775,7 +781,13 @@ class Abe:
         body += html_keyvalue_tablerow('Height', b['height'] if b['height'] is not None else '')
 
         miner_txout = b['transactions'][0]['out'][0]
-        miner_address = abe.format_addresses(miner_txout, page['dotdot'], chain)
+# MULTICHAIN START
+        if miner_txout['binaddr'] is not None:
+            miner_address = abe.format_addresses(miner_txout, page['dotdot'], chain)
+        else:
+            miner = blockjson['miner']
+            miner_address = '<a href="' + page['dotdot'] + '/address/' + str(chain.id) + '/' + miner + '">' + miner + '</a>'
+# MULTICHAIN END
         body += html_keyvalue_tablerow('Miner', miner_address)
 
         body += html_keyvalue_tablerow('Version', b['version'])
@@ -973,12 +985,22 @@ class Abe:
                 body += [
                     '<a href="', row['o_hash'], '#', other_ch, row['o_pos'],
                     '">', row['o_hash'][:10], '...:', row['o_pos'], '</a>']
+# MULTICHAIN START
+            if row['binaddr'] is None and row['o_hash'] is None:
+                try:
+                    blockjson = abe.store.get_block_by_hash(chain, blk_hash)
+                    miner = blockjson['miner']
+                    addressLabel = '<a href="' + page['dotdot'] + '/address/' + str(chain.id) + '/' + miner + '">' + miner + '</a>'
+                except Exception:
+                    addressLabel = 'Unknown (not connected)'
+            else:
+                addressLabel = abe.format_addresses(row, '../', chain)
             body += [
                 '</td>\n',
                 '<td>', format_satoshis(row['value'], chain), '</td>\n',
-                '<td>', abe.format_addresses(row, '../', chain), '</td>\n']
+                '<td>', addressLabel, '</td>\n']
+
             if row['binscript'] is not None:
-# MULTICHAIN START
                 body += ['<td>', escape(decode_script(row['binscript'])) ]
 
                 msg = None
@@ -1088,9 +1110,12 @@ class Abe:
                         #     msg += ', '
                         #     msg += ', '.join("{}={}".format(k.capitalize(),v) for (k,v) in fields.iteritems())
                         #     # {!s}={!r} creates single quotes around data
-                    elif is_coinbase:
+                    #elif is_coinbase
+                    elif opreturn_type==util.OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
                         msg = 'Miner block signature'
                         msgtype = 'info'
+                        #msg += '<p/>'
+                        #msg = util.long_hex(val)
                     else:
                         msg = 'Unrecognized MultiChain metadata'
                         msgtype = 'danger'
@@ -1597,7 +1622,7 @@ class Abe:
         for tx_cc in tx['chain_candidates']:
             if chain is None:
                 chain = tx_cc['chain']
-                #is_coinbase = (tx_cc['tx_pos'] == 0)
+                is_coinbase = (tx_cc['tx_pos'] == 0)
             elif tx_cc['chain'].id != chain.id:
                 abe.log.warning('Transaction ' + tx['hash'] + ' in multiple chains: '
                              + tx_cc['chain'].id + ', ' + chain.id)
