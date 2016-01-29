@@ -846,22 +846,22 @@ class Abe:
                         if data is not None:
                             opdrop_type, val = util.parse_op_drop_data(data)
                             if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
-                                label = 'Issue Asset'
+                                label = 'Asset'
                             elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
-                                label = 'Send Asset'
+                                label = 'Asset'
                             elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
-                                label = 'Update Permissions'
+                                label = 'Permissions'
                             else:
-                                label = 'Unrecognized OP_DROP command'
+                                label = 'Unknown OP_DROP'
                                 labeltype = 'danger'
                         else:
-                            label = 'Unrecognized MultiChain command'
+                            label = 'Unknown MultiChain command'
                             labeltype = 'danger'
 
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
                         opreturn_type, val = util.parse_op_return_data(data)
                         if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
-                            label = 'Issue Asset'
+                            label = 'Asset'
                         #else:
                             #Do nothing
                             #label = 'Unrecognized OP_RETURN metadata'
