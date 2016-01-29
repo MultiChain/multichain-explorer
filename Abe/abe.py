@@ -1184,8 +1184,7 @@ class Abe:
 
 # MULTICHAIN START
 
-    # Experimental handler, so we can show permissions and assets per address
-    def handle_mcaddress(abe, page):
+    def handle_address(abe, page):
         # Shift chain id
         chain_id = wsgiref.util.shift_path_info(page['env'])
         if chain_id in (None, ''):
@@ -1255,6 +1254,7 @@ class Abe:
                 body += ['<table class="table table-striped"><tr>'
                          '<th>Asset Name</th>'
                          '<th>Asset Reference</th>'
+                         '<th>Transactions</th>'
                          '<th>Balance</th>'
                          '</tr>']
 
@@ -1271,16 +1271,88 @@ class Abe:
                         name=''
                     asset = assetdict[name]
                     assetref = asset['assetref']
+
+                    num_tx = abe.store.get_number_of_transactions_for_asset_address(chain, assetref, pubkey_id)
+
                     if assetref.endswith(str(prefix)):
                         balance_display_qty = util.format_display_quantity(asset, balance)
                         body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + assetref + '">' + name + '</a>',
                              '</td><td><a href="../../assetref/' + chain_id + '/' + assetref + '">' + assetref + '</a>',
+                             '</td><td><a href="../../assetaddress/'  + chain_id + '/' + address + '/' + assetref + '">' + str(num_tx) + '</a>',
                              '</td><td>', balance_display_qty,
                              '</td></tr>']
                 body += ['</table>']
         except Exception, e:
             body += ['<div class="alert alert-danger" role="alert">', 'Failed to get asset information: '+str(e), '</div>']
             pass
+
+
+    # Given an address and asset reference, show transactions for that address and asset
+    def handle_assetaddress(abe, page):
+        # Shift chain id
+        chain_id = wsgiref.util.shift_path_info(page['env'])
+        if chain_id in (None, ''):
+            raise PageNotFound()
+
+        chain = abe.store.get_chain_by_id(chain_id)
+        if chain is None:
+            raise PageNotFound()
+
+        # shift address
+        address = wsgiref.util.shift_path_info(page['env'])
+        if address in (None, ''): # or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+
+        # Shift asset ref
+        assetref = wsgiref.util.shift_path_info(page['env'])
+        if assetref in (None, '') or page['env']['PATH_INFO'] != '':
+             raise PageNotFound()
+
+        page['title'] = 'Address ' + address + ' transactions'
+        body = page['body']
+
+        url = abe.store.get_url_by_chain(chain)
+        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+
+        # get asset information and issue tx as json
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listassets", assetref)
+            asset = resp[0]
+            #issuetxid = asset['issuetxid']
+            #resp = util.jsonrpc(multichain_name, url, "getrawtransaction", issuetxid, 1)
+            #issuetx = resp
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            #if e.code != -5:  # -5: transaction not in index.
+            # JSON-RPC error(-8): Asset with this reference not found: 5-264-60087
+            body += [ msg ]
+            return
+        except IOError as e:
+            msg = "Network connection error"
+            body += [ msg ]
+            return
+
+        name = asset['name']
+        body += ['<h3>' + name.capitalize() + ' (' + assetref + ')</h3>']
+
+        transactions = abe.store.get_transactions_for_asset_address(chain, assetref, address)
+        if transactions is None:
+            body += ['No transactions']
+            return
+        body += ['<table class="table table-striped"><tr>'
+                 '<th>Transaction</th>'
+                 '<th>Index</th>'
+                 '<th>Block</th'
+                 '</tr>\n']
+        for tx in transactions:
+            labelclass=''
+            body += ['<tr ' + labelclass + '><td><a href="../../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
+                     '</td><td>', tx['outpos'],
+                     '</td><td><a href="../../../block/', tx['blockhash'], '">', tx['height'], '</a>',
+                     '</td></tr>']
+        body += ['</table>']
+
+
 
     # Given an asset reference, display info about asset.
     def handle_assetref(abe, page):
@@ -1356,13 +1428,13 @@ class Abe:
         body += html_keyvalue_tablerow('Issue TXID', '<a href="../../tx/' + issuetxid + '">', issuetxid, '</a>')
         body += html_keyvalue_tablerow('Asset Reference', '<a href="../../assetref/' + chain_id + '/' + assetref + '">' + assetref + '</a>')
         body += html_keyvalue_tablerow('Name', '<a href="../../assetref/' + chain_id + '/' + assetref + '">' + name + '</a>')
-        holders = abe.store.get_number_of_asset_holders(chain.id, assetref)
-        body += html_keyvalue_tablerow('Addresses holding units', holders)
+        holders = abe.store.get_number_of_asset_holders(chain, assetref)
+        body += html_keyvalue_tablerow('Addresses holding units', holders, ' (<a href="#holders">Jump to holders</a>)')
         body += html_keyvalue_tablerow('Raw units issued', raw_units)
         body += html_keyvalue_tablerow('Display quantity', display_qty)
         body += html_keyvalue_tablerow('Native amount sent', format_satoshis(native_amount, chain))
-        body += html_keyvalue_tablerow('Issuer Address', '<a href="../../mcaddress/' + chain_id + '/' + address_from + '">', address_from, '</a>')
-        body += html_keyvalue_tablerow('Recipient Address ', '<a href="../../mcaddress/' + chain_id + '/' + address_to + '">', address_to, '</a>')
+        body += html_keyvalue_tablerow('Issuer Address', '<a href="../../address/' + chain_id + '/' + address_from + '">', address_from, '</a>')
+        body += html_keyvalue_tablerow('Recipient Address ', '<a href="../../address/' + chain_id + '/' + address_to + '">', address_to, '</a>')
         body += ['</table>']
 
         #body += ['<h3>', asset['name'], '(Asset Reference ', assetref, ')', '</h3>']
@@ -1384,9 +1456,33 @@ class Abe:
                 body += html_keyvalue_tablerow(k, v)
             body += ['</table>']
 
+        # List asset holders and balances
+        body += ['<a name="holders"><h3>Asset Holders </h3></a>\n']
+        body += ['<table class="table table-striped"><tr>'
+                 '<th>Address</th>'
+                 '<th>Balance</th>'
+                 '</tr>\n']
+        holders = abe.store.get_asset_holders(chain, assetref)
+        for holder in holders:
+            #address = util.long_hex(holder['pubkey_hash'])
+            binaddr = holder['pubkey']
+            checksum = abe.store.get_address_checksum_value_by_chain(chain)
+            if checksum is None:
+                address = util.hash_to_address(chain.address_version, binaddr)
+            else:
+                address = util.hash_to_address_multichain(chain.address_version, binaddr, checksum)
+
+            amount = util.format_display_quantity(asset, holder['balance'])
+
+            body += ['<tr><td><a href="../../address/' + chain_id + '/' + address + '">', address, '</a>',    # shorten via tx['hash'][:16]
+                     '</td><td>', amount,
+                     '</td></tr>']
+
+        body += ['</table>']
+
         # List any transactions for this asset
 
-        body += ['<h3>Transactions</h3>\n']
+        body += ['<a name="transactions"><h3>Transactions</h3></a>\n']
 
         body += ['<table class="table table-striped"><tr>'
                  '<th>Transaction</th>'
@@ -1394,7 +1490,7 @@ class Abe:
                  '<th>Block</th'
                  '</tr>\n']
 
-        transactions = abe.store.get_transactions_for_asset(chain.id, assetref)
+        transactions = abe.store.get_transactions_for_asset(chain, assetref)
         for tx in transactions:
             labelclass=''
             body += ['<tr ' + labelclass + '><td><a href="../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
@@ -1443,13 +1539,15 @@ class Abe:
         body += ['<table class="table table-striped"><tr><th>Asset Name</th><th>Asset Reference</th>'
                  '<th>Issue Transaction</th>'
                  '<th>Asset Holders</th>'
+                 '<th>Transactions</th>'
                  '<th>Issued Quantity</th><th>Units</th>'
                  '</tr>']
 
         for asset in resp:
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
             issueqty = util.format_display_quantity(asset, asset['issueqty'])
-            holders = abe.store.get_number_of_asset_holders(chain.id, asset['assetref'])
+            holders = abe.store.get_number_of_asset_holders(chain, asset['assetref'])
+            numtxs = abe.store.get_number_of_transactions_for_asset(chain, asset['assetref'])
             s = "{:17f}".format(asset['units'])
             units = s.rstrip('0').rstrip('.') if '.' in s else s
             #issueraw = str(asset['issueraw'])
@@ -1457,7 +1555,8 @@ class Abe:
                      '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
                      '</td><td><a href="../../tx/' + asset['issuetxid'] + '">',
                      asset['issuetxid'][:20], '...</a>',
-                     '</td><td>', holders,
+                     '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '#holders">', holders, '</a>',
+                     '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '#transactions">', numtxs, '</a>',
                      '</td><td>', issueqty,
                      '</td><td>', units,
                      '</td></tr>']
@@ -1552,7 +1651,7 @@ class Abe:
             return 'ERROR: Transaction does not exist.'  # BBE compatible
         return json.dumps(tx, sort_keys=True, indent=2)
 
-    def handle_address(abe, page):
+    def handle_deprecatedaddress(abe, page):
         address = wsgiref.util.shift_path_info(page['env'])
         if address in (None, '') or page['env']['PATH_INFO'] != '':
             raise PageNotFound()
@@ -1800,7 +1899,10 @@ class Abe:
         return ret
 
     def _found_address(abe, address):
-        return { 'name': 'Address ' + address, 'uri': 'address/' + address }
+# MULTICHAIN START
+        # Fudge this for chain id of 1
+        return { 'name': 'Address ' + address, 'uri': 'address/1/' + address }
+# MULTICHAIN END
 
     def search_address(abe, address):
         try:
@@ -2604,7 +2706,7 @@ def hash_to_address_link(chain_id, version, hash, dotdot, truncate_to=None, text
     else:
         visible = addr[:truncate_to] + '...'
 # MULTICHAIN START
-    return ['<a href="', dotdot, 'mcaddress/', chain_id, '/', addr, '">', visible, '</a>']
+    return ['<a href="', dotdot, 'address/', chain_id, '/', addr, '">', visible, '</a>']
 # MULTICHAIN END
 def decode_script(script):
     if script is None:

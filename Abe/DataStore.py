@@ -70,12 +70,12 @@ CONFIG_DEFAULTS = {
 WORK_BITS = 304  # XXX more than necessary.
 
 CHAIN_CONFIG = [
-    {"chain":"Bitcoin"},
-    {"chain":"Testnet"},
+#    {"chain":"Bitcoin"},
+#    {"chain":"Testnet"},
     #{"chain":"",
     # "code3":"", "address_version":"\x", "magic":""},
 # MULTICHAIN START
-    {"chain":"MultiChain"}
+#    {"chain":"MultiChain"}
 # MULTICHAIN END
     ]
 
@@ -3720,7 +3720,8 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
-    def get_number_of_asset_holders(store, chain_id, assetref):
+    def get_number_of_asset_holders(store, chain, assetref):
+        chain_id = chain.id
         prefix = int( assetref.split('-')[-1] )
         row = store.selectrow("""
             SELECT count (DISTINCT pubkey_id)
@@ -3733,7 +3734,30 @@ store._ddl['txout_approx'],
             result = int(row[0])
         return result
 
-    def get_transactions_for_asset(store, chain_id, assetref):
+    def get_asset_holders(store, chain, assetref):
+        def parse_row(row):
+            pubkey, balance = row
+            ret = {
+                "pubkey": store.binout(pubkey),
+                "balance": balance
+                }
+            return ret
+
+        chain_id = chain.id
+        prefix = int( assetref.split('-')[-1] )
+        rows = store.selectall("""
+            SELECT p.pubkey, a.balance
+            FROM asset_address_balance a
+            JOIN pubkey p ON (a.pubkey_id = p.pubkey_id)
+            WHERE balance>0 AND asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
+            """, (chain_id, prefix))
+        if rows is None:
+            return None
+        result = list(map(parse_row, rows))
+        return result
+
+
+    def get_transactions_for_asset(store, chain, assetref):
         def parse_row(row):
             txhash, pos, height, blockhash = row
             ret = {
@@ -3752,7 +3776,7 @@ store._ddl['txout_approx'],
             join block bb on (b.block_id=bb.block_id)
             where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
             order by bb.block_height, b.tx_pos, a.txout_pos asc
-        """, (chain_id, prefix))
+        """, (chain.id, prefix))
 
         if rows is None:
             return None
@@ -3760,7 +3784,65 @@ store._ddl['txout_approx'],
         result = list(map(parse_row, rows))
         return result
 
+    def get_transactions_for_asset_address(store, chain, assetref, address):
+        def parse_row(row):
+            txhash, pos, height, blockhash = row
+            ret = {
+                "outpos": int(pos),
+                "hash": store.hashout_hex(txhash),
+                "height": int(height),
+                "blockhash": store.hashout_hex(blockhash)
+                }
+            return ret
 
+        # get pubkey id
+        version, pubkeyhash = util.decode_check_address_multichain(chain.address_version, address)
+        if pubkeyhash is None:
+            return None
+        row = store.selectrow("""select pubkey_id from pubkey where pubkey = ?""",
+                                    (store.binin(pubkeyhash),) )
+        if row is None:
+            return None
+        pubkey_id = int(row[0])
+
+        prefix = int( assetref.split('-')[-1] )
+        rows = store.selectall("""
+            select t.tx_hash, a.txout_pos, bb.block_height, bb.block_hash from asset_txid a
+            join block_tx b on (a.tx_id=b.tx_id)
+            join tx t on (a.tx_id=t.tx_id)
+            join block bb on (b.block_id=bb.block_id)
+            join txout o on (a.tx_id=o.tx_id)
+            where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
+            and o.pubkey_id=?
+            order by bb.block_height, b.tx_pos, a.txout_pos asc
+        """, (chain.id, prefix, pubkey_id))
+
+        if rows is None:
+            return None
+
+        result = list(map(parse_row, rows))
+        return result
+
+    def get_number_of_transactions_for_asset_address(store, chain, assetref, pubkey_id):
+        prefix = int( assetref.split('-')[-1] )
+        row = store.selectrow("""
+            select count (distinct a.tx_id) from asset_txid a join txout o on (a.tx_id=o.tx_id)
+            where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
+            and o.pubkey_id=?
+        """, (chain.id, prefix, pubkey_id))
+        if row is None:
+            return 0
+        return int(row[0])
+
+    def get_number_of_transactions_for_asset(store, chain, assetref):
+        prefix = int( assetref.split('-')[-1] )
+        row = store.selectrow("""
+            select count (distinct a.tx_id) from asset_txid a
+            where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
+        """, (chain.id, prefix))
+        if row is None:
+            return 0
+        return int(row[0])
 
 def new(args):
     return DataStore(args)
