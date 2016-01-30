@@ -2107,6 +2107,12 @@ store._ddl['txout_approx'],
                                         asset_id = (SELECT asset_id FROM asset WHERE prefix = ?)
                                  """,
                                       (val, pubkey_id, prefix))
+
+                            # store.sql("""
+                            #     INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
+                            #     VALUES ((SELECT asset_id FROM asset WHERE prefix = ?),?,?)""",
+                            #     (prefix, store.hashin(spent_tx_hash),  store.intin(txin['prevout_n'])))
+
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                             # Spending sent tx
                             for dict in val:
@@ -2122,6 +2128,11 @@ store._ddl['txout_approx'],
                                         asset_id = (SELECT asset_id FROM asset WHERE prefix = ?)
                                  """,
                                       (quantity, pubkey_id, prefix))
+
+                                # store.sql("""
+                                # INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
+                                # VALUES ((SELECT asset_id FROM asset WHERE prefix = ?),?,?)""",
+                                # (prefix, store.hashin(spent_tx_hash),  store.intin(txin['prevout_n'])))
 
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                             #print 'Spending tx with Permissions command'
@@ -2333,7 +2344,9 @@ store._ddl['txout_approx'],
                 "o_pos": None if o_pos is None else int(o_pos),
                 }
             store._export_scriptPubKey(ret, chain, scriptPubKey)
-
+# MULTICHAIN START
+            ret['multichain_scriptPubKey'] = scriptPubKey if len(row) > 5 else None
+# MULTICHAIN END
             return ret
 
         # XXX Unneeded outer join.
@@ -3777,9 +3790,9 @@ store._ddl['txout_approx'],
 
     def get_transactions_for_asset(store, chain, assetref):
         def parse_row(row):
-            txhash, pos, height, blockhash = row
+            txhash, height, blockhash = row
             ret = {
-                "outpos": int(pos),
+#                "outpos": int(pos),
                 "hash": store.hashout_hex(txhash),
                 "height": int(height),
                 "blockhash": store.hashout_hex(blockhash)
@@ -3788,12 +3801,12 @@ store._ddl['txout_approx'],
 
         prefix = int( assetref.split('-')[-1] )
         rows = store.selectall("""
-            select t.tx_hash, a.txout_pos, bb.block_height, bb.block_hash from asset_txid a
+            select DISTINCT t.tx_hash, bb.block_height, bb.block_hash from asset_txid a
             join block_tx b on (a.tx_id=b.tx_id)
             join tx t on (a.tx_id=t.tx_id)
             join block bb on (b.block_id=bb.block_id)
             where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
-            order by bb.block_height, b.tx_pos, a.txout_pos asc
+            order by bb.block_height, b.tx_pos asc
         """, (chain.id, prefix))
 
         if rows is None:
@@ -3804,9 +3817,9 @@ store._ddl['txout_approx'],
 
     def get_transactions_for_asset_address(store, chain, assetref, address):
         def parse_row(row):
-            txhash, pos, height, blockhash = row
+            txhash, height, blockhash = row
             ret = {
-                "outpos": int(pos),
+                #"outpos": int(pos),
                 "hash": store.hashout_hex(txhash),
                 "height": int(height),
                 "blockhash": store.hashout_hex(blockhash)
@@ -3824,15 +3837,16 @@ store._ddl['txout_approx'],
         pubkey_id = int(row[0])
 
         prefix = int( assetref.split('-')[-1] )
+        # a.txout_pos,... , a.txout_pos asc
         rows = store.selectall("""
-            select t.tx_hash, a.txout_pos, bb.block_height, bb.block_hash from asset_txid a
+            select DISTINCT t.tx_hash, bb.block_height, bb.block_hash from asset_txid a
             join block_tx b on (a.tx_id=b.tx_id)
             join tx t on (a.tx_id=t.tx_id)
             join block bb on (b.block_id=bb.block_id)
             join txout o on (a.tx_id=o.tx_id)
             where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
             and o.pubkey_id=?
-            order by bb.block_height, b.tx_pos, a.txout_pos asc
+            order by bb.block_height, b.tx_pos asc
         """, (chain.id, prefix, pubkey_id))
 
         if rows is None:

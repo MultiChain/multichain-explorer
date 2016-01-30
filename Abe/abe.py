@@ -1376,16 +1376,87 @@ class Abe:
         if transactions is None:
             body += ['No transactions']
             return
-        body += ['<table class="table table-striped"><tr>'
+        body += ['<table class="table table-condensed"><tr>'
                  '<th>Transaction</th>'
-                 '<th>Index</th>'
-                 '<th>Block</th'
+                 '<th>Block</th>'
+                 '<th>Net Change</th>'
                  '</tr>\n']
+
+
+        # local method to get raw units for a given asset from a txin or txout,
+        def get_asset_amount_from_txinout(tx, this_ch, other_ch, asset, chain):
+            binaddr = tx['binaddr']
+            if binaddr is None:
+                return 0
+            checksum = abe.store.get_address_checksum_value_by_chain(chain)
+            vers = tx['address_version'] # chain.script_addr_ver
+            if checksum is None:
+                addr = util.hash_to_address(vers, binaddr)
+            else:
+                addr = util.hash_to_address_multichain(vers, binaddr, checksum)
+            matchaddress = (addr==address)
+
+            binscript = tx['binscript']
+            if binscript is None:
+                return 0
+
+            # for input, we want to examine the txout it represents
+            if this_ch=='i':
+                binscript = tx['multichain_scriptPubKey']
+
+            script_type, data = chain.parse_txout_script(binscript)
+
+            if script_type is not Chain.SCRIPT_TYPE_MULTICHAIN:
+                return 0
+
+            data = util.get_multichain_op_drop_data(binscript)
+            if data is None:
+                return 0
+            opdrop_type, val = util.parse_op_drop_data(data)
+            if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                #if matchaddress: # and this_ch=='o':
+                return val
+                #return 0
+            elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                for dict in val:
+                    quantity = dict['quantity']
+                    assetref = dict['assetref']
+                    if assetref == asset['assetref']:
+                        if matchaddress:
+                            return quantity
+            return 0
+
         for tx in transactions:
-            labelclass=''
-            body += ['<tr ' + labelclass + '><td><a href="../../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
-                     '</td><td>', tx['outpos'],
+            tx_hash = tx['hash']
+            try:
+                t = abe.store.export_tx(tx_hash = tx_hash, format = 'browser')
+            except DataStore.MalformedHash:
+                continue
+            if t is None:
+                continue
+
+            out_amount = 0
+            for txobj in t['out']:
+                qty = get_asset_amount_from_txinout(txobj, 'o', 'i', asset, chain)
+                out_amount = out_amount + qty
+            in_amount = 0
+            for txobj in t['in']:
+                qty = get_asset_amount_from_txinout(txobj, 'i', 'o', asset, chain)
+                in_amount = in_amount + qty
+
+            net_amount = out_amount - in_amount
+            net_amount_label = util.format_display_quantity(asset, net_amount)
+            if net_amount == 0:
+                context = ""
+            elif net_amount > 0:
+                context = "success"
+            else:
+                context = "danger"
+
+            contextclass='class="' + context + '"'
+            body += ['<tr><td><a href="../../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
                      '</td><td><a href="../../../block/', tx['blockhash'], '">', tx['height'], '</a>',
+                     '</td><td ' + contextclass + '>', net_amount_label,
                      '</td></tr>']
         body += ['</table>']
 
@@ -1513,9 +1584,41 @@ class Abe:
 
             body += ['<tr><td><a href="../../address/' + chain_id + '/' + address + '">', address, '</a>',    # shorten via tx['hash'][:16]
                      '</td><td>', amount,
+                     '<a href="../../assetaddress/'  + chain_id + '/' + address + '/' + assetref + '"> (transactions)</a>',
                      '</td></tr>']
 
         body += ['</table>']
+
+
+
+        # local method to get raw units for a given asset from a txin or txout,
+        def get_asset_amount_from_txinout(tx, this_ch, other_ch, asset, chain):
+            binaddr = tx['binaddr']
+            if binaddr is None:
+                return 0
+            binscript = tx['binscript']
+            if binscript is None:
+                return 0
+            # for input, we want to examine the txout it represents
+            if this_ch=='i':
+                binscript = tx['multichain_scriptPubKey']
+            script_type, data = chain.parse_txout_script(binscript)
+            if script_type is not Chain.SCRIPT_TYPE_MULTICHAIN:
+                return 0
+            data = util.get_multichain_op_drop_data(binscript)
+            if data is None:
+                return 0
+            opdrop_type, val = util.parse_op_drop_data(data)
+            if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                return val
+            elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                for dict in val:
+                    quantity = dict['quantity']
+                    assetref = dict['assetref']
+                    if assetref == asset['assetref']:
+                        return quantity
+            return 0
+
 
         # List any transactions for this asset
 
@@ -1523,16 +1626,45 @@ class Abe:
 
         body += ['<table class="table table-striped"><tr>'
                  '<th>Transaction</th>'
-                 '<th>Index</th>'
-                 '<th>Block</th'
+                 '<th>Block</th>'
+                 '<th>Quantity Moved</th>'
                  '</tr>\n']
 
         transactions = abe.store.get_transactions_for_asset(chain, assetref)
+
         for tx in transactions:
-            labelclass=''
-            body += ['<tr ' + labelclass + '><td><a href="../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
-                     '</td><td>', tx['outpos'],
+            tx_hash = tx['hash']
+            try:
+                t = abe.store.export_tx(tx_hash = tx_hash, format = 'browser')
+            except DataStore.MalformedHash:
+                continue
+            if t is None:
+                continue
+
+            out_amount = 0
+            for txobj in t['out']:
+                qty = get_asset_amount_from_txinout(txobj, 'o', 'i', asset, chain)
+                out_amount = out_amount + qty
+            # in_amount = 0
+            # for txobj in t['in']:
+            #     qty = get_asset_amount_from_txinout(txobj, 'i', 'o', asset, chain)
+            #     in_amount = in_amount + qty
+
+            # net_amount = in_amount - out_amount
+            # net_amount_label = util.format_display_quantity(asset, net_amount)
+            # if net_amount == 0:
+            #     context = ""
+            # elif net_amount > 0:
+            #     context = "success"
+            # else:
+            #     context = "danger"
+
+            # contextclass='class="' + context + '"'
+            body += ['<tr><td><a href="../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
                      '</td><td><a href="../../block/', tx['blockhash'], '">', tx['height'], '</a>',
+                     # '</td><td>', util.format_display_quantity(asset, in_amount),
+                     '</td><td>', util.format_display_quantity(asset, out_amount),
+                     # '</td><td ' + contextclass +'>', net_amount_label,
                      '</td></tr>']
         body += ['</table>']
 # MULTICHAIN END
