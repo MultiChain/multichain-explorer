@@ -438,6 +438,7 @@ def format_display_quantity(asset, rawqty):
 
     if p is 0:
         fmt = "{:d}"
+        rawqty = int(rawqty)
     else:
         fmt = "{:." + "{}".format(p) + "f}"
     return fmt.format( rawqty )
