@@ -166,7 +166,7 @@ def decode_check_address_multichain(version, address):
         i =0
         hash = '' #bytearray()
         while i<n:
-            if skip>0 and i % 5 == 0:
+            if skip>0 and i % 6 == 0:
                 skip = skip - 1
             else:
                 hash += bytes[i]
