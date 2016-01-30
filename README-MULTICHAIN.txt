@@ -61,6 +61,7 @@ http://IP_address_of_server:PORT
 
 
 Misc Notes:
+* Currently it is not recommended to configure multiple chains in one config file as the search function does not search across chains for an address
 * https://github.com/bitcoin-abe/bitcoin-abe/blob/master/README-SQLITE.txt
 * You can run two instances of the Explorer with the same config file, with one being passed the --no-serve argument.  That instance will keep on updating the database and not serve a web explorer.
 * Example of just building a database
