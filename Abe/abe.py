@@ -682,8 +682,17 @@ class Abe:
 
             if miner_block is not None:
                 miner_txout = miner_block['transactions'][0]['out'][0]
-                miner_address = abe.format_addresses(miner_txout, page['dotdot'], chain)
-                miner_address = miner_address[0:6]
+                if miner_txout['binaddr'] is not None:
+                    miner_address = abe.format_addresses(miner_txout, page['dotdot'], chain)
+                    miner_address = miner_address[0:6]
+                else:
+                    try:
+                        blockjson = abe.store.get_block_by_hash(chain, miner_block['hash'])
+                        miner = blockjson['miner']
+                        miner_address = '<a href="' + page['dotdot'] + '/address/' + str(chain.id) + '/' + miner + '">' + miner[0:6] + '...</a>'
+                    except Exception:
+                        miner_address = "Unknown"
+
 # MULTICHAIN END
 
             body += [
