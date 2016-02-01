@@ -1958,7 +1958,7 @@ store._ddl['txout_approx'],
                         store.sql("""
                             INSERT INTO asset (asset_id, tx_id, chain_id, name, multiplier, issue_qty, prefix)
                             VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                            (new_asset_id, tx_id, chain.id, "", 0, val, prefix ))
+                            (new_asset_id, tx_id, chain.id, store.binin(""), 0, val, prefix ))
                         store.sql("""
                             INSERT INTO asset_address_balance (asset_id, pubkey_id, balance)
                             VALUES (?,?,?)""",
@@ -2031,11 +2031,11 @@ store._ddl['txout_approx'],
                         UPDATE asset
                            SET name = ?, multiplier = ?
                          WHERE tx_id = ?
-                         """, (val['name'], val['multiplier'], tx_id))
+                         """, (unicode(val['name'], 'latin-1'), val['multiplier'], tx_id))
                     store.sql("""
                     INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
                     VALUES ( (SELECT asset_id FROM asset WHERE tx_id = ? AND name = ?) , ?, ?)""",
-                    (tx_id, val['name'], tx_id, pos))
+                    (tx_id, unicode(val['name'], 'latin-1'), tx_id, pos))
 # MULTICHAIN END
 
         # Import transaction inputs.

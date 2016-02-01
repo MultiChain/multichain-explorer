@@ -302,7 +302,7 @@ class Abe:
 
         content = page['template'] % tvars
         if isinstance(content, unicode):
-            content = content.encode('UTF-8')
+            content = content.encode('latin-1') # Convert Unicode escaped bytes into binary.  Used to be UTF-8.
         return [content]
 
     def get_handler(abe, cmd):
@@ -1536,7 +1536,8 @@ class Abe:
         address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
         native_amount = issuetx['vout'][0]['value']
 
-        body += ['<h3>Asset Summary "' + name.capitalize() + '"</h3>\n']
+        name = name.encode('unicode-escape') # escaped text will at the final stage be encoded to 'latin-1' i.e. 0-255 bytes.
+        body += ['<h3>Asset Summary "' + name + '"</h3>\n']
         body += ['<table class="table table-bordered table-condensed">']
 
         body += html_keyvalue_tablerow('Issue Block Height', '<a href="../../block/', blockhash, '">', height, '</a>')
@@ -1722,6 +1723,8 @@ class Abe:
                  '</tr>']
 
         for asset in resp:
+            if asset['assetref'] is None:
+                continue
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
             issueqty = util.format_display_quantity(asset, asset['issueqty'])
             holders = abe.store.get_number_of_asset_holders(chain, asset['assetref'])
@@ -1729,7 +1732,7 @@ class Abe:
             s = "{:17f}".format(asset['units'])
             units = s.rstrip('0').rstrip('.') if '.' in s else s
             #issueraw = str(asset['issueraw'])
-            body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'] + '</a>',
+            body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['name'].encode('unicode-escape') + '</a>',
                      '</td><td><a href="../../assetref/' + chain_id + '/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
                      '</td><td><a href="../../tx/' + asset['issuetxid'] + '">',
                      asset['issuetxid'][:20], '...</a>',
@@ -2929,8 +2932,10 @@ def flatten(l):
     if l is None:
         raise Exception('NoneType in HTML conversion')
     if isinstance(l, unicode):
-        return l
-    return str(l)
+# MULTICHAIN START
+        return l.decode('unicode-escape)')
+    return str(l).decode('unicode-escape)')
+# MULTICHAIN END
 
 def redirect(page):
     uri = wsgiref.util.request_uri(page['env'])
