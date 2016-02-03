@@ -3876,6 +3876,40 @@ store._ddl['txout_approx'],
             return 0
         return int(row[0])
 
+    def does_transaction_exist(store, tx_hash):
+        if tx_hash is None:
+            return False
+        try:
+            dbhash = store.hashin_hex(tx_hash)
+        except TypeError:
+            return False
+
+        row = store.selectrow("""
+            SELECT EXISTS (SELECT 1 FROM tx WHERE tx_hash = ?)
+        """, (dbhash,))
+        if row is None:
+            return False
+        result = int(row[0])
+        return True if result==1 else False
+
+
+    def list_transactions(store, chain):
+        """
+        Get the result of listtransactions json-rpc command as json object
+        :param chain:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listtransactions")
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
     def get_rawmempool(store, chain):
         """
         Get the result of getrawmempool json-rpc command as json object
