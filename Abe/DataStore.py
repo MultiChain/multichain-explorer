@@ -3893,7 +3893,7 @@ store._ddl['txout_approx'],
         return True if result==1 else False
 
 
-    def list_transactions(store, chain):
+    def list_transactions(store, chain, count):
         """
         Get the result of listtransactions json-rpc command as json object
         :param chain:
@@ -3903,7 +3903,7 @@ store._ddl['txout_approx'],
         multichain_name = store.get_multichain_name_by_id(chain.id)
         resp = None
         try:
-            resp = util.jsonrpc(multichain_name, url, "listtransactions")
+            resp = util.jsonrpc(multichain_name, url, "listtransactions", '"*"', count)
         except util.JsonrpcException as e:
             raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
         except IOError as e:

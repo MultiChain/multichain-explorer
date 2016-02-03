@@ -495,10 +495,11 @@ class Abe:
 
         now = time.time() - EPOCH1970
         mempool = abe.store.get_rawmempool(chain)
-        recenttx = abe.store.list_transactions(chain)
+        recenttx = abe.store.list_transactions(chain, 30)   # we only want 'send' category, not 'receive' or 'move'
         sorted_mempool = sorted( mempool.items()[:10], key = lambda tup: tup[1]['time'], reverse=True)
         if len(sorted_mempool)<10:
-            sorted_recenttx = sorted(recenttx, key = lambda tx: tx['time'], reverse=True)
+            recenttx = filter(lambda x: x['category'] == 'send', recenttx)
+            sorted_recenttx = sorted(recenttx[:10-len(sorted_mempool)], key = lambda tx: tx['time'], reverse=True)
             for tx in sorted_recenttx:
                 if tx['txid'] not in mempool:
                     sorted_mempool.append( (tx['txid'], tx) )
