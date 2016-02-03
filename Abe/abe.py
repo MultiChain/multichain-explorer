@@ -499,9 +499,14 @@ class Abe:
         sorted_mempool = sorted( mempool.items()[:10], key = lambda tup: tup[1]['time'], reverse=True)
         if len(sorted_mempool)<10:
             recenttx = filter(lambda x: x['category'] == 'send', recenttx)
-            sorted_recenttx = sorted(recenttx[:10-len(sorted_mempool)], key = lambda tx: tx['time'], reverse=True)
+           #recenttx = [tx for tx in recenttx if tx['category']=='send']
+            sorted_recenttx = sorted(recenttx, key = lambda tx: tx['time'], reverse=True)
+           existing_txids = [txid for (txid, value) in sorted_mempool]
             for tx in sorted_recenttx:
-                if tx['txid'] not in mempool:
+               if len(sorted_mempool)==10:
+                   break
+                if tx['txid'] not in existing_txids:
+                   existing_txids.append( tx['txid'])
                     sorted_mempool.append( (tx['txid'], tx) )
 
         for (k,v) in sorted_mempool: #mempool.iteritems():
