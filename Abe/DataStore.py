@@ -3876,5 +3876,22 @@ store._ddl['txout_approx'],
             return 0
         return int(row[0])
 
+    def get_rawmempool(store, chain):
+        """
+        Get the result of getrawmempool json-rpc command as json object
+        :param chain:
+        :return: json object (key is txid, value is dict)
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "getrawmempool", True)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
 def new(args):
     return DataStore(args)
