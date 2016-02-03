@@ -39,6 +39,7 @@ import base58
 
 # MULTICHAIN START
 import Chain
+import urllib
 # MULTICHAIN END
 
 __version__ = version.__version__
@@ -77,6 +78,13 @@ DEFAULT_TEMPLATE = """
     <!-- Bootstrap and Theme -->
     <link href="%(dotdot)s%(STATIC_PATH)scss/bootstrap.min.css" rel="stylesheet">
     <link href="%(dotdot)s%(STATIC_PATH)scss/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="%(dotdot)s%(STATIC_PATH)sjs/jquery-1.11.3.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="%(dotdot)s%(STATIC_PATH)sjs/bootstrap.min.js"></script>
+
+    %(myheader)s
 </head>
 <body>
     <div class="container">
@@ -91,10 +99,6 @@ DEFAULT_TEMPLATE = """
         %(download)s
     </p>
     </div>
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="%(dotdot)s%(STATIC_PATH)sjs/jquery-1.11.3.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="%(dotdot)s%(STATIC_PATH)sjs/bootstrap.min.js"></script>
 </body>
 </html>
 """
@@ -244,6 +248,9 @@ class Abe:
             "content_type": str(abe.template_vars['CONTENT_TYPE']),
             "template": abe.template,
             "chain": None,
+# MULTICHAIN START
+            "myheader": []
+# MULTICHAIN END
             }
         if 'QUERY_STRING' in env:
             page['params'] = urlparse.parse_qs(env['QUERY_STRING'])
@@ -292,7 +299,9 @@ class Abe:
         start_response(page['status'],
                        [('Content-type', page['content_type']),
                         ('Cache-Control', 'max-age=30')])
-
+# MULTICHAIN START
+        tvars['myheader'] = flatten(page['myheader'])
+# MULTICHAIN END
         tvars['title'] = flatten(page['title'])
         tvars['h1'] = flatten(page.get('h1') or page['title'])
         tvars['body'] = flatten(page['body'])
@@ -437,6 +446,94 @@ class Abe:
         body += ['</table>\n']
         if len(rows) == 0:
             body += ['<p>No block data found.</p>\n']
+
+# MULTICHAIN START
+        myheader = page['myheader']
+        mempool_refresh_interval_ms = 3000
+        myheader += ['<script>'
+                    '$(document).ready(function(){'
+                    'setInterval(function(){'
+                    '$("#recenttx").load(\'' + page['dotdot'] + 'recent/' + urllib.quote(name, safe='') + '\')'
+                    '}, ', mempool_refresh_interval_ms, ');'
+                    '});'
+                    '</script>']
+        page_refresh_interval_secs = 60
+        myheader += ['<meta http-equiv="refresh" content="', page_refresh_interval_secs, '" >']
+
+        body += ['<div id="recenttx">']
+        body += abe.create_recent_table(page, chain)
+        body += ['</div>']
+
+
+    def handle_recent(abe, page):
+        symbol = wsgiref.util.shift_path_info(page['env'])
+        chain = abe.chain_lookup_by_name(symbol)
+        page['chain'] = chain
+
+        if chain is None:
+            abe.log.warning("Store does not know chain: %s", symbol)
+            raise PageNotFound()
+
+        page['template'] = "%(body)s"
+        page['title'] = chain.name
+        body = page['body']
+        body += abe.create_recent_table(page, chain)
+
+
+    def create_recent_table(abe, page, chain):
+        """
+        Create table of recent transactions via JSON-RPC and return list of HTML elements
+        :param chain:
+        :return:
+        """
+        body = []
+        body += ['<h3>Latest Transactions</h3>'
+            '<table class="table table-striped">\n',
+            '<tr><th>Txid</th>', '<th>Confirmation</th>'
+            '<th>Time</th>',
+            '</tr>\n']
+
+        now = time.time() - EPOCH1970
+        mempool = abe.store.get_rawmempool(chain)
+        recenttx = abe.store.list_transactions(chain)
+        sorted_mempool = sorted( mempool.items()[:10], key = lambda tup: tup[1]['time'], reverse=True)
+        if len(sorted_mempool)<10:
+            sorted_recenttx = sorted(recenttx, key = lambda tx: tx['time'], reverse=True)
+            for tx in sorted_recenttx:
+                if tx['txid'] not in mempool:
+                    sorted_mempool.append( (tx['txid'], tx) )
+
+        for (k,v) in sorted_mempool: #mempool.iteritems():
+            txid = k
+            diff = int( now - v['time'] )
+            if diff<60:
+                elapsed = "< 1 minute"
+            elif diff<3600:
+                elapsed = "< " + str(int(diff/60)) + " minutes"
+            else:
+                elapsed = "< " + str(int(diff/3600)) + " hours"
+
+            body += ['<tr><td>']
+            if abe.store.does_transaction_exist(txid):
+                body += ['<a href="' + page['dotdot'] + 'tx/' + txid + '">', txid, '</a>']
+            else:
+                body += [txid]
+
+            body += ['</td><td>']
+            conf = v.get('confirmations', None)
+            if conf is None or conf==0:
+                body += ['<span class="label label-default">Mempool</span>']
+            else:
+                body += ['<span class="label label-info">', conf, ' confirmations</span>']
+
+            body += ['</td><td>', elapsed, '</td></tr>']
+
+
+        body += ['</table>']
+        return body
+
+# MULTICHAIN END
+
 
     def chain_lookup_by_name(abe, symbol):
         if symbol is None:
