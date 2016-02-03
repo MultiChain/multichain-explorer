@@ -505,9 +505,9 @@ class Abe:
             for tx in sorted_recenttx:
                 if len(sorted_mempool) == 10:
                     break
-            if tx['txid'] not in existing_txids:
-                existing_txids.append(tx['txid'])
-                sorted_mempool.append((tx['txid'], tx))
+                if tx['txid'] not in existing_txids:
+                    existing_txids.append(tx['txid'])
+                    sorted_mempool.append((tx['txid'], tx))
 
         for (k, v) in sorted_mempool:  # mempool.iteritems():
             txid = k
