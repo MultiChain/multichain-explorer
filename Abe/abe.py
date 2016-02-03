@@ -495,29 +495,29 @@ class Abe:
 
         now = time.time() - EPOCH1970
         mempool = abe.store.get_rawmempool(chain)
-        recenttx = abe.store.list_transactions(chain, 30)   # we only want 'send' category, not 'receive' or 'move'
-        sorted_mempool = sorted( mempool.items()[:10], key = lambda tup: tup[1]['time'], reverse=True)
-        if len(sorted_mempool)<10:
+        recenttx = abe.store.list_transactions(chain, 30)  # we only want 'send' category, not 'receive' or 'move'
+        sorted_mempool = sorted(mempool.items()[:10], key=lambda tup: tup[1]['time'], reverse=True)
+        if len(sorted_mempool) < 10:
             recenttx = filter(lambda x: x['category'] == 'send', recenttx)
-           #recenttx = [tx for tx in recenttx if tx['category']=='send']
-            sorted_recenttx = sorted(recenttx, key = lambda tx: tx['time'], reverse=True)
-           existing_txids = [txid for (txid, value) in sorted_mempool]
+            # recenttx = [tx for tx in recenttx if tx['category']=='send']
+            sorted_recenttx = sorted(recenttx, key=lambda tx: tx['time'], reverse=True)
+            existing_txids = [txid for (txid, value) in sorted_mempool]
             for tx in sorted_recenttx:
-               if len(sorted_mempool)==10:
-                   break
-                if tx['txid'] not in existing_txids:
-                   existing_txids.append( tx['txid'])
-                    sorted_mempool.append( (tx['txid'], tx) )
+                if len(sorted_mempool) == 10:
+                    break
+            if tx['txid'] not in existing_txids:
+                existing_txids.append(tx['txid'])
+                sorted_mempool.append((tx['txid'], tx))
 
-        for (k,v) in sorted_mempool: #mempool.iteritems():
+        for (k, v) in sorted_mempool:  # mempool.iteritems():
             txid = k
-            diff = int( now - v['time'] )
-            if diff<60:
+            diff = int(now - v['time'])
+            if diff < 60:
                 elapsed = "< 1 minute"
-            elif diff<3600:
-                elapsed = "< " + str(int(diff/60)) + " minutes"
+            elif diff < 3600:
+                elapsed = "< " + str(int(diff / 60)) + " minutes"
             else:
-                elapsed = "< " + str(int(diff/3600)) + " hours"
+                elapsed = "< " + str(int(diff / 3600)) + " hours"
 
             body += ['<tr><td>']
             if abe.store.does_transaction_exist(txid):
@@ -527,7 +527,7 @@ class Abe:
 
             body += ['</td><td>']
             conf = v.get('confirmations', None)
-            if conf is None or conf==0:
+            if conf is None or conf == 0:
                 body += ['<span class="label label-default">Mempool</span>']
             else:
                 body += ['<span class="label label-info">', conf, ' confirmations</span>']
