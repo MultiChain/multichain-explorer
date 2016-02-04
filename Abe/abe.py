@@ -40,6 +40,7 @@ import base58
 # MULTICHAIN START
 import Chain
 import urllib
+import binascii
 # MULTICHAIN END
 
 __version__ = version.__version__
@@ -489,7 +490,7 @@ class Abe:
         body = []
         body += ['<h3>Latest Transactions</h3>'
             '<table class="table table-striped">\n',
-            '<tr><th>Txid</th>', '<th>Confirmation</th>'
+            '<tr><th>Txid</th>', '<th>Type</th><th>Confirmation</th>'
             '<th>Time</th>',
             '</tr>\n']
 
@@ -516,14 +517,32 @@ class Abe:
                 elapsed = "< 1 minute"
             elif diff < 3600:
                 elapsed = "< " + str(int(diff / 60)) + " minutes"
-            else:
+            elif diff < 3600*24*2:
                 elapsed = "< " + str(int(diff / 3600)) + " hours"
+            else:
+                elapsed = str(int((diff / 3600) / 24)) + " days"
+
 
             body += ['<tr><td>']
             if abe.store.does_transaction_exist(txid):
                 body += ['<a href="' + page['dotdot'] + 'tx/' + txid + '">', txid, '</a>']
+                label = abe.store.get_label_for_tx(txid, chain)
             else:
                 body += [txid]
+                json = abe.store.get_rawtransaction_decoded(chain, txid)
+                if json is not None:
+                    scriptpubkeys = [vout['scriptPubKey']['hex'] for vout in json['vout']]
+                    label = None
+                    for hex in scriptpubkeys:
+                        binscript = binascii.unhexlify(hex)
+                        label = abe.store.get_label_for_scriptpubkey(chain, binscript)
+                        if label is not None:
+                            break
+
+            if label is None:
+                label = ""
+            body += ['</td><td>']
+            body += [label]
 
             body += ['</td><td>']
             conf = v.get('confirmations', None)
