@@ -3927,5 +3927,61 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
+    def get_rawtransaction_decoded(store, chain, tx_hash):
+        """
+        Get the result of getrawtransaction json-rpc command as json object
+        :param chain:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "getrawtransaction", tx_hash, 1)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
+    def get_label_for_tx(store, tx_hash, chain):
+        label = None
+        try:
+            mytx = store._export_tx_detail(tx_hash, chain)
+        except MalformedHash:
+            mytx = None
+
+        if mytx is not None:
+            for txout in mytx['out']:
+                label = store.get_label_for_scriptpubkey(chain, txout['binscript'])
+                if label is not None:
+                    break
+        return label
+
+    def get_label_for_scriptpubkey(store, chain, scriptpubkey):
+        label = None
+        script_type, data = chain.parse_txout_script(scriptpubkey)
+        if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+            data = util.get_multichain_op_drop_data(scriptpubkey)
+            if data is not None:
+                opdrop_type, val = util.parse_op_drop_data(data)
+                if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                    label = 'Asset'
+                elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                    label = 'Asset'
+                elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
+                    label = 'Permissions'
+                else:
+                    label = 'Unknown OP_DROP'
+            else:
+                label = 'Unknown'
+        elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+            opreturn_type, val = util.parse_op_return_data(data)
+            if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
+                label = 'Asset'
+            else:
+                label = 'Unknown OP_RETURN'
+        return label
+
 def new(args):
     return DataStore(args)
