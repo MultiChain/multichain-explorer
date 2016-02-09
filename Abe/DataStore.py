@@ -397,7 +397,7 @@ class DataStore(object):
                                 chain_id,)
 # MULTICHAIN START
                         paramsdat_broken = False
-                        paramsfile = os.path.join(dirname, "params.dat")
+                        paramsfile = os.path.join(os.path.expanduser(dirname), "params.dat")
                         try:
                             params = {}
                             for line in open(paramsfile):
