@@ -21,21 +21,19 @@ Launch the chain to make sure it is running and that the genesis block has been 
 
 3. Update multichain.conf
 
-The multichain.conf file should have a rpcuser and rpcpassword defined.  You should add the following entries:
+The multichain.conf file should have a rpcuser and rpcpassword defined.  You should add an entry for the rpc port, which can
+ be found in the params.dat file e.g.
+
 rpcport=1234
-address-checksum-value=11223344
-Where both values can be found in params.dat.
-In the future, we will try to automate this step (along with other manual configuration steps).
+
 
 4. Configure the Explorer
 
 The example MCE config files can be used as a template for your chain.
 
-For an existing or newly created chain, using the MultiChain protocol, you will need information from the chain's param.dats file, normally found under $HOME/.multichain/NAME_OF_CHAIN/params.dat
+For an existing or newly created chain, the explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from params.dat.
 
-Copy the magic handshake, address and script address bytes from params.dat into your MCE config file.
-
-If you are installing MCE on a remote server and intend to access MCE over the internet, you must specify port and host information in the config file.  Change the host to the IP address of the server for testing, as by default it is localhost.  If your server does not have a static IP address, you can use 0.0.0.0 instead of hard-coding the IP address.
+If you are installing MCE on a remote server and intend to access MCE over the internet, you must specify the explorer website's port and host information in the config file.  Change the host to the IP address of the server for testing, as by default it is localhost.  If your server does not have a static IP address, you can use 0.0.0.0 instead of hard-coding the IP address.
 
 
 4. Launch Multichain Explorer
@@ -63,7 +61,7 @@ http://IP_address_of_server:PORT
 Misc Notes:
 * Currently it is not recommended to configure multiple chains in one config file as the search function does not search across chains for an address
 * https://github.com/bitcoin-abe/bitcoin-abe/blob/master/README-SQLITE.txt
-* You can run two instances of the Explorer with the same config file, with one being passed the --no-serve argument.  That instance will keep on updating the database and not serve a web explorer.
+* You can run two instances of the Explorer with the same config file, with one being passed the --no-serve argument and the other --no-load, so that one instance only loads data into the database, and the other only serves web pages.
 * Example of just building a database
 python -m Abe.abe --config multichain.conf --commit-bytes 10000 --no-serve
 and then when you want to provide a web explorer:
