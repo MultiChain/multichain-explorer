@@ -1449,7 +1449,7 @@ class Abe:
 
                     if assetref.endswith(str(prefix)):
                         balance_display_qty = util.format_display_quantity(asset, balance)
-                        body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + assetref + '">' + name + '</a>',
+                        body += ['<tr><td><a href="../../assetref/' + chain_id + '/' + assetref + '">' + name.encode('unicode-escape') + '</a>',
                              '</td><td><a href="../../assetref/' + chain_id + '/' + assetref + '">' + assetref + '</a>',
                              '</td><td><a href="../../assetaddress/'  + chain_id + '/' + address + '/' + assetref + '">' + str(num_tx) + '</a>',
                              '</td><td>', balance_display_qty,
