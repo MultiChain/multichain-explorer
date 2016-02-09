@@ -65,7 +65,9 @@ SCRIPT_TYPE_MULTICHAIN_OP_RETURN = 8
 
 
 class BaseChain(object):
-    POLICY_ATTRS = ['magic', 'name', 'code3', 'address_version', 'decimals', 'script_addr_vers']
+# MULTICHAIN START
+    POLICY_ATTRS = ['magic', 'name', 'code3', 'address_checksum', 'address_version', 'decimals', 'script_addr_vers']
+# MULTICHAIN END
     __all__ = ['id', 'policy'] + POLICY_ATTRS
 
     def __init__(chain, src=None, **kwargs):
