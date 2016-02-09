@@ -499,7 +499,7 @@ class Abe:
         recenttx = abe.store.list_transactions(chain, 30)  # we only want 'send' category, not 'receive' or 'move'
         sorted_mempool = sorted(mempool.items()[:10], key=lambda tup: tup[1]['time'], reverse=True)
         if len(sorted_mempool) < 10:
-            recenttx = filter(lambda x: x['category'] == 'send', recenttx)
+            recenttx = filter(lambda x: x['category'] == 'send' and x['confirmations']>-1, recenttx)
             # recenttx = [tx for tx in recenttx if tx['category']=='send']
             sorted_recenttx = sorted(recenttx, key=lambda tx: tx['time'], reverse=True)
             existing_txids = [txid for (txid, value) in sorted_mempool]
@@ -529,7 +529,12 @@ class Abe:
                 label = abe.store.get_label_for_tx(txid, chain)
             else:
                 body += [txid]
-                json = abe.store.get_rawtransaction_decoded(chain, txid)
+                json = None
+                try:
+                    json = abe.store.get_rawtransaction_decoded(chain, txid)
+                except Exception:
+                    pass
+
                 if json is not None:
                     scriptpubkeys = [vout['scriptPubKey']['hex'] for vout in json['vout']]
                     label = None
@@ -574,7 +579,7 @@ class Abe:
 
     def format_addresses(abe, data, dotdot, chain):
 # MULTICHAIN START
-        checksum = abe.store.get_address_checksum_value_by_chain(chain)
+        checksum = chain.address_checksum
 # MULTICHAIN END
         if data['binaddr'] is None:
             return 'Unknown'
@@ -1519,7 +1524,7 @@ class Abe:
             binaddr = tx['binaddr']
             if binaddr is None:
                 return 0
-            checksum = abe.store.get_address_checksum_value_by_chain(chain)
+            checksum = chain.address_checksum
             vers = tx['address_version'] # chain.script_addr_ver
             if checksum is None:
                 addr = util.hash_to_address(vers, binaddr)
@@ -1706,7 +1711,7 @@ class Abe:
         for holder in holders:
             #address = util.long_hex(holder['pubkey_hash'])
             binaddr = holder['pubkey']
-            checksum = abe.store.get_address_checksum_value_by_chain(chain)
+            checksum = chain.address_checksum
             if checksum is None:
                 address = util.hash_to_address(chain.address_version, binaddr)
             else:
@@ -2001,7 +2006,7 @@ class Abe:
                     if page['chain'] is not None and version == page['chain'].script_addr_vers:
                         vers = chain.script_addr_vers or vers
 # MULTICHAIN START
-                    checksum = abe.store.get_address_checksum_value_by_chain(chain)
+                    checksum = chain.address_checksum
                     if checksum is None:
                         other = util.hash_to_address(vers, binaddr)
                     else:

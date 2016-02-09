@@ -39,8 +39,6 @@ import base58
 
 # MULTICHAIN START
 import binascii
-checksum_dict = {}
-
 import struct
 # MULTICHAIN END
 
@@ -397,34 +395,62 @@ class DataStore(object):
                             # XXX Should default via policy.
                             code3 = '000' if chain_id > 999 else "%03d" % (
                                 chain_id,)
+# MULTICHAIN START
+                        paramsdat_broken = False
+                        paramsfile = os.path.join(dirname, "params.dat")
+                        try:
+                            params = {}
+                            for line in open(paramsfile):
+                                if "=" not in line:
+                                    continue
+                                x = line.partition('#')[0].split("=", 1)
+                                if len(x) != 2:
+                                    continue
+                                params[x[0].strip()]=x[1].strip()
+                        except Exception, e:
+                            store.log.error("failed to load %s: %s", paramsfile, e)
+                            paramsdat_broken = True
 
-                        addr_vers = dircfg.get('address_version')
-                        if addr_vers is None:
-                            addr_vers = "\0"
-                        elif isinstance(addr_vers, unicode):
-                            addr_vers = addr_vers.encode('latin_1')
+                        if paramsdat_broken is False:
+                            x = params.get("address-pubkeyhash-version","00").strip()
+                            addr_vers = binascii.unhexlify(x)
+                            x = params.get("address-scripthash-version ","05").strip()
+                            script_addr_vers = binascii.unhexlify(x)
+                            x = params.get("address-checksum-value","00000000").strip()
+                            address_checksum = binascii.unhexlify(x)
+                            x = params.get("network-message-start","f9beb4d9").strip()
+                            chain_magic = binascii.unhexlify(x)
+                        else:
+                            chain_magic = '\xf9\xbe\xb4\xd9'
+                            address_checksum = "\0\0\0\0"
+                            addr_vers = dircfg.get('address_version')
+                            if addr_vers is None:
+                                addr_vers = "\0"
+                            elif isinstance(addr_vers, unicode):
+                                addr_vers = addr_vers.encode('latin_1')
 
-                        script_addr_vers = dircfg.get('script_addr_vers')
-                        if script_addr_vers is None:
-                            script_addr_vers = "\x05"
-                        elif isinstance(script_addr_vers, unicode):
-                            script_addr_vers = script_addr_vers.encode('latin_1')
-
+                            script_addr_vers = dircfg.get('script_addr_vers')
+                            if script_addr_vers is None:
+                                script_addr_vers = "\x05"
+                            elif isinstance(script_addr_vers, unicode):
+                                script_addr_vers = script_addr_vers.encode('latin_1')
+# MULTICHAIN END
                         decimals = dircfg.get('decimals')
                         if decimals is not None:
                             decimals = int(decimals)
 
                         # XXX Could do chain_magic, but this datadir won't
                         # use it, because it knows its chain.
-
+# MULTICHAIN START
                         store.sql("""
                             INSERT INTO chain (
                                 chain_id, chain_name, chain_code3,
-                                chain_address_version, chain_script_addr_vers, chain_policy,
+                                chain_magic, chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy,
                                 chain_decimals
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                                   (chain_id, chain_name, code3,
-                                   store.binin(addr_vers), store.binin(script_addr_vers),
+                                   store.binin(chain_magic), store.binin(address_checksum), store.binin(addr_vers), store.binin(script_addr_vers),
+# MULTICHAIN END
                                    dircfg.get('policy', chain_name), decimals))
                         store.commit()
                         store.log.warning("Assigned chain_id %d to %s",
@@ -460,19 +486,23 @@ class DataStore(object):
         no_bit8_chains = store.args.ignore_bit8_chains or []
         if isinstance(no_bit8_chains, str):
             no_bit8_chains = [no_bit8_chains]
-
-        for chain_id, magic, chain_name, chain_code3, address_version, script_addr_vers, \
+# MULTICHAIN START
+        for chain_id, magic, chain_name, chain_code3, address_checksum, address_version, script_addr_vers, \
                 chain_policy, chain_decimals in \
                 store.selectall("""
                     SELECT chain_id, chain_magic, chain_name, chain_code3,
-                           chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals
+                           chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals
                       FROM chain
                 """):
+# MULTICHAIN END
             chain = Chain.create(
                 id              = int(chain_id),
                 magic           = store.binout(magic),
                 name            = unicode(chain_name),
                 code3           = chain_code3 and unicode(chain_code3),
+# MULTICHAIN START
+                address_checksum = store.binout(address_checksum),
+# MULTICHAIN END
                 address_version = store.binout(address_version),
                 script_addr_vers = store.binout(script_addr_vers),
                 policy          = unicode(chain_policy),
@@ -499,35 +529,6 @@ class DataStore(object):
         return Chain.create(store.default_chain)
 
 # MULTICHAIN START
-    def get_address_checksum_value_by_chain(store, chain):
-        '''
-        Hack to get address-checksum-value from multichain.conf.
-        Value should be copied from params.dat, as hex string, with no leading 0x
-        :param store:
-        :param chain:
-        :return:
-        '''
-        k = str(chain.id)
-        if k in checksum_dict:
-            return checksum_dict[k]
-
-        dirname = store.get_dirname_by_id(chain.id)
-        conffile = chain.datadir_conf_file_name
-        conffile = os.path.join(dirname, conffile)
-        try:
-            conf = dict([line.strip().split("=", 1)
-                         if "=" in line
-                         else (line.strip(), True)
-                         for line in open(conffile)
-                         if line != "" and line[0] not in "#\r\n"])
-        except Exception, e:
-            store.log.error("failed to load %s: %s", conffile, e)
-            return None
-
-        checksum = conf.get("address-checksum-value","00000000")
-        checksum_dict[k] = binascii.a2b_hex(checksum)
-        return checksum
-
     def get_url_by_chain(store, chain):
         dirname = store.get_dirname_by_id(chain.id)
         conffile = chain.datadir_conf_file_name
@@ -752,6 +753,7 @@ store._ddl['configvar'],
     chain_code3 VARCHAR(5)  NULL,
     chain_address_version VARBINARY(100) NOT NULL,
     chain_script_addr_vers VARBINARY(100) NULL,
+    chain_address_checksum VARBINARY(100) NULL,
     chain_magic BINARY(4)     NULL,
     chain_policy VARCHAR(255) NOT NULL,
     chain_decimals NUMERIC(2) NULL,
@@ -990,13 +992,15 @@ store._ddl['txout_approx'],
 
     def insert_chain(store, chain):
         chain.id = store.new_id("chain")
+# MULTICHAIN START
         store.sql("""
             INSERT INTO chain (
                 chain_id, chain_magic, chain_name, chain_code3,
-                chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                   (chain.id, store.binin(chain.magic), chain.name,
-                   chain.code3, store.binin(chain.address_version), store.binin(chain.script_addr_vers),
+                   chain.code3, store.binin(chain.address_checksum), store.binin(chain.address_version), store.binin(chain.script_addr_vers),
+# MULTICHAIN END
                    chain.policy, chain.decimals))
 
     def get_lock(store):
@@ -1970,7 +1974,7 @@ store._ddl['txout_approx'],
                         # txout['scriptPubKey'] or binscript work fine here
                         vers = chain.address_version
                         the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
-                        checksum = store.get_address_checksum_value_by_chain(chain)
+                        checksum = chain.address_checksum
                         if checksum is None:
                             address = util.hash_to_address(vers, pubkey_raw)
                         else:
@@ -1984,7 +1988,7 @@ store._ddl['txout_approx'],
                             prefix = int( assetref.split('-')[-1] )
                             vers = chain.address_version
                             the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
-                            checksum = store.get_address_checksum_value_by_chain(chain)
+                            checksum = chain.address_checksum
                             if checksum is None:
                                 address = util.hash_to_address(vers, pubkey_raw)
                             else:
@@ -2082,7 +2086,7 @@ store._ddl['txout_approx'],
                 spent_tx_hash = store.hashout(txin['prevout_hash'])     # reverse out, otherwise it is backwards
                 vers = chain.address_version
                 the_script_type, pubkey_raw = chain.parse_txout_script(binscript)
-                checksum = store.get_address_checksum_value_by_chain(chain)
+                checksum = chain.address_checksum
                 if checksum is None:
                     address = util.hash_to_address(vers, pubkey_raw)
                 else:

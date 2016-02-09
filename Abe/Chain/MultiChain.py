@@ -25,6 +25,7 @@ class MultiChain(Sha256Chain):
         chain.address_version = '\x00'
         chain.script_addr_vers = '\x05'
         chain.magic = '\xf9\xbe\xb4\xd9'
+        chain.address_checksum = '\x00\x00\x00\x00'
         Sha256Chain.__init__(chain, **kwargs)
 
     # We don't set datadir_rpccport.
