@@ -3060,8 +3060,8 @@ def flatten(l):
         raise Exception('NoneType in HTML conversion')
     if isinstance(l, unicode):
 # MULTICHAIN START
-        return l.decode('unicode-escape)')
-    return str(l).decode('unicode-escape)')
+        return l.decode('unicode-escape')
+    return str(l).decode('unicode-escape')
 # MULTICHAIN END
 
 def redirect(page):
