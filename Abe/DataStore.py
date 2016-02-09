@@ -414,7 +414,7 @@ class DataStore(object):
                         if paramsdat_broken is False:
                             x = params.get("address-pubkeyhash-version","00").strip()
                             addr_vers = binascii.unhexlify(x)
-                            x = params.get("address-scripthash-version ","05").strip()
+                            x = params.get("address-scripthash-version","05").strip()
                             script_addr_vers = binascii.unhexlify(x)
                             x = params.get("address-checksum-value","00000000").strip()
                             address_checksum = binascii.unhexlify(x)
