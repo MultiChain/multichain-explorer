@@ -54,7 +54,7 @@ Follow the MultiChain documentation to create a chain.  Skip this if you already
 
 Launch the chain to make sure it is running and that the genesis block has been found.
 
-   multichaind my_chain_name -daemon
+    multichaind mychain -daemon
 
 
 Configure MultiChain.conf
@@ -82,7 +82,7 @@ Launch the Explorer
 
 To run the explorer on your local computer:
 
-    python -m Abe.abe --config my.conf
+    python -m Abe.abe --config mychain.conf
 
 By default, the explorer will be listening for web requests on port 2750, unless you changed it in the Explorer's configuration file.  In your browser visit:
 
@@ -90,7 +90,7 @@ By default, the explorer will be listening for web requests on port 2750, unless
 
 To run the explorer on a remote server, you must make sure the explorer does not shut down when you shut down your SSH terminal connection.
 
-    nohup python -m Abe.abe --config my_multichain.conf &
+    nohup python -m Abe.abe --config mychain.conf &
 
 In your browser visit:
 
