@@ -1,181 +1,111 @@
-MultiChain Explorer (fork of ABE)
-=================================
+MultiChain Explorer
+===================
 
-For MultiChain instructions, please see README-MULTICHAIN.txt:
+MultiChain Explorer is a free block chain browser for MultiChain-based blockchains.
+https://github.com/MultiChain/multichain-explorer
 
-https://github.com/MultiChain/multichain-explorer/blob/master/README-MULTICHAIN.txt
-
-Original ABE README.txt
-=======================
-
-Abe: a free block chain browser for Bitcoin-based currencies.
-https://github.com/bitcoin-abe/bitcoin-abe
-
+    Copyright(C) 2014,2015 by Coin Sciences Ltd.
     Copyright(C) 2011,2012,2013 by Abe developers.
     License: GNU Affero General Public License, see the file LICENSE.txt.
     Portions Copyright (c) 2010 Gavin Andresen, see bct-LICENSE.txt.
 
-Welcome to Abe!
-===============
 
-This software reads the Bitcoin block file, transforms and loads the
-data into a database, and presents a web interface similar to Bitcoin
-Block Explorer, http://blockexplorer.com/.
+Welcome to MultiChain Explorer!
+===============================
 
-Abe draws inspiration from Bitcoin Block Explorer (BBE) and
-BlockChain.info and seeks some level of compatibility with them but
-uses a completely new implementation.
+This software reads the MultiChain block file, transforms and loads the
+data into a database, and presents a web interface similar to that
+popularized by Bitcoin block explorers, http://blockexplorer.com/.
+
+MultiChain Explorer (Explorer) is a fork of the popular Abe project to add support for MultiChain networks with assets and permissions.  MultiChain nodes must be online for all Explorer functions to work.
+
+MultiChain Explorer is currently under heavy development, so things will break/change!
+
+
+System Requirements
+-------------------
+
+You need to have Python 2.x installed on your system.
+
+If pycrypto is not on your system, you will have to install it:
+
+    sudo pip install pycrypto
+
+If your Python setup is not complete, you may have to install:
+
+    sudo apt-get install python-dev
+    sudo apt-get install python-pip
+
 
 Installation
 ------------
 
-Issue:
+To install MultiChain explorer on your system:
 
     python setup.py install
 
-This will install abe to your system. After you set up the config file and
-database (see below and README-<DB>.txt) you can run:
+Before configuring the explorer, let's first make sure you have a MultiChain blockchain up and running.
 
-    python -m Abe.abe --config myconf.conf --commit-bytes 100000 --no-serve
-    
-This will perform the initial data load and will take a long time.
-After it's fully synced, you can run the web server with: 
 
-    python -m Abe.abe --config myconf.conf
-    
-To really get everything right see the README file for your type of
-database.
+Create and launch a MultiChain Network
+--------------------------------------
 
-Abe depends on Python 2.7 (or 2.6), the pycrypto package, and an SQL
-database supporting ROLLBACK.  Abe runs on PostgreSQL, MySQL's InnoDB
-engine, and SQLite.  Other SQL databases may work with minor changes.
-Abe formerly ran on some ODBC configurations, Oracle, and IBM DB2, but
-we have not tested to be sure it still works.  See the comments in
-abe.conf about dbtype for configuration examples.
+Follow the MultiChain documentation to create a chain.  Skip this if you already have a chain you want to explore.
 
-Abe works with files created by the original (Satoshi) Bitcoin client.
-You will need a copy of the block files (blk0001.dat, blk0002.dat,
-etc. in your Bitcoin directory or its blocks/ subdirectory).  You may
-let Abe read the block files while Bitcoin runs, assuming Bitcoin only
-appends to the file.  Prior to Bitcoin v0.8, this assumption seemed
-safe.  Abe may need some fixes to avoid skipping blocks while current
-and future Bitcoin versions run.
+Launch the chain to make sure it is running and that the genesis block has been found.
 
-NovaCoin and CryptoCash support depends on the ltc_scrypt module
-available from https://github.com/CryptoManiac/bitcoin-abe (see
-README-SCRYPT.txt).
+   multichaind my_chain_name -daemon
 
-Hirocoin (and any other X11) support depends on the xcoin_hash module
-available from https://github.com/evan82/xcoin-hash.
 
-Bitleu (a Scrypt-Jane coin) depends on the yac_scrypt module.
+Configure MultiChain.conf
+-------------------------
 
-Copperlark (a Keccak coin) depends on the sha3 module available via
-"easy_install pysha3".
+The explorer will at times communicate with the MultiChain network using JSON-RPC.  The multichain.conf file should
+have a rpcuser and rpcpassword defined.  You should add a value for the rpc port, which can be found in the params.dat
+file normally found in $HOME/.multichain/my_chain_name/params.dat :
 
-License
--------
+    rpcport=1234
 
-The GNU Affero General Public License (LICENSE.txt) requires whoever
-modifies this code and runs it on a server to make the modified code
-available to users of the server.  You may do this by forking the
-Github project (if you received this code from Github.com), keeping
-your modifications in the new project, and linking to it in the page
-template.  Or you may wish to satisfy the requirement by simply
-passing "--auto-agpl" to "python -m Abe.abe".  This option makes all
-files in the directory containing abe.py and its subdirectories
-available to clients.  See the comments in abe.conf for more
-information.
 
-Database
---------
+Configure the Explorer
+----------------------
 
-For usage, run "python -m Abe.abe --help" and see the comments in
-abe.conf.
+The bundled example config files can be used as a template for your chain.
 
-You will have to specify a database driver and connection arguments
-(dbtype and connect-args in abe.conf).  The dbtype is the name of a
-Python module that supports your database.  Known to work are psycopg2
-(for PostgreSQL) and sqlite3.  The value of connect-args depends on
-your database configuration; consult the module's documentation of the
-connect() method.
+For an existing or newly created chain, the explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from params.dat.
 
-You may specify connect-args in any of the following forms:
+If you are installing the explorer on a remote server and intend to access it over the internet, you must specify the explorer website's port and host information in the config file.  Change the host to the IP address of the server for testing, as by default it is localhost.  If your server does not have a static IP address, you can use 0.0.0.0 instead of hard-coding the IP address.
 
-* omit connect-args to call connect() with no arguments
 
-* named arguments as a JSON object, e.g.:
-  connect-args = { "database": "abe", "password": "b1tc0!n" }
+Launch the Explorer
+-------------------
 
-* positional arguments as a JSON array, e.g.:
-  connect-args = ["abe", "abe", "b1tc0!n"]
+To run the explorer on your local computer:
 
-* a single string argument on one line, e.g.:
-  connect-args = /var/lib/abe/abe.sqlite
+    python -m Abe.abe --config my.conf
 
-For JSON syntax, see http://www.json.org.
+By default, the explorer will be listening for web requests on port 2750, unless you changed it in the Explorer's configuration file.  In your browser visit:
 
-Slow startup
-------------
+    http://localhost:2750
 
-Reading the block files takes much too long, several days or more for
-the main BTC block chain as of 2013.  However, if you use a persistent
-database, Abe remembers where it stopped reading and starts more
-quickly the second time.
+To run the explorer on a remote server, you must make sure the explorer does not shut down when you shut down your SSH terminal connection.
 
-Replacing the Block File
-------------------------
+    nohup python -m Abe.abe --config my_multichain.conf &
 
-Abe does not currently handle block file changes gracefully.  If you
-replace your copy of the block chain, you must rebuild Abe's database
-or (quicker) force a rescan.  To force a rescan of all data
-directories, run Abe once with the "--rescan" option.
+In your browser visit:
 
-Web server
+    http://IP_address_of_server:PORT
+
+
+
+Misc Notes
 ----------
+* Currently it is not recommended to configure multiple chains in one config file as the search function does not search across chains for an address
+* https://github.com/bitcoin-abe/bitcoin-abe/blob/master/README-SQLITE.txt
+* You can run two instances of the Explorer with the same config file, with one being passed the --no-serve argument and the other --no-load, so that one instance only loads data into the database, and the other only serves web pages.
+* Example of just building a database
+python -m Abe.abe --config multichain.conf --commit-bytes 10000 --no-serve
+and then when you want to provide a web explorer:
+python -m Abe.abe --config multichain.conf --no-load
 
-By default, Abe expects to be run in a FastCGI environment.  For an
-overview of FastCGI setup, see README-FASTCGI.txt.
 
-To run the built-in HTTP server instead of FastCGI, specify a TCP port
-and network interface in abe.conf, e.g.:
-
-    port 2750
-    host 127.0.0.1  # or a domain name
-
-Input
------
-
-To display Namecoin, NovaCoin, or any block chain with data somewhere
-other than the default Bitcoin directory, specify "datadir" in
-abe.conf, e.g.:
-
-    datadir = /home/bitcoin/.namecoin
-
-The datadir directive can include a new chain's basic configuration,
-e.g.:
-
-    datadir += [{
-            "dirname": "/home/weeds/testnet",
-            "chain":   "Weeds",
-            "code3":   "WDS",
-            "address_version": "o" }]
-
-Note that "+=" adds to the existing datadir configuration, while "="
-replaces it.  For help with address_version, please open doc/FAQ.html
-in a web browser.
-
-The web interface is currently unaware of name transactions, but see
-namecoin_dump.py in the tools directory.
-
-More information
-----------------
-
-Please see TODO.txt for a list of what is not yet implemented but
-would like to be.
-
-Forum thread: https://bitcointalk.org/index.php?topic=22785.0
-Newbies: https://bitcointalk.org/index.php?topic=51139.0
-
-Donations appreciated: 1PWC7PNHL1SgvZaN7xEtygenKjWobWsCuf (BTC)
-NJ3MSELK1cWnqUa6xhF2wUYAnz3RSrWXcK (NMC)
