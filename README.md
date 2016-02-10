@@ -2,6 +2,7 @@ MultiChain Explorer
 ===================
 
 MultiChain Explorer is a free block chain browser for MultiChain-based blockchains.
+
 https://github.com/MultiChain/multichain-explorer
 
     Copyright(C) 2014,2015 by Coin Sciences Ltd.
@@ -25,7 +26,7 @@ MultiChain Explorer is currently under heavy development, so things will break/c
 System Requirements
 -------------------
 
-You need to have Python 2.x installed on your system.
+You must have Python 2.x installed on your system.
 
 If pycrypto is not on your system, you will have to install it:
 
@@ -60,9 +61,9 @@ Launch the chain to make sure it is running and that the genesis block has been 
 Configure MultiChain.conf
 -------------------------
 
-The explorer will at times communicate with the MultiChain network using JSON-RPC.  The multichain.conf file should
-have a rpcuser and rpcpassword defined.  You should add a value for the rpc port, which can be found in the params.dat
-file normally found in $HOME/.multichain/my_chain_name/params.dat :
+The explorer will at times communicate with the MultiChain network using JSON-RPC.  The ````multichain.conf```` file should
+have a rpcuser and rpcpassword defined.  You should add a value for the rpc port, which can be found in the ````params.dat````
+file normally found in ````$HOME/.multichain/mychain/params.dat```` :
 
     rpcport=1234
 
@@ -72,9 +73,9 @@ Configure the Explorer
 
 The bundled example config files can be used as a template for your chain.
 
-For an existing or newly created chain, the explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from params.dat.
+For an existing or newly created chain, the explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from ````params.dat````.
 
-If you are installing the explorer on a remote server and intend to access it over the internet, you must specify the explorer website's port and host information in the config file.  Change the host to the IP address of the server for testing, as by default it is localhost.  If your server does not have a static IP address, you can use 0.0.0.0 instead of hard-coding the IP address.
+If you are installing the explorer on a remote server and intend to access it over the internet, you must specify the explorer website's port and host information in the config file.  Change the host to the IP address of the server for testing, as by default it is localhost.  If your server does not have a static IP address, you can use ````0.0.0.0```` instead of hard-coding the IP address.
 
 
 Launch the Explorer
