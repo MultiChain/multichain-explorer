@@ -1576,8 +1576,8 @@ class Abe:
                 context = "danger"
 
             contextclass='class="' + context + '"'
-            body += ['<tr><td><a href="../../../tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
-                     '</td><td><a href="../../../block/', tx['blockhash'], '">', tx['height'], '</a>',
+            body += ['<tr><td><a href="../../' + escape(chain.name) + '/tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
+                     '</td><td><a href="../../' + escape(chain.name) + '/block/', tx['blockhash'], '">', tx['height'], '</a>',
                      '</td><td ' + contextclass + '>', net_amount_label,
                      '</td></tr>']
         body += ['</table>']
