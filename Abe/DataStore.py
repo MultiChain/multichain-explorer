@@ -928,7 +928,7 @@ store._ddl['txout_approx'],
     pubkey_id     NUMERIC(26) NOT NULL,
     balance       NUMERIC(30) NOT NULL,
     PRIMARY KEY (asset_id, pubkey_id),
-    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
     FOREIGN KEY (pubkey_id) REFERENCES pubkey (pubkey_id)
 )""",
 
