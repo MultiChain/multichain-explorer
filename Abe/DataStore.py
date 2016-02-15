@@ -3759,7 +3759,7 @@ store._ddl['txout_approx'],
         chain_id = chain.id
         prefix = int( assetref.split('-')[-1] )
         row = store.selectrow("""
-            SELECT count (DISTINCT pubkey_id)
+            SELECT count(DISTINCT pubkey_id)
             FROM asset_address_balance
             WHERE balance>0 AND asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
             """, (chain_id, prefix))
@@ -3862,7 +3862,7 @@ store._ddl['txout_approx'],
     def get_number_of_transactions_for_asset_address(store, chain, assetref, pubkey_id):
         prefix = int( assetref.split('-')[-1] )
         row = store.selectrow("""
-            select count (distinct a.tx_id) from asset_txid a join txout o on (a.tx_id=o.tx_id)
+            select count(distinct a.tx_id) from asset_txid a join txout o on (a.tx_id=o.tx_id)
             where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
             and o.pubkey_id=?
         """, (chain.id, prefix, pubkey_id))
@@ -3873,7 +3873,7 @@ store._ddl['txout_approx'],
     def get_number_of_transactions_for_asset(store, chain, assetref):
         prefix = int( assetref.split('-')[-1] )
         row = store.selectrow("""
-            select count (distinct a.tx_id) from asset_txid a
+            select count(distinct a.tx_id) from asset_txid a
             where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
         """, (chain.id, prefix))
         if row is None:
