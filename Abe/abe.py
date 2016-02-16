@@ -476,7 +476,7 @@ class Abe:
         myheader += ['<script>'
                     '$(document).ready(function(){'
                     'setInterval(function(){'
-                    '$("#recenttx").load(\'' + page['dotdot'] + 'recent/' + urllib.quote(name, safe='') + '\')'
+                    '$("#recenttx").load(\'' + page['dotdot'] + urllib.quote(name, safe='') + '/recent'  + '\')'
                     '}, ', mempool_refresh_interval_ms, ');'
                     '});'
                     '</script>']
