@@ -776,7 +776,8 @@ class Abe:
                  '<th>Transactions</th>',
                  #'<th>Value Out</th>',
                  #'<th>Difficulty</th><th>Outstanding</th>',
-                 '<th>Average Age</th><th>Chain Age</th>',
+                 #'<th>Average Age</th>'
+                 '<th>Chain Age</th>',
                  #'<th>% ',
                  #'<a href="https://en.bitcoin.it/wiki/Bitcoin_Days_Destroyed">',
                  #'CoinDD</a></th>',
@@ -795,10 +796,10 @@ class Abe:
             ss = int(ss)
             total_ss = int(total_ss)
 
-            if satoshis == 0:
-                avg_age = '&nbsp;'
-            else:
-                avg_age = '%5g' % (ss / satoshis / 86400.0)
+            # if satoshis == 0:
+            #     avg_age = '&nbsp;'
+            # else:
+            #     avg_age = '%5g' % (ss / satoshis / 86400.0)
 
             if total_ss <= 0:
                 percent_destroyed = '&nbsp;'
@@ -817,12 +818,12 @@ class Abe:
                 miner_txout = miner_block['transactions'][0]['out'][0]
                 if miner_txout['binaddr'] is not None:
                     miner_address = abe.format_addresses(miner_txout, page['dotdot'], chain)
-                    miner_address = miner_address[0:6]
+                    #miner_address = miner_address[0:6]
                 else:
                     try:
                         blockjson = abe.store.get_block_by_hash(chain, miner_block['hash'])
                         miner = blockjson['miner']
-                        miner_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/address/' + miner + '">' + miner[0:6] + '...</a>'
+                        miner_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/address/' + miner + '">' + miner + '</a>'
                     except Exception:
                         miner_address = "Unknown"
 
@@ -836,7 +837,7 @@ class Abe:
                 #'</td><td>', format_satoshis(value_out, chain),
                 #'</td><td>', util.calculate_difficulty(int(nBits)),
                 #'</td><td>', format_satoshis(satoshis, chain),
-                '</td><td>', avg_age,
+                #'</td><td>', avg_age,
                 '</td><td>', '%5g' % (seconds / 86400.0),
                 #'</td><td>', percent_destroyed,
                 ['</td><td>', '%8g' % ss,
