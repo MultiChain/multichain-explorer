@@ -3907,7 +3907,7 @@ store._ddl['txout_approx'],
         multichain_name = store.get_multichain_name_by_id(chain.id)
         resp = None
         try:
-            resp = util.jsonrpc(multichain_name, url, "listtransactions", "", count)
+            resp = util.jsonrpc(multichain_name, url, "listtransactions", "*", count)
         except util.JsonrpcException as e:
             raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
         except IOError as e:
