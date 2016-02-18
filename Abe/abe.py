@@ -1427,7 +1427,8 @@ class Abe:
 
                 assetdict = {}
                 for asset in assets_resp:
-                    assetdict[asset['name']] = asset
+                    name = asset['name'].encode('unicode-escape')
+                    assetdict[name] = asset
 
                 for row in abe.store.selectall("""
                     select a.name, a.prefix, b.balance from asset_address_balance b join asset a on (a.asset_id=b.asset_id)
@@ -1436,14 +1437,16 @@ class Abe:
                     name, prefix, balance = row
                     if name is None:
                         name=''
-                    asset = assetdict[name]
+                    name = name.decode('latin-1')
+                    name = name.encode('unicode-escape')
+                    asset = assetdict[ name ]
                     assetref = asset['assetref']
 
                     num_tx = abe.store.get_number_of_transactions_for_asset_address(chain, assetref, pubkey_id)
 
                     if assetref.endswith(str(prefix)):
                         balance_display_qty = util.format_display_quantity(asset, balance)
-                        body += ['<tr><td><a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + name.encode('unicode-escape') + '</a>',
+                        body += ['<tr><td><a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + name + '</a>',
                              '</td><td><a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>',
                              '</td><td><a href="../../' + escape(chain.name) + '/assetaddress/' + address + '/' + assetref + '">' + str(num_tx) + '</a>',
                              '</td><td>', balance_display_qty,
