@@ -51,11 +51,15 @@ Before configuring the explorer, let's first make sure you have a MultiChain blo
 Create and launch a MultiChain Network
 --------------------------------------
 
-Follow the MultiChain documentation to create a chain.  Skip this if you already have a chain you want to explore.
+Follow the [MultiChain documentation](http://www.multichain.com/download-install/) to install MultiChain and create a chain.  Skip this if you already have a chain you want to explore.
 
-Launch the chain to make sure it is running and that the genesis block has been found.
+Launch the chain to make sure it is running and that the genesis block has been found.  The node you launch is what the Explorer will connect to.
 
-    multichaind mychain -daemon
+    multichaind mychain -daemon -txindex=1
+
+The ````txindex```` parameter is enabled that the node you launch will keep track of all transactions across the network, and not just the transactions for the node's wallet.  If you prefer, you can set this option in ````multichain.conf````.
+
+For more infomation about runtime parameters please visit http://www.multichain.com/developers/runtime-parameters/
 
 
 Configure MultiChain.conf
