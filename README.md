@@ -55,11 +55,9 @@ Follow the [MultiChain documentation](http://www.multichain.com/download-install
 
 Launch the chain to make sure it is running and that the genesis block has been found.  The node you launch is what the Explorer will connect to.
 
-    multichaind mychain -daemon -txindex=1
+    multichaind mychain -daemon
 
-The ````txindex```` parameter is enabled that the node you launch will keep track of all transactions across the network, and not just the transactions for the node's wallet.  If you prefer, you can set this option in ````multichain.conf````.
-
-For more infomation about runtime parameters please visit http://www.multichain.com/developers/runtime-parameters/
+By default the runtime parameter ````txindex```` is enabled so that the node you launch will keep track of all transactions across the network, and not just the transactions for the node's wallet.  Do not disable this parameter. For more infomation about runtime parameters please visit http://www.multichain.com/developers/runtime-parameters/
 
 
 Configure MultiChain.conf
