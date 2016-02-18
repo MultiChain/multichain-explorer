@@ -1659,7 +1659,7 @@ class Abe:
         body += html_keyvalue_tablerow('Display quantity', display_qty)
         body += html_keyvalue_tablerow('Native amount sent', format_satoshis(native_amount, chain))
         body += html_keyvalue_tablerow('Issuer Address', '<a href="../../' + escape(chain.name) + '/address/' + address_from + '">', address_from, '</a>')
-        body += html_keyvalue_tablerow('Recipient Address ', '<a href="../../' + escape(chain.name) + '/address/' + address_to + '">', address_to, '</a>')
+        body += html_keyvalue_tablerow('Issue Recipient Address ', '<a href="../../' + escape(chain.name) + '/address/' + address_to + '">', address_to, '</a>')
         body += ['</table>']
 
         #body += ['<h3>', asset['name'], '(Asset Reference ', assetref, ')', '</h3>']
