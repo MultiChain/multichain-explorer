@@ -1268,10 +1268,10 @@ class Abe:
                         #msg += '<p/>'
                         #msg = util.long_hex(val)
                     else:
-                        msg = 'Unrecognized MultiChain metadata'
-                        msgtype = 'danger'
-                        # msg += '<p/>'
-                        # msg += util.long_hex(data)
+                        msg = 'Metadata'
+                        msg += '<p/>'
+                        msg += util.long_hex(data)
+                        msgtype = 'info'
 
                 # Add MultiChain HTML
                 if msg is not None:
