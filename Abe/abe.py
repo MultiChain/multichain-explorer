@@ -1495,7 +1495,7 @@ class Abe:
             body += [ msg ]
             return
 
-        name = asset['name']
+        name = asset['name'].encode('unicode-escape')
         body += ['<h3>' + name.capitalize() + ' (' + assetref + ')</h3>']
 
         transactions = abe.store.get_transactions_for_asset_address(chain, assetref, address)
