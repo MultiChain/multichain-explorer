@@ -1598,7 +1598,7 @@ class Abe:
             raise PageNotFound()
 
         #page['content_type'] = 'text/html'
-        page['title'] = chain.name
+        page['title'] = '<a href="../assets/">' + chain.name + '</a>'
         body = page['body']
 
         url = abe.store.get_url_by_chain(chain)
