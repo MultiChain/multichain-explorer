@@ -277,6 +277,11 @@ class Abe:
             if symbol.strip() == DEFAULT_HOMEPAGE:
                 cmd = DEFAULT_HOMEPAGE
                 handler = abe.get_handler(cmd)
+            elif symbol == 'search':
+                cmd = "search"
+                handler = abe.get_handler(cmd)
+                chain = abe.store.get_chain_by_id(1)
+                page['chain'] = chain
         else:
             # Second component of path is the command
             cmd = wsgiref.util.shift_path_info(env)
@@ -2110,6 +2115,15 @@ class Abe:
                 '<p>No results found.</p>\n', abe.search_form(page)]
             return
 
+# MULTICHAIN START
+        chain_name = escape(page['chain'].name)
+        newfound = []
+        for x in found:
+            x['uri'] = chain_name + '/' + x['uri']
+            newfound.append(x)
+        found = newfound
+# MULTICHAIN END
+
         if len(found) == 1:
             # Undo shift_path_info.
             sn = posixpath.dirname(page['env']['SCRIPT_NAME'])
@@ -2185,8 +2199,7 @@ class Abe:
 
     def _found_address(abe, address):
 # MULTICHAIN START
-        # Fudge this for chain id of 1
-        return { 'name': 'Address ' + address, 'uri': 'address/1/' + address }
+        return { 'name': 'Address ' + address, 'uri': 'address/' + address }
 # MULTICHAIN END
 
     def search_address(abe, address):
