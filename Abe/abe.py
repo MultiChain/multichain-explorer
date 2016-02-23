@@ -1540,9 +1540,9 @@ class Abe:
                 return 0
             opdrop_type, val = util.parse_op_drop_data(data)
             if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
-                #if matchaddress: # and this_ch=='o':
-                return val
-                #return 0
+                if matchaddress: # and this_ch=='o':
+                    return val
+                return 0
             elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                 for dict in val:
                     quantity = dict['quantity']

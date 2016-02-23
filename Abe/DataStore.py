@@ -3848,10 +3848,11 @@ store._ddl['txout_approx'],
             join tx t on (a.tx_id=t.tx_id)
             join block bb on (b.block_id=bb.block_id)
             join txout o on (a.tx_id=o.tx_id)
+            join txin_detail i on (a.tx_id=i.tx_id)
             where a.asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
-            and o.pubkey_id=?
+            and (o.pubkey_id=? OR i.pubkey_id=?)
             order by bb.block_height, b.tx_pos asc
-        """, (chain.id, prefix, pubkey_id))
+        """, (chain.id, prefix, pubkey_id, pubkey_id))
 
         if rows is None:
             return None
