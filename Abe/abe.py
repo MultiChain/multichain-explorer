@@ -1747,7 +1747,7 @@ class Abe:
         body += ['<table class="table table-striped"><tr>'
                  '<th>Transaction</th>'
                  '<th>Block</th>'
-                 '<th>Quantity Moved</th>'
+                 # '<th>Quantity Moved</th>'
                  '</tr>\n']
 
         transactions = abe.store.get_transactions_for_asset(chain, assetref)
@@ -1783,7 +1783,7 @@ class Abe:
             body += ['<tr><td><a href="../../' + escape(chain.name) + '/tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
                      '</td><td><a href="../../' + escape(chain.name) + '/block/', tx['blockhash'], '">', tx['height'], '</a>',
                      # '</td><td>', util.format_display_quantity(asset, in_amount),
-                     '</td><td>', util.format_display_quantity(asset, out_amount),
+                     # '</td><td>', util.format_display_quantity(asset, out_amount),
                      # '</td><td ' + contextclass +'>', net_amount_label,
                      '</td></tr>']
         body += ['</table>']
