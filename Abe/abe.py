@@ -1711,7 +1711,7 @@ class Abe:
 
             body += ['<tr><td><a href="../../' + escape(chain.name) + '/address/' + address + '">', address, '</a>',    # shorten via tx['hash'][:16]
                      '</td><td>', amount,
-                     '<a href="../../' + escape(chain.name) + '/assetaddress/' + address + '/' + assetref + '"> (transactions)</a>',
+                     ' <a href="../../' + escape(chain.name) + '/assetaddress/' + address + '/' + assetref + '">(transactions)</a>',
                      '</td></tr>']
 
         body += ['</table>']
