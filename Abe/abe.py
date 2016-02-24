@@ -1705,7 +1705,9 @@ class Abe:
             else:
                 address = util.hash_to_address_multichain(chain.address_version, binaddr, checksum)
 
-            amount = util.format_display_quantity(asset, holder['balance'])
+# MULTICHAIN START
+            amount = util.format_display_quantity(asset, float( holder['balance'] ))
+# MULTICHAIN END
 
             body += ['<tr><td><a href="../../' + escape(chain.name) + '/address/' + address + '">', address, '</a>',    # shorten via tx['hash'][:16]
                      '</td><td>', amount,

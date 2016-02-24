@@ -445,10 +445,11 @@ def format_display_quantity(asset, rawqty):
 
     if p is 0:
         fmt = "{:d}"
-        rawqty = int(rawqty)
+        v = int(rawqty)
     else:
         fmt = "{:." + "{}".format(p) + "f}"
-    return fmt.format( rawqty )
+        v = rawqty / float(multiple)
+    return fmt.format( v )
 
 
 # MULTICHAIN END
