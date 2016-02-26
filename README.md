@@ -18,7 +18,7 @@ This software reads the MultiChain block file, transforms and loads the
 data into a database, and presents a web interface similar to that
 popularized by Bitcoin block explorers, http://blockexplorer.com/.
 
-MultiChain Explorer (Explorer) is a fork of the popular Abe project to add support for MultiChain networks with assets and permissions.  MultiChain nodes must be online for all Explorer functions to work.
+MultiChain Explorer (Explorer) is a fork of the popular Abe project to add support for MultiChain blockchains with assets and permissions.  MultiChain nodes must be online for all Explorer functions to work.
 
 MultiChain Explorer is currently under heavy development, so things will break/change!
 
@@ -47,41 +47,62 @@ To install MultiChain explorer on your system:
 
 If you do not have root permission, or if you do not want to install for the whole sytem:
 
-	python setup.py install --user
+    python setup.py install --user
 
 Before configuring the explorer, let's first make sure you have a MultiChain blockchain up and running.
 
 
-Create and launch a MultiChain Network
---------------------------------------
+Create and launch a MultiChain Blockchain
+-----------------------------------------
 
-Follow the [MultiChain documentation](http://www.multichain.com/download-install/) to install MultiChain and create a chain.  Skip this if you already have a chain you want to explore.
+Follow the [MultiChain documentation](http://www.multichain.com/download-install/) to install MultiChain and create a chain named chain1.  Skip this if you already have a chain you want to explore.
 
 Launch the chain to make sure it is running and that the genesis block has been found.  The node you launch is what the Explorer will connect to.
 
-    multichaind mychain -daemon
+    multichaind chain1 -daemon
 
-By default the runtime parameter ````txindex```` is enabled so that the node you launch will keep track of all transactions across the network, and not just the transactions for the node's wallet.  Do not disable this parameter. For more infomation about runtime parameters please visit http://www.multichain.com/developers/runtime-parameters/
+By default the runtime parameter ````txindex```` is enabled so that the node you launch will keep track of all transactions across the blockchain, and not just the transactions for the node's wallet.  Do not disable this parameter. For more infomation about runtime parameters please visit http://www.multichain.com/developers/runtime-parameters/
 
 
 Configure MultiChain.conf
 -------------------------
 
-The explorer will at times communicate with the MultiChain network using JSON-RPC.  The ````multichain.conf```` file should
-have a rpcuser and rpcpassword defined.  You should add a value for the rpc port, which can be found in the ````params.dat````
-file normally found in ````$HOME/.multichain/mychain/params.dat```` :
+The explorer needs to communicate with the blockchain using JSON-RPC.  When you created the blockchain, the JSON-RPC connection details were automatically created by MultiChain and stored in a file named ````multichain.conf````.
 
-    rpcport=1234
+If you examine the file you will see a username and password have been auto-generated.
+
+    cd $HOME/.multichain/chain1/
+    less multichain.conf
+
+What you now need to do is add the RPC port number to the file.
+
+Copy the ````default-rpc-port```` value from ````params.dat```` and add an entry to ````multichain.conf```` as follows:
+
+    cd $HOME/.multichain/chain1/
+    less params.dat
+    # Make a note of the default-rpc-port value, let's say it's 1234, and add it to multichain.conf
+    echo "rpcport=1234" >>multichain.conf
 
 
 Configure the Explorer
 ----------------------
 
-The bundled example config files can be used as a template for your chain.
+The bundled example config file ````chain1.example.conf```` can be used as a template for your own chain.
 
-For an existing or newly created chain, the explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from ````params.dat````.
+    cd multichain-explorer
+    cp chain1.example.conf chain1.conf
 
-If you are installing the explorer on a remote server and intend to access it over the internet, you must specify the explorer website's port and host information in the config file.  Change the host to the IP address of the server for testing, as by default it is localhost.  If your server does not have a static IP address, you can use ````0.0.0.0```` instead of hard-coding the IP address.
+You can store the config file ````chain1.conf```` anywhere you want.  When you launch the explorer you can specify the location of your config file.  By default, it will look for a config file in the current directory.
+
+So what changes should you make?
+
+* Change ````port```` to the port number you want to serve web pages from.
+* Change ````host```` to 0.0.0.0 if you want to serve web pages to anybody.
+* Change ````dirname```` to match your chain name - by default it is chain1.
+* Change ````chain```` based on how you want the chain to appear in the explorer.
+* Change ````connect-args```` based on where you want to store the explorer database
+
+Note: The explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from ````params.dat````.  Please do not manually add these to your config file based on what you might see in ````abe.conf````.
 
 
 Launch the Explorer
@@ -89,20 +110,28 @@ Launch the Explorer
 
 To run the explorer on your local computer:
 
-    python -m Abe.abe --config mychain.conf
+    python -m Abe.abe --config chain1.conf
 
 By default, the explorer will be listening for web requests on port 2750, unless you changed it in the Explorer's configuration file.  In your browser visit:
 
     http://localhost:2750
 
-To run the explorer on a remote server, you must make sure the explorer does not shut down when you shut down your SSH terminal connection.
+To run the explorer on a server, make sure the explorer is not accidently terminated when you close your SSH terminal connection
 
     nohup python -m Abe.abe --config mychain.conf &
 
-In your browser visit:
+To check the explorer is runnning, in your browser visit:
 
-    http://IP_address_of_server:PORT
+    http://IP_address_of_server:2750
 
+
+Reset the Explorer
+----------------------
+
+To start over with new chain data for a chain of the same name, simply:
+1. Stop the explorer
+2. Delete the explorer database file ````chain1.sqlite```` (path set in ````connect-args```` parameter in ````chain1.conf````)
+3. Launch explorer (it may take some time to load the new chain)
 
 
 Misc Notes
