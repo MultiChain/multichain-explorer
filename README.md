@@ -43,7 +43,11 @@ Installation
 
 To install MultiChain explorer on your system:
 
-    python setup.py install
+    sudo python setup.py install
+
+If you do not have root permission, or if you do not want to install for the whole sytem:
+
+	python setup.py install --user
 
 Before configuring the explorer, let's first make sure you have a MultiChain blockchain up and running.
 
