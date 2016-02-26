@@ -1975,7 +1975,9 @@ class Abe:
 
         if (not chains):
             page['status'] = '404 Not Found'
-            body += ['<p>Address not seen on the network.</p>']
+# MULTICHAIN START
+            body += ['<p>Address not seen on the blockchain.</p>']
+# MULTICHAIN END
             return
 
         def format_amounts(amounts, link):
