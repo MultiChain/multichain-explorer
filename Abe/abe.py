@@ -1178,7 +1178,7 @@ class Abe:
                                 msg = "Issue {:d} raw units of new asset".format(val)
 
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
-                            msg = "Send "
+                            msg = ""
                             msgparts = []
                             for dict in val:
                                 quantity = dict['quantity']
