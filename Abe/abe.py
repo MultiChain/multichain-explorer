@@ -1341,8 +1341,8 @@ class Abe:
 
 # MULTICHAIN START
         body += ['<a name="inputs"><h3>Inputs</h3></a>\n<table class="table table-striped">\n',
+                 '<tr><th>Index</th><th>Previous output</th><th>Native</th>',
 # MULTICHAIN END
-                 '<tr><th>Index</th><th>Previous output</th><th>Amount</th>',
                  '<th>From address</th>']
         if abe.store.keep_scriptsig:
             body += ['<th>ScriptSig</th>']
@@ -1353,8 +1353,8 @@ class Abe:
         body += ['</table>\n',
 # MULTICHAIN START
                  '<a name="outputs"><h3>Outputs</h3></a>\n<table class="table table-striped">\n',
+                 '<tr><th>Index</th><th>Redeemed at input</th><th>Native</th>',
 # MULTICHAIN END
-                 '<tr><th>Index</th><th>Redeemed at input</th><th>Amount</th>',
                  '<th>To address</th><th>ScriptPubKey</th></tr>\n']
         for txout in tx['out']:
             row_to_html(txout, 'o', 'i', 'Not yet redeemed')
