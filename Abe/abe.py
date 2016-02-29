@@ -93,6 +93,7 @@ DEFAULT_TEMPLATE = """
     </h1>
     %(body)s
     <!--<p><a href="%(dotdot)sq">API</a> (machine-readable pages)</p>-->
+    <br><br>
     <p style="font-size: smaller">
         <span style="font-style: italic">
             Powered by <a href="%(ABE_URL)s">%(APPNAME)s</a>
