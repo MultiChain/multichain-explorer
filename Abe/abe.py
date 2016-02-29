@@ -552,7 +552,7 @@ class Abe:
                 body += ['<a href="' + page['dotdot'] + escape(chain.name) + '/tx/' + txid + '">', txid, '</a>']
                 label = abe.store.get_label_for_tx(txid, chain)
             else:
-                body += [txid]
+                body += ['<a href="' + page['dotdot'] + escape(chain.name) + '/mempooltx/' + txid + '">', txid, '</a>']
                 json = None
                 try:
                     json = abe.store.get_rawtransaction_decoded(chain, txid)
@@ -1882,7 +1882,7 @@ class Abe:
             units = s.rstrip('0').rstrip('.') if '.' in s else s
             body += ['<tr><td>' + asset['name'].encode('unicode-escape'),
                      '</td><td>', '-',
-                     '</td><td>', asset['issuetxid'][:16], '...',
+                     '</td><td><a href="../../' + escape(chain.name) + '/mempooltx/' + asset['issuetxid'] + '">', asset['issuetxid'][:16], '...</a>',
                      '</td><td>', '-',
                      '</td><td>', '-',
                      '</td><td>', issueqty,
@@ -1967,6 +1967,39 @@ class Abe:
         page['template'] = '%(body)s'
 
         return s
+
+    def handle_mempooltx(abe, page):
+        page['content_type'] = 'text/html'
+        tx_hash = wsgiref.util.shift_path_info(page['env'])
+        if tx_hash in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+
+        page['title'] = ['Transaction ', tx_hash[:10], '...', tx_hash[-4:]]
+        body = page['body']
+
+        chain = page['chain']
+        chain_name = abe.store.get_multichain_name_by_id(chain.id)
+        url = abe.store.get_url_by_chain(chain)
+
+        s=""
+        try:
+            resp = util.jsonrpc(chain_name, url, "getrawtransaction", tx_hash, 1)
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            #if e.code != -5:  # -5: transaction not in index.
+            body += '<div class="alert alert-danger" role="warning">' + msg + '</div>'
+            return s
+        except IOError as e:
+            msg= "I/O error({0}): {1}".format(e.errno, e.strerror)
+            body += '<div class="alert alert-danger" role="alert">' + msg + '</div>'
+            return s
+
+        if resp is not None:
+            body += ['<h3>Mempool Transaction</h3>']
+            body += ['<pre>', json.dumps(resp, sort_keys=True, indent=2), '</pre>']
+
+
+
 # MULTICHAIN END
 
     def do_rawtx(abe, page, chain):
