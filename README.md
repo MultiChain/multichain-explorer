@@ -5,7 +5,7 @@ MultiChain Explorer is a free block chain browser for MultiChain-based blockchai
 
 https://github.com/MultiChain/multichain-explorer
 
-    Copyright(C) 2014,2015 by Coin Sciences Ltd.
+    Copyright(C) 2015,2016 by Coin Sciences Ltd.
     Copyright(C) 2011,2012,2013 by Abe developers.
     License: GNU Affero General Public License, see the file LICENSE.txt.
     Portions Copyright (c) 2010 Gavin Andresen, see bct-LICENSE.txt.
@@ -43,13 +43,15 @@ Installation
 
 To install MultiChain explorer on your system:
 
+    cd multichain-explorer
     sudo python setup.py install
 
 If you do not have root permission, or if you do not want to install for the whole sytem:
 
+    cd multichain-explorer
     python setup.py install --user
 
-Before configuring the explorer, let's first make sure you have a MultiChain blockchain up and running.
+The explorer will connect to a local MultiChain node.  Before configuring the explorer, let's first make sure you have a MultiChain blockchain up and running.
 
 
 Create and launch a MultiChain Blockchain
@@ -69,12 +71,12 @@ Configure MultiChain.conf
 
 The explorer needs to communicate with the blockchain using JSON-RPC.  When you created the blockchain, the JSON-RPC connection details were automatically created by MultiChain and stored in a file named ````multichain.conf````.
 
-If you examine the file you will see a username and password have been auto-generated.
+The explorer will read this file.  If you examine the file you will see a username and password have been auto-generated.
 
     cd $HOME/.multichain/chain1/
     less multichain.conf
 
-What you now need to do is add the RPC port number to the file.
+What you now need to do is add the RPC port number.
 
 Copy the ````default-rpc-port```` value from ````params.dat```` and add an entry to ````multichain.conf```` as follows:
 
