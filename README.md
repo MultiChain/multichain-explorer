@@ -112,6 +112,7 @@ Launch the Explorer
 
 To run the explorer on your local computer:
 
+    cd multichain-explorer
     python -m Abe.abe --config chain1.conf
 
 By default, the explorer will be listening for web requests on port 2750, unless you changed it in the Explorer's configuration file.  In your browser visit:
@@ -120,6 +121,7 @@ By default, the explorer will be listening for web requests on port 2750, unless
 
 To run the explorer on a server, make sure the explorer is not accidently terminated when you close your SSH terminal connection
 
+    cd multichain-explorer
     nohup python -m Abe.abe --config mychain.conf &
 
 To check the explorer is runnning, in your browser visit:
