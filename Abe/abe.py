@@ -1283,7 +1283,7 @@ class Abe:
 
                 # Add MultiChain HTML
                 if msg is not None:
-                    body += ['<div class="panel panel-default panel-'+msgtype+'"><div class="panel-body">'+msg+'</div></div>']
+                    body += ['<div style="height:5px;"></div><div class="panel panel-default panel-'+msgtype+'"><div class="panel-body">'+msg+'</div></div>']
                     #body += ['<div class="alert alert-'+msgtype+'" role="alert">',
                     #         msg,
                     #         '</div>']
