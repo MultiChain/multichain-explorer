@@ -966,7 +966,8 @@ class Abe:
 
         body += ['<table class="table table-striped"><tr><th>Transaction</th>'
                  #<th>Fee</th>'
-                 '<th>Size (kB)</th><th>From (amount)</th><th>To (amount)</th>'
+                 '<th>Size (kB)</th>'
+                 #<th>From (amount)</th><th>To (amount)</th>'
                  '</tr>\n']
 # MULTICHAIN END
 
@@ -1016,7 +1017,8 @@ class Abe:
             else:
                 labelclass='class="' + labeltype + '"'
             body += ['<tr ' + labelclass + '><td><a href="../tx/' + tx['hash'] + '">',
-                     tx['hash'][:16], '...</a>']
+                     tx['hash'], '</a>']
+                     # tx['hash'][:16], '...</a>']
 
             if label is not None:
                 body += ['<div><span class="label label-' + labeltype + '">', label, '</span></div>']
@@ -1026,40 +1028,40 @@ class Abe:
                      '</td><td>', tx['size'] / 1000.0,
                      '</td><td>']
 
-            if tx is b['transactions'][0]:
-                body += [
-                    'POS ' if is_stake_block else '',
-# MULTICHAIN START
-                    'Generation: ', format_satoshis(b['generated'], chain),
-                    #' + ', format_satoshis(b['fees'], chain), ' total fees'
-                ]
-# MULTICHAIN END
-            else:
-                for txin in tx['in']:
-                    body += [abe.format_addresses(txin, page['dotdot'], chain), ': ',
-                             format_satoshis(txin['value'], chain), '<br />']
-
-            body += ['</td><td>']
-            for txout in tx['out']:
-                if is_stake_block:
-                    if tx is b['transactions'][0]:
-                        assert txout['value'] == 0
-                        assert len(tx['out']) == 1
-                        body += [
-                            format_satoshis(b['proof_of_stake_generated'], chain),
-                            ' included in the following transaction']
-                        continue
-                    if txout['value'] == 0:
-                        continue
-
-                if txout['binaddr'] is None:
-                    label = miner_address
-                else:
-                    label = abe.format_addresses(txout, page['dotdot'], chain)
-                body += [label, ': ',
-                         format_satoshis(txout['value'], chain), '<br />']
-
-            body += ['</td></tr>\n']
+#             if tx is b['transactions'][0]:
+#                 body += [
+#                     'POS ' if is_stake_block else '',
+# # MULTICHAIN START
+#                     'Generation: ', format_satoshis(b['generated'], chain),
+#                     #' + ', format_satoshis(b['fees'], chain), ' total fees'
+#                 ]
+# # MULTICHAIN END
+#             else:
+#                 for txin in tx['in']:
+#                     body += [abe.format_addresses(txin, page['dotdot'], chain), ': ',
+#                              format_satoshis(txin['value'], chain), '<br />']
+#
+#             body += ['</td><td>']
+#             for txout in tx['out']:
+#                 if is_stake_block:
+#                     if tx is b['transactions'][0]:
+#                         assert txout['value'] == 0
+#                         assert len(tx['out']) == 1
+#                         body += [
+#                             format_satoshis(b['proof_of_stake_generated'], chain),
+#                             ' included in the following transaction']
+#                         continue
+#                     if txout['value'] == 0:
+#                         continue
+#
+#                 if txout['binaddr'] is None:
+#                     label = miner_address
+#                 else:
+#                     label = abe.format_addresses(txout, page['dotdot'], chain)
+#                 body += [label, ': ',
+#                          format_satoshis(txout['value'], chain), '<br />']
+#
+#             body += ['</td></tr>\n']
         body += '</table>\n'
 
     def handle_block(abe, page):
