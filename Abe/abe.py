@@ -1196,7 +1196,7 @@ class Abe:
                                 except Exception as e:
                                     msgparts.append("{} raw units of asset {}".format(quantity, link))
 
-                            msg += ', '.join(msgparts)
+                            msg += '<br>'.join(msgparts)
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                             msg = val['type'].capitalize() + " "
 
