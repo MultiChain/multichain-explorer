@@ -487,6 +487,9 @@ class Abe:
                     '});'
                     '</script>']
         page_refresh_interval_secs = 60
+        myheader += ['<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />',
+                     '<meta http-equiv="Pragma" content="no-cache" />',
+                     '<meta http-equiv="Expires" content="0" />']
         myheader += ['<meta http-equiv="refresh" content="', page_refresh_interval_secs, '" >']
 
         body += ['<div id="recenttx">']
