@@ -537,7 +537,7 @@ class Abe:
             if diff < 60:
                 elapsed = "< 1 minute"
             elif diff < 3600:
-                elapsed = "< " + str(int(diff / 60)) + " minutes"
+                elapsed = "< " + str(int((diff / 60)+0.5)) + " minutes"
             elif diff < 3600*24*2:
                 elapsed = "< " + str(int(diff / 3600)) + " hours"
             else:
