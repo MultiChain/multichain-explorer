@@ -448,7 +448,7 @@ def format_display_quantity(asset, rawqty):
         v = int(rawqty)
     else:
         fmt = "{:." + "{}".format(p) + "f}"
-        v = rawqty / float(multiple)
+        v = float(rawqty) / float(multiple)
     return fmt.format( v )
 
 
