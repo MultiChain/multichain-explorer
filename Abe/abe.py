@@ -286,7 +286,7 @@ class Abe:
         else:
             # Second component of path is the command
             cmd = wsgiref.util.shift_path_info(env)
-            if cmd=='':
+            if cmd=='' or cmd is None:
                 cmd = 'chain'
             handler = abe.get_handler(cmd)
 # MULTICHAIN END
