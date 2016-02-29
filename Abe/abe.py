@@ -1839,8 +1839,10 @@ class Abe:
                  '<th>Issued Quantity</th><th>Units</th>'
                  '</tr>']
 
+        unconfirmed = False
         for asset in resp:
             if asset['assetref'] is None:
+                unconfirmed = True
                 continue
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
             issueqty = util.format_display_quantity(asset, asset['issueqty'])
@@ -1860,6 +1862,35 @@ class Abe:
                      '</td></tr>']
 
         body += ['</table>']
+
+        # Show any unconfirmed assets
+        if unconfirmed is False:
+            return
+        body += ['<h3>Unconfirmed Assets</h3>']
+
+        body += ['<table class="table table-striped"><tr><th>Asset Name</th><th>Asset Reference</th>'
+                 '<th>Issue Transaction</th>'
+                 '<th>Asset Holders</th>'
+                 '<th>Transactions</th>'
+                 '<th>Issued Quantity</th><th>Units</th>'
+                 '</tr>']
+        for asset in resp:
+            if asset['assetref'] is not None:
+                continue
+            issueqty = util.format_display_quantity(asset, asset['issueqty'])
+            s = "{:17f}".format(asset['units'])
+            units = s.rstrip('0').rstrip('.') if '.' in s else s
+            body += ['<tr><td>' + asset['name'].encode('unicode-escape'),
+                     '</td><td>', '-',
+                     '</td><td>', asset['issuetxid'][:16], '...',
+                     '</td><td>', '-',
+                     '</td><td>', '-',
+                     '</td><td>', issueqty,
+                     '</td><td>', units,
+                     '</td></tr>']
+        body += ['</table>']
+
+
 
     # Experimental handler for getting json and raw hex data from RPC calls
     def do_rpc(abe, page, func):
