@@ -3949,19 +3949,21 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
-    def get_label_for_tx(store, tx_hash, chain):
-        label = None
+    def get_labels_for_tx(store, tx_hash, chain):
+        labels = None
         try:
             mytx = store._export_tx_detail(tx_hash, chain)
         except MalformedHash:
             mytx = None
 
         if mytx is not None:
+            d = set()
             for txout in mytx['out']:
                 label = store.get_label_for_scriptpubkey(chain, txout['binscript'])
                 if label is not None:
-                    break
-        return label
+                    d.add(label)
+            labels = list(d)
+        return labels
 
     def get_label_for_scriptpubkey(store, chain, scriptpubkey):
         label = None
@@ -3977,7 +3979,7 @@ store._ddl['txout_approx'],
                 elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                     label = 'Permissions'
                 else:
-                    label = 'Unknown OP_DROP'
+                    label = 'OP_DROP'
             else:
                 label = 'Unknown'
         elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
@@ -3985,7 +3987,7 @@ store._ddl['txout_approx'],
             if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
                 label = 'Asset'
             else:
-                label = 'Unknown OP_RETURN'
+                label = 'Metadata'
         return label
 
 def new(args):

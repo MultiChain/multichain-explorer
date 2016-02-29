@@ -550,7 +550,7 @@ class Abe:
             body += ['<tr><td>']
             if abe.store.does_transaction_exist(txid):
                 body += ['<a href="' + page['dotdot'] + escape(chain.name) + '/tx/' + txid + '">', txid, '</a>']
-                label = abe.store.get_label_for_tx(txid, chain)
+                labels = abe.store.get_labels_for_tx(txid, chain)
             else:
                 body += ['<a href="' + page['dotdot'] + escape(chain.name) + '/mempooltx/' + txid + '">', txid, '</a>']
                 json = None
@@ -561,17 +561,20 @@ class Abe:
 
                 if json is not None:
                     scriptpubkeys = [vout['scriptPubKey']['hex'] for vout in json['vout']]
-                    label = None
+                    labels = None
+                    d = set()
                     for hex in scriptpubkeys:
                         binscript = binascii.unhexlify(hex)
                         label = abe.store.get_label_for_scriptpubkey(chain, binscript)
                         if label is not None:
-                            break
+                            d.add(label)
+                    labels = list(d)
 
-            if label is None:
-                label = ""
+            if labels is None:
+                labels = []
             body += ['</td><td>']
-            body += [label]
+            for label in labels:
+                body += ['&nbsp;<span class="label label-primary">',label,'</span>']
 
             body += ['</td><td>']
             conf = v.get('confirmations', None)
