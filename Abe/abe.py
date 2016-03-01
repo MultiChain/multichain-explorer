@@ -478,11 +478,11 @@ class Abe:
 
 # MULTICHAIN START
         myheader = page['myheader']
-        mempool_refresh_interval_ms = 3000
+        mempool_refresh_interval_ms = 5000
         myheader += ['<script>'
                     '$(document).ready(function(){'
                     'setInterval(function(){'
-                    '$("#recenttx").load(\'' + page['dotdot'] + urllib.quote(name, safe='') + '/recent'  + '\')'
+                    '$("#recenttx").load(\'' + page['dotdot'] + urllib.quote(name, safe='') + '/recent?random=\' + Math.random().toString() )'
                     '}, ', mempool_refresh_interval_ms, ');'
                     '});'
                     '</script>']
