@@ -37,6 +37,10 @@ If your Python setup is not complete, you may have to install:
     sudo apt-get install python-dev
     sudo apt-get install python-pip
 
+You also need to install Sqlite3 on your system.
+
+    sudo apt-get install sqlite3 libsqlite3-dev
+
 
 Installation
 ------------
@@ -110,7 +114,20 @@ Note: The explorer will automatically read MultiChain specific parameters such a
 Launch the Explorer
 -------------------
 
-To run the explorer on your local computer:
+To load existing blockchain data into the explorer:
+
+    cd multichain-explorer
+    python -m Abe.abe --config chain1.conf --commit-bytes 100000 --no-serve
+
+Look for output such as:
+
+    block_tx 1 1
+    block_tx 2 2
+    ...
+
+This step may take several minutes to even days depending on chain size and hardware.
+
+To launch the explorer and serve web pages from your local computer:
 
     cd multichain-explorer
     python -m Abe.abe --config chain1.conf
@@ -119,7 +136,7 @@ By default, the explorer will be listening for web requests on port 2750, unless
 
     http://localhost:2750
 
-To run the explorer on a server, make sure the explorer is not accidently terminated when you close your SSH terminal connection
+To launch the explorer on a server, make sure the explorer is not accidentally terminated when you close your SSH terminal connection.
 
     cd multichain-explorer
     nohup python -m Abe.abe --config mychain.conf &
@@ -133,15 +150,17 @@ Reset the Explorer
 ----------------------
 
 To start over with new chain data for a chain of the same name, simply:
+
 1. Stop the explorer
+
 2. Delete the explorer database file ````chain1.sqlite```` (path set in ````connect-args```` parameter in ````chain1.conf````)
-3. Launch explorer (it may take some time to load the new chain)
+
+3. Launch explorer as above
 
 
 Misc Notes
 ----------
 * Currently it is not recommended to configure multiple chains in one config file as the search function does not search across chains for an address
-* https://github.com/bitcoin-abe/bitcoin-abe/blob/master/README-SQLITE.txt
 * You can run two instances of the Explorer with the same config file, with one being passed the --no-serve argument and the other --no-load, so that one instance only loads data into the database, and the other only serves web pages.
 * Example of just building a database
 python -m Abe.abe --config multichain.conf --commit-bytes 10000 --no-serve
