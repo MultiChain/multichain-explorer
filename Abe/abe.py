@@ -1441,6 +1441,7 @@ class Abe:
 
                 assetdict = {}
                 for asset in assets_resp:
+                    # use escaped form as dict key
                     name = asset['name'].encode('unicode-escape')
                     assetdict[name] = asset
 
@@ -1451,7 +1452,6 @@ class Abe:
                     name, prefix, balance = row
                     if name is None:
                         name=''
-                    name = name.decode('latin-1')
                     name = name.encode('unicode-escape')
                     asset = assetdict[ name ]
                     assetref = asset['assetref']
