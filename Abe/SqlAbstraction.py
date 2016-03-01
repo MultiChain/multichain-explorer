@@ -26,8 +26,7 @@ class SqlAbstraction(object):
 
     """
     Database abstraction class based on DB-API 2 and standard SQL with
-    workarounds to support SQLite3, PostgreSQL/psycopg2, MySQL,
-    Oracle, ODBC, and IBM DB2.
+    workarounds to support SQLite3
     """
 
     def __init__(sql, args):
@@ -156,35 +155,8 @@ class SqlAbstraction(object):
             create_sequence = lambda key: sql._create_sequence_update(key)
             drop_sequence = lambda key: sql._drop_sequence_update(key)
 
-        elif val == 'mysql':
-            new_id = lambda key: sql._new_id_mysql(key)
-            create_sequence = lambda key: sql._create_sequence_mysql(key)
-            drop_sequence = lambda key: sql._drop_sequence_mysql(key)
-
         else:
-            create_sequence = lambda key: sql._create_sequence(key)
-            drop_sequence = lambda key: sql._drop_sequence(key)
-
-            if val == 'oracle':
-                new_id = lambda key: sql._new_id_oracle(key)
-            elif val == 'nvf':
-                new_id = lambda key: sql._new_id_nvf(key)
-            elif val == 'postgres':
-                new_id = lambda key: sql._new_id_postgres(key)
-            elif val == 'db2':
-                new_id = lambda key: sql._new_id_db2(key)
-                create_sequence = lambda key: sql._create_sequence_db2(key)
-            else:
-                raise Exception("Unsupported sequence-type %s" % (val,))
-
-        # Convert Oracle LOB to str.
-        if hasattr(sql.module, "LOB") and isinstance(sql.module.LOB, type):
-            def fix_lob(fn):
-                def ret(x):
-                    return None if x is None else fn(str(x))
-                return ret
-            binout = fix_lob(binout)
-            binout_hex = fix_lob(binout_hex)
+            raise Exception("Unsupported sequence-type %s" % (val,))
 
         val = sql.config.get('limit_style')
         if val in (None, 'native'):
@@ -195,8 +167,6 @@ class SqlAbstraction(object):
         val = sql.config.get('concat_style')
         if val in (None, 'ansi'):
             pass
-        elif val == 'mysql':
-            transform_stmt = sql._transform_concat(transform_stmt)
 
         transform_stmt = sql._append_table_epilogue(transform_stmt)
 
@@ -334,24 +304,6 @@ class SqlAbstraction(object):
                     str(int(match.group(2)) * 2) + ")")
         def ret(chunk):
             return fn(x_patt.sub("", patt.sub(fixup, chunk)))
-        return ret
-
-    # Convert the standard BINARY type to the PostgreSQL BYTEA type.
-    def _binary_as_bytea(sql, fn):
-        type_patt = re.compile("((?:VAR)?)BINARY\\(([0-9]+)\\)")
-        lit_patt = re.compile("X'((?:[0-9a-fA-F][0-9a-fA-F])*)'")
-        def ret(stmt):
-            def transform_chunk(match):
-                ret = type_patt.sub("BYTEA", match.group(1))
-                if match.group(1).endswith('X') and match.group(2) != '':
-                    ret = ret[:-1] + "'"
-                    for i in match.group(2)[1:-1].decode('hex'):
-                        ret += r'\\%03o' % ord(i)
-                    ret += "'::bytea"
-                else:
-                    ret += match.group(2)
-                return ret
-            return fn(STMT_RE.sub(transform_chunk, stmt))
         return ret
 
     # Converts VARCHAR types that are too long to CLOB or similar.
@@ -550,10 +502,6 @@ class SqlAbstraction(object):
                 (key,))
         sql.commit()
 
-    def _new_id_oracle(sql, key):
-        (ret,) = sql.selectrow("SELECT " + key + "_seq.NEXTVAL FROM DUAL")
-        return ret
-
     def _create_sequence(sql, key):
         sql.ddl("CREATE SEQUENCE %s_seq START WITH %d"
                 % (key, sql._get_sequence_initial_value(key)))
@@ -561,47 +509,6 @@ class SqlAbstraction(object):
     def _drop_sequence(sql, key):
         sql.ddl("DROP SEQUENCE %s_seq" % (key,))
 
-    def _new_id_nvf(sql, key):
-        (ret,) = sql.selectrow("SELECT NEXT VALUE FOR " + key + "_seq")
-        return ret
-
-    def _new_id_postgres(sql, key):
-        (ret,) = sql.selectrow("SELECT NEXTVAL('" + key + "_seq')")
-        return ret
-
-    def _create_sequence_db2(sql, key):
-        sql.commit()
-        try:
-            rows = sql.selectall("SELECT 1 FROM %sdual" % sql.prefix)
-            if len(rows) != 1:
-                sql.sql("INSERT INTO %sdual(x) VALUES ('X')" % sql.prefix)
-        except sql.module.DatabaseError as e:
-            sql.rollback()
-            sql.drop_table_if_exists('%sdual' % sql.prefix)
-            sql.ddl("CREATE TABLE %sdual (x CHAR(1))" % sql.prefix)
-            sql.sql("INSERT INTO %sdual(x) VALUES ('X')" % sql.prefix)
-            sql.log.info("Created silly table %sdual" % sql.prefix)
-        sql._create_sequence(key)
-
-    def _new_id_db2(sql, key):
-        (ret,) = sql.selectrow("SELECT NEXTVAL FOR " + key + "_seq"
-                               " FROM %sdual" % sql.prefix)
-        return ret
-
-    def _create_sequence_mysql(sql, key):
-        sql.ddl("CREATE TABLE %s_seq (id BIGINT AUTO_INCREMENT PRIMARY KEY)"
-                " AUTO_INCREMENT=%d"
-                % (key, sql._get_sequence_initial_value(key)))
-
-    def _drop_sequence_mysql(sql, key):
-        sql.ddl("DROP TABLE %s_seq" % (key,))
-
-    def _new_id_mysql(sql, key):
-        sql.sql("INSERT INTO " + key + "_seq () VALUES ()")
-        (ret,) = sql.selectrow("SELECT LAST_INSERT_ID()")
-        if ret % 1000 == 0:
-            sql.sql("DELETE FROM " + key + "_seq WHERE id < ?", (ret,))
-        return ret
 
     def commit(sql):
         sql.sqllog.info("COMMIT")
@@ -681,7 +588,7 @@ class SqlAbstraction(object):
             "Integer type " + tests[0] + " fails test")
 
     def configure_sequence_type(sql):
-        for val in ['nvf', 'oracle', 'postgres', 'mysql', 'db2', 'update']:
+        for val in ['update']:
             sql.config['sequence_type'] = val
             sql._set_flavour()
             if sql._test_sequence_type():
@@ -971,7 +878,7 @@ class SqlAbstraction(object):
             sql.drop_table_if_exists("%stest_1" % sql.prefix)
 
     def configure_concat_style(sql):
-        for val in ['ansi', 'mysql']:
+        for val in ['ansi']:
             sql.config['concat_style'] = val
             sql._set_flavour()
             if sql._test_concat_style():

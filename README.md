@@ -104,7 +104,7 @@ So what changes should you make?
 * Change ````chain```` based on how you want the chain to appear in the explorer.
 * Change ````connect-args```` based on where you want to store the explorer database
 
-Note: The explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from ````params.dat````.  Please do not manually add these to your config file based on what you might see in ````abe.conf````.
+Note: The explorer will automatically read MultiChain specific parameters such as the magic handshake, address checksum, version and script version bytes from ````params.dat````.  Please do not manually add these to your config file.
 
 
 Launch the Explorer
