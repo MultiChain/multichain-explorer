@@ -1,13 +1,13 @@
 from distutils.core import setup
 
-execfile("Abe/version.py")
+execfile("Mce/version.py")
 
 setup(
     name         = "MultiChain Explorer",
     version      = __version__,
     requires     = ['Crypto.Hash'],
-    packages     = ['Abe', 'Abe.Chain'],
-    package_data = {'Abe': ['htdocs/*.*','htdocs/*/*.*']},
+    packages     = ['Mce', 'Mce.Chain'],
+    package_data = {'Mce': ['htdocs/*.*','htdocs/*/*.*']},
     author       = "Coin Sciences Ltd",
     author_email = "simon@coinsciences.com",
     url          = "https://github.com/MultiChain/multichain-explorer",

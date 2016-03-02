@@ -45,17 +45,17 @@ You also need to install Sqlite3 on your system.
 Installation
 ------------
 
-To install MultiChain explorer on your system:
-
-    cd multichain-explorer
-    sudo python setup.py install
-
-If you do not have root permission, or if you do not want to install for the whole sytem:
+To install MultiChain explorer for the current user (recommended):
 
     cd multichain-explorer
     python setup.py install --user
 
-The explorer will connect to a local MultiChain node.  Before configuring the explorer, let's first make sure you have a MultiChain blockchain up and running.
+If you have root permission and want to install MultiChain explorer for all users on the system:
+
+    cd multichain-explorer
+    sudo python setup.py install
+
+The explorer needs to connect to a local MultiChain node.  Before configuring the explorer, let's make sure you have a MultiChain blockchain up and running.
 
 
 Create and launch a MultiChain Blockchain
@@ -117,7 +117,7 @@ Launch the Explorer
 To load existing blockchain data into the explorer:
 
     cd multichain-explorer
-    python -m Abe.abe --config chain1.conf --commit-bytes 100000 --no-serve
+    python -m Mce.abe --config chain1.conf --commit-bytes 100000 --no-serve
 
 Look for output such as:
 
@@ -130,7 +130,7 @@ This step may take several minutes to even days depending on chain size and hard
 To launch the explorer and serve web pages from your local computer:
 
     cd multichain-explorer
-    python -m Abe.abe --config chain1.conf
+    python -m Mce.abe --config chain1.conf
 
 By default, the explorer will be listening for web requests on port 2750, unless you changed it in the Explorer's configuration file.  In your browser visit:
 
@@ -139,7 +139,7 @@ By default, the explorer will be listening for web requests on port 2750, unless
 To launch the explorer on a server, make sure the explorer is not accidentally terminated when you close your SSH terminal connection.
 
     cd multichain-explorer
-    nohup python -m Abe.abe --config mychain.conf &
+    nohup python -m Mce.abe --config mychain.conf &
 
 To check the explorer is runnning, in your browser visit:
 
@@ -163,8 +163,8 @@ Misc Notes
 * Currently it is not recommended to configure multiple chains in one config file as the search function does not search across chains for an address
 * You can run two instances of the Explorer with the same config file, with one being passed the --no-serve argument and the other --no-load, so that one instance only loads data into the database, and the other only serves web pages.
 * Example of just building a database
-python -m Abe.abe --config multichain.conf --commit-bytes 10000 --no-serve
+python -m Mce.abe --config multichain.conf --commit-bytes 10000 --no-serve
 and then when you want to provide a web explorer:
-python -m Abe.abe --config multichain.conf --no-load
+python -m Mce.abe --config multichain.conf --no-load
 
 
