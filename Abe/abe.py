@@ -2173,6 +2173,9 @@ class Abe:
     def handle_search(abe, page):
         page['title'] = 'Search'
         q = (page['params'].get('q') or [''])[0]
+# MULTICHAIN START
+        q = q.strip()
+# MULTICHAIN END
         if q == '':
             page['body'] = [
                 '<p>Please enter search terms.</p>\n', abe.search_form(page)]
