@@ -1,2 +1,2 @@
-include abe.conf
-include README-*.txt
+include chain1.example.conf
+
