@@ -3,14 +3,14 @@ from distutils.core import setup
 execfile("Abe/version.py")
 
 setup(
-    name         = "Abe",
+    name         = "MultiChain Explorer",
     version      = __version__,
     requires     = ['Crypto.Hash'],
     packages     = ['Abe', 'Abe.Chain'],
-    package_data = {'Abe': ['htdocs/*']},
-    author       = "John Tobey",
-    author_email = "jtobey@john-edwin-tobey.org",
-    url          = "https://github.com/bitcoin-abe/bitcoin-abe",
+    package_data = {'Abe': ['htdocs/*.*','htdocs/*/*.*']},
+    author       = "Coin Sciences Ltd",
+    author_email = "simon@coinsciences.com",
+    url          = "https://github.com/MultiChain/multichain-explorer",
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -32,13 +32,10 @@ setup(
         'Topic :: Security :: Cryptography',
         #'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    description  = "Abe: a free block chain browser for Bitcoin-based currencies.",
-    long_description = """Abe reads the Bitcoin block chain from disk, loads
+    description  = "MultiChain Explorer: a free browser for MultiChain blockchains.",
+    long_description = """MultiChain Explorer reads a MultiChain block chain from disk, loads
 it into a database, indexes it, and provides a web interface to search
-and navigate it.  Abe works with several Bitcoin-derived currencies,
-including Namecoin and LiteCoin.
-
-Abe draws inspiration from Bitcoin Block Explorer (BBE,
-http://blockexplorer.com/) and seeks some level of compatibility with
-it but uses a completely new implementation.""",
+and navigate it.  MultiChain blockchains are similar to the Bitcoin blockchain with
+the addition of native assets and permissions.
+MultiChain Explorer is a fork of Abe.""",
     )
