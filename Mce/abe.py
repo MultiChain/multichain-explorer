@@ -1004,6 +1004,8 @@ class Abe:
                                 label = 'Asset'
                             elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                                 label = 'Permissions'
+                            elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
+                                label = 'Asset'
                             else:
                                 label = 'Unknown OP_DROP'
                                 labeltype = 'danger'
@@ -1185,7 +1187,18 @@ class Abe:
                                 msg = "Issue {} units of new asset".format(display_amount)
                             except Exception as e:
                                 msg = "Issue {:d} raw units of new asset".format(val)
-
+                        elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
+                            dict = val[0]
+                            quantity = dict['quantity']
+                            assetref = dict['assetref']
+                            link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
+                            try:
+                                asset = abe.store.get_asset_by_name(chain, assetref)
+                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + asset['name'] + '</a>'
+                                display_amount = util.format_display_quantity(asset, quantity)
+                                msg = "Issue {} more units of {}".format(display_amount, link)
+                            except Exception as e:
+                                msg = "Issue {:d} more raw units of asset {}".format(val, link)
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                             msg = ""
                             msgparts = []
@@ -1276,6 +1289,31 @@ class Abe:
                         #     msg += ', '.join("{}={}".format(k.capitalize(),v) for (k,v) in fields.iteritems())
                         #     # {!s}={!r} creates single quotes around data
                     #elif is_coinbase
+                    elif opreturn_type==util.OP_RETURN_TYPE_ISSUE_MORE_ASSET:
+                        msg = 'Issue more asset details:'
+                        msg += '<table class="table table-bordered table-condensed">'
+
+                        # try to create a link for the asset
+                        # assetName = val['name']
+                        # assetLink = assetName
+                        # try:
+                        #     asset = abe.store.get_asset_by_name(chain, assetName)
+                        #     assetLink = '<a href="../assetref/{}">{}</a>'.format(asset['assetref'], assetName)
+                        # except Exception:
+                        #     pass
+
+                        # msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Name',assetLink)
+                        # msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Multiplier',val['multiplier'])
+                        #'Name'='Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
+                        fields = val['fields']
+                        for k,v in sorted(fields.items()):
+                            try:
+                                v.decode('ascii')
+                            except UnicodeDecodeError:
+                                v = util.long_hex(v)
+                            msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
+                            #html_keyvalue_tablerow(k, v)
+                        msg += '</table>'
                     elif opreturn_type==util.OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
                         msg = 'Miner block signature'
                         msgtype = 'info'
@@ -1634,7 +1672,7 @@ class Abe:
 
         # get asset information and issue tx as json
         try:
-            resp = util.jsonrpc(multichain_name, url, "listassets", assetref)
+            resp = util.jsonrpc(multichain_name, url, "listassets", assetref, 1) # verbose to get 'issues' field
             asset = resp[0]
             issuetxid = asset['issuetxid']
             resp = util.jsonrpc(multichain_name, url, "getrawtransaction", issuetxid, 1)
@@ -1650,15 +1688,25 @@ class Abe:
             body += [ msg ]
             return
 
-        num_details = len(asset['details'].items())
+        #num_details = len(asset['details'].items())
         blocktime = issuetx['blocktime']
         blockhash = issuetx['blockhash']
-        raw_units = issuetx['vout'][0]['assets'][0]['raw']
-        display_qty = issuetx['vout'][0]['assets'][0]['qty']
+        #raw_units = issuetx['vout'][0]['assets'][0]['raw']
+        #display_qty = issuetx['vout'][0]['assets'][0]['qty']
         name = issuetx['vout'][0]['assets'][0]['name']
         address_to = issuetx['vout'][0]['scriptPubKey']['addresses'][0]
         address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
         native_amount = issuetx['vout'][0]['value']
+
+        issues = asset['issues']
+        num_issues = len(issues)
+        num_details = 0
+        for issue in issues:
+            num_details += len(issue['details'].items())
+        #issueqty = asset['issueqty']
+        raw_units = asset['issueraw']
+        display_qty = util.format_display_quantity(asset, raw_units)
+
 
         name = name.encode('unicode-escape') # escaped text will at the final stage be encoded to 'latin-1' i.e. 0-255 bytes.
         body += ['<h3>Asset Summary "' + name + '"</h3>\n']
@@ -1672,6 +1720,8 @@ class Abe:
         body += html_keyvalue_tablerow('Name', '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + name + '</a>')
         holders = abe.store.get_number_of_asset_holders(chain, assetref)
         body += html_keyvalue_tablerow('Addresses holding units', holders, ' (<a href="#holders">Jump to holders</a>)')
+        if num_issues>1:
+            body += html_keyvalue_tablerow('Number of Asset Issues', num_issues)
         body += html_keyvalue_tablerow('Raw units issued', raw_units)
         body += html_keyvalue_tablerow('Display quantity', display_qty)
         body += html_keyvalue_tablerow('Native amount sent', format_satoshis(native_amount, chain))
@@ -1690,12 +1740,13 @@ class Abe:
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
             #body += ['<div><pre>', json.dumps(asset['details'], sort_keys=True, indent=2), '</pre></div>']
             body += ['<table class="table table-bordered table-striped table-condensed">']
-            for k,v in sorted(asset['details'].items()):
-                try:
-                    v.decode('ascii')
-                except UnicodeDecodeError:
-                    v = util.long_hex(v)
-                body += html_keyvalue_tablerow(k, v)
+            for issue in issues:
+                for k,v in sorted(issue['details'].items()):
+                    try:
+                        v.decode('ascii')
+                    except UnicodeDecodeError:
+                        v = util.long_hex(v)
+                    body += html_keyvalue_tablerow(k, v)
             body += ['</table>']
 
         # List asset holders and balances
@@ -1848,7 +1899,7 @@ class Abe:
                 unconfirmed = True
                 continue
             #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
-            issueqty = util.format_display_quantity(asset, asset['issueqty'])
+            issueqty = util.format_display_quantity(asset, asset['issueraw'])
             holders = abe.store.get_number_of_asset_holders(chain, asset['assetref'])
             numtxs = abe.store.get_number_of_transactions_for_asset(chain, asset['assetref'])
             s = "{:17f}".format(asset['units'])

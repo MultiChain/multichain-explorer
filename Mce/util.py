@@ -222,6 +222,7 @@ def jsonrpc(chain_name, url, method, *params):
     resp = json.loads(respdata)
 
 # MULTICHAIN START
+#     print("PARAMS: ", params)
 #     print("URL:  ", url)
 #     print("POST: ", postdata)
 #     print("RESP: ", resp)
@@ -281,10 +282,12 @@ OP_DROP_TYPE_UNKNOWN = 0
 OP_DROP_TYPE_ISSUE_ASSET = 1
 OP_DROP_TYPE_SEND_ASSET = 2
 OP_DROP_TYPE_PERMISSION = 3
+OP_DROP_TYPE_ISSUE_MORE_ASSET = 4
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
 OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE = 2
+OP_RETURN_TYPE_ISSUE_MORE_ASSET =3
 
 def get_op_drop_type_description(t):
     if t == OP_DROP_TYPE_ISSUE_ASSET:
@@ -320,7 +323,7 @@ def parse_op_drop_data(data):
         (qty,) = struct.unpack("<Q",data[4:12]);
         rettype = OP_DROP_TYPE_ISSUE_ASSET
         retval = qty
-    elif data[0:4]==bytearray.fromhex(u'73706b71'):
+    elif data[0:4]==bytearray.fromhex(u'73706b71') or data[0:4]==bytearray.fromhex(u'73706b6f'):
         # prefix: if txid begins ce8a..., 0x8ace = 35534 is the correct prefix.
         assets = []
         pos = 4
@@ -331,7 +334,10 @@ def parse_op_drop_data(data):
             #print "ASSET SENT %d-%d-%d QTY %d" % (block,offset,prefix,quantity)
             assets.append( {'assetref':assetref, 'quantity':quantity} )
             pos += 18
-        rettype = OP_DROP_TYPE_SEND_ASSET
+        if data[0:4]==bytearray.fromhex(u'73706b6f'):
+            rettype = OP_DROP_TYPE_ISSUE_MORE_ASSET
+        else:
+            rettype = OP_DROP_TYPE_SEND_ASSET
         retval = assets
     elif data[0:4]==bytearray.fromhex(u'73706b70'):
         # 4 byte bitmap uint32, uint32 from, unit32 to, uint32 timestamp
@@ -410,6 +416,40 @@ def parse_op_return_data(data):
     elif data[0:4]==bytearray.fromhex(u'53504b62'):
         rettype = OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE
         retval = data[4:]
+    elif data[0:4]==bytearray.fromhex(u'53504b63'):
+        pos = 4
+        searchdata = data[pos:]
+        # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
+        fields = dict()
+        while pos<len(data):
+            searchdata = data[pos:]
+            fname = searchdata[:searchdata.index("\0")]
+            # print "field name: ", fname, " field name len: ", len(fname)
+            pos = pos + len(fname) + 1
+            # print "pos of vle: ", pos
+            #subdata = subdata[len(fname):]
+
+            flen = ord(data[pos:pos+1])
+            pos += 1
+            # print "pos of payload: ", pos
+            if flen == 253:
+                (size,) = struct.unpack('<H', subdata[1:])
+                flen = size
+                pos += 2
+            elif flen == 254:
+                (size,) = struct.unpack('<I', subdata[1:])
+                flen = size
+                pos += 4
+            elif flen == 255:
+                (size,) = struct.unpack('<Q', subdata[1:])
+                flen = size
+                pos += 8
+            # print "pos of payload: ", pos
+            # print "payload length: ", flen
+            fields[fname]=data[pos:pos+flen]
+            pos += flen
+        rettype = OP_RETURN_TYPE_ISSUE_MORE_ASSET
+        retval = {'multiplier':None, 'name':None, 'fields':fields}
 
     return rettype, retval
 

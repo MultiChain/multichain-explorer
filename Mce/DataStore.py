@@ -1980,7 +1980,7 @@ store._ddl['txout_approx'],
                         else:
                             address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
                         #print "New asset issued to address: {}, balance {}".format(address, val)
-                    elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                    elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET or opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
                         msgparts = []
                         for dict in val:
                             quantity = dict['quantity']
@@ -3978,6 +3978,8 @@ store._ddl['txout_approx'],
                     label = 'Asset'
                 elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                     label = 'Permissions'
+                elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
+                    label = 'Asset'
                 else:
                     label = 'OP_DROP'
             else:
