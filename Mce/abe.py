@@ -1698,7 +1698,7 @@ class Abe:
         address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
         native_amount = issuetx['vout'][0]['value']
 
-        issues = asset['issues']
+        issues = asset.get('issues', [])
         num_issues = len(issues)
         num_details = 0
         for issue in issues:
