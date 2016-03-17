@@ -140,8 +140,8 @@ def hash_to_address_multichain(version, hash, checksum):
     while i<n:
         vh += version[i:i+1]
         vh += hash[pos:pos+5]
-        i = i + 1
-        pos = pos + 5
+        i += 1
+        pos += 5
     vh += hash[pos:]
 
     dh = double_sha256(vh)
