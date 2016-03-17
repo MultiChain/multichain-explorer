@@ -153,26 +153,26 @@ def hash_to_address_multichain(version, hash, checksum):
 
 def decode_check_address_multichain(version, address):
     if possible_address(address):
-        bytes = base58.b58decode(address, None)
-        # if len(bytes) < 25:
-        #     bytes = ('\0' * (25 - len(bytes))) + bytes
+        raw = base58.b58decode(address, None)
+        # if len(raw) < 25:
+        #     raw = ('\0' * (25 - len(raw))) + raw
 
-        #print "base58 decoded len = {}".format(len(bytes))
-        bytes = bytes[:-4] # drop checksum
-        #print "no checksum        = {} ".format(len(bytes))
-        n = len(bytes)
+        #print "base58 decoded len = {}".format(len(raw))
+        raw = raw[:-4] # drop checksum
+        #print "no checksum        = {} ".format(len(raw))
+        n = len(raw)
         skip = len(version)
-        #print "skip num bytes     = {} ".format(skip)
+        #print "skip num raw     = {} ".format(skip)
         i =0
-        hash = '' #bytearray()
+        resulthash = '' #bytearray()
         while i<n:
             if skip>0 and i % 6 == 0:
                 skip = skip - 1
             else:
-                hash += bytes[i]
+                resulthash += raw[i]
             i = i + 1
-        #print "ripemd length = {}, hex = {}".format(len(hash), long_hex(hash))
-        return version, hash #bytes[1:len(bytes)-4]
+        #print "ripemd length = {}, hex = {}".format(len(resulthash), long_hex(resulthash))
+        return version, resulthash #raw[1:len(raw)-4]
     return None, None
 # MULTICHAIN END
 
