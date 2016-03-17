@@ -124,7 +124,7 @@ def hash_to_address(version, hash):
 
 # MULTICHAIN START
 def hash_to_address_multichain(version, hash, checksum):
-    '''
+    """
     Format address the MultiChain way, with version bytes and checksum bytes.
     http://www.multichain.com/developers/address-format/
 
@@ -132,7 +132,7 @@ def hash_to_address_multichain(version, hash, checksum):
     :param hash:
     :param checksum:
     :return:
-    '''
+    """
     n = len(version)
     pos = 0
     i =0
@@ -306,7 +306,7 @@ def get_op_return_type_description(t):
 
 # https://docs.python.org/2/library/struct.html
 def parse_op_drop_data(data):
-    '''
+    """
     Return TYPE, DATA where the format of DATA depends on TYPE.
 
     * OP_DROP_TYPE_ISSUE_ASSET - DATA is the quantity of raw units issued
@@ -315,7 +315,7 @@ def parse_op_drop_data(data):
 
     :param data:
     :return:
-    '''
+    """
     # print "parse_op_drop_data: = %s" % binascii.hexlify(data)
     rettype = OP_DROP_TYPE_UNKNOWN
     retval = None
@@ -364,14 +364,14 @@ def parse_op_drop_data(data):
     return rettype, retval
 
 def parse_op_return_data(data):
-    '''
+    """
     Return TYPE, DATA where the format of DATA depends on TYPE.
 
     * OP_RETURN_TYPE_ISSUE_ASSET  - DATA is a dictionary of key values: multiplier, name
 
     :param data:
     :return:
-    '''
+    """
     rettype = OP_RETURN_TYPE_UNKNOWN
     retval = None
     if data[0:4]==bytearray.fromhex(u'53504b61'):
@@ -454,11 +454,11 @@ def parse_op_return_data(data):
     return rettype, retval
 
 def get_multichain_op_drop_data(script):
-    '''
+    """
     Get OP DROP data.
     :param script: script byte data
     :return:
-    '''
+    """
     try:
         decoded = [x for x in deserialize.script_GetOp(script)]
     except Exception:
