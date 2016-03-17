@@ -147,8 +147,8 @@ def hash_to_address_multichain(version, hash, checksum):
     dh = double_sha256(vh)
     a = dh[:4]
     b = checksum
-    newchecksum = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a, b[:len(a)])])
-    vh += newchecksum[:4]
+    new_checksum = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a, b[:len(a)])])
+    vh += new_checksum[:4]
     return base58.b58encode(vh)
 
 def decode_check_address_multichain(version, address):
