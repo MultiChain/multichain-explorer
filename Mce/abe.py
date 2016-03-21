@@ -311,7 +311,7 @@ class Abe:
             page['body'] = ['<p class="error">Sorry, ', env['SCRIPT_NAME'],
                             env['PATH_INFO'],
                             ' does not exist on this server.</p>']
-        except NoSuchChainError, e:
+        except NoSuchChainError as e:
             page['body'] += [
                 '<p class="error">'
                 'Sorry, I don\'t know about that chain!</p>\n']
@@ -1504,7 +1504,7 @@ class Abe:
                              '</td><td>', balance_display_qty,
                              '</td></tr>']
                 body += ['</table>']
-        except Exception, e:
+        except Exception as e:
             body += ['<div class="alert alert-danger" role="alert">', 'Failed to get asset information: '+str(e), '</div>']
             pass
 
@@ -3142,7 +3142,7 @@ def decode_script(script):
         return ''
     try:
         return deserialize.decode_script(script)
-    except KeyError, e:
+    except KeyError as e:
         return 'Nonstandard script'
 
 def b58hex(b58):
@@ -3256,7 +3256,7 @@ def process_is_alive(pid):
     try:
         os.kill(pid, 0)
         return True
-    except OSError, e:
+    except OSError as e:
         if e.errno == errno.EPERM:
             return True  # process exists, but we can't send it signals.
         if e.errno == errno.ESRCH:
