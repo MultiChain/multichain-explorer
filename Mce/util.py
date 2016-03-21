@@ -385,6 +385,21 @@ def parse_op_return_data(data):
         fields = dict()
         while pos<len(data):
             searchdata = data[pos:]
+
+            # Is this a special property with meaning only for MultiChain?
+            if data[pos:pos+1] == "\0":
+                assetproplen = ord(data[pos+2:pos+3])
+                assetprop = data[pos+3:pos+3+assetproplen]
+                if data[pos+1] == "\x02":
+                    # Asset property
+                    fields['open'] = str(bool(ord(data[pos+3:pos+4])))
+                else:
+                    # Unknown property
+                    fname = "Property at offset {0}".format(pos)
+                    fields[fname] = long_hex(assetprop)
+                pos = pos + 3 + assetproplen
+                continue
+
             fname = searchdata[:searchdata.index("\0")]
             # print "field name: ", fname, " field name len: ", len(fname)
             pos = pos + len(fname) + 1
@@ -422,6 +437,15 @@ def parse_op_return_data(data):
         # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
         fields = dict()
         while pos<len(data):
+            # Is this a special property with meaning only for MultiChain?
+            if data[pos:pos+1] == "\0":
+                assetproplen = ord(data[pos+2:pos+3])
+                assetprop = data[pos+3:pos+3+assetproplen]
+                fname = "Property at offset {0}".format(pos)
+                fields[fname] = long_hex(assetprop)
+                pos = pos + 3 + assetproplen
+                continue
+
             searchdata = data[pos:]
             fname = searchdata[:searchdata.index("\0")]
             # print "field name: ", fname, " field name len: ", len(fname)
