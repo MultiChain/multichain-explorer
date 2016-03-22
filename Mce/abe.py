@@ -996,28 +996,14 @@ class Abe:
                         data = util.get_multichain_op_drop_data(txout['binscript'])
                         if data is not None:
                             opdrop_type, val = util.parse_op_drop_data(data)
-                            if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
-                                label = 'Asset'
-                            elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
-                                label = 'Asset'
-                            elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
-                                label = 'Permissions'
-                            elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
-                                label = 'Asset'
-                            else:
-                                label = 'Unknown OP_DROP'
-                                labeltype = 'danger'
+                            label = util.get_op_drop_type_description(opdrop_type)
                         else:
                             label = 'Unknown MultiChain command'
                             labeltype = 'danger'
 
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
                         opreturn_type, val = util.parse_op_return_data(data)
-                        if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
-                            label = 'Asset'
-                        #else:
-                            #Do nothing
-                            #label = 'Unrecognized OP_RETURN metadata'
+                        label = util.get_op_return_type_description(opreturn_type)
 
             if label is None:
                 labelclass = ''

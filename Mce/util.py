@@ -293,14 +293,22 @@ def get_op_drop_type_description(t):
     if t == OP_DROP_TYPE_ISSUE_ASSET:
         return "Issue Asset"
     elif t == OP_DROP_TYPE_SEND_ASSET:
-        return "Send Asset"
+        # A user may not have sent an asset, could be part of change txout.
+        return "Asset"
     elif t == OP_DROP_TYPE_PERMISSION:
         return "Permission"
+    elif t == OP_DROP_TYPE_ISSUE_MORE_ASSET:
+        return "Issue Asset (More)"
+
     return "Unrecognized Command"
 
 def get_op_return_type_description(t):
     if t == OP_RETURN_TYPE_ISSUE_ASSET:
         return "Issue Asset"
+    elif t == OP_RETURN_TYPE_ISSUE_MORE_ASSET:
+        return "Issue Asset (More)"
+    elif t == OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
+        return "Miner Signature"
     return "Unrecognized Metadata"
 
 
