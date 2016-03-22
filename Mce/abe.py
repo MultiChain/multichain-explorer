@@ -49,12 +49,10 @@ ABE_APPNAME = "MultiChain Explorer"
 ABE_VERSION = __version__
 ABE_URL = 'https://github.com/multichain/multichain-explorer'
 
-COPYRIGHT_YEARS = '2011-2015'
+COPYRIGHT_YEARS = '2011-2016'
 COPYRIGHT = "Coin Sciences Ltd and Abe developers"
 COPYRIGHT_URL = 'https://github.com/multichain/multichain-explorer'
 # MULTICHAIN END
-DONATIONS_BTC = '1PWC7PNHL1SgvZaN7xEtygenKjWobWsCuf'
-DONATIONS_NMC = 'NJ3MSELK1cWnqUa6xhF2wUYAnz3RSrWXcK'
 
 TIME1970 = time.strptime('1970-01-01','%Y-%m-%d')
 EPOCH1970 = calendar.timegm(TIME1970)
@@ -3345,8 +3343,6 @@ def create_conf():
             "COPYRIGHT": COPYRIGHT,
             "COPYRIGHT_YEARS": COPYRIGHT_YEARS,
             "COPYRIGHT_URL": COPYRIGHT_URL,
-            "DONATIONS_BTC": DONATIONS_BTC,
-            "DONATIONS_NMC": DONATIONS_NMC,
             "CONTENT_TYPE": DEFAULT_CONTENT_TYPE,
             "HOMEPAGE": DEFAULT_HOMEPAGE,
             },
