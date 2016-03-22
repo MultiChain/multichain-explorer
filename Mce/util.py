@@ -23,7 +23,6 @@ import re
 import base58
 import Crypto.Hash.SHA256 as SHA256
 # MULTICHAIN START
-import binascii
 import struct
 import deserialize
 import Chain
