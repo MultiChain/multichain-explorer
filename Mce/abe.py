@@ -273,7 +273,7 @@ class Abe:
         except NoSuchChainError:
             cmd = symbol
 
-		# If there is no chain, could be home page or resource
+        # If there is no chain, could be home page or resource
         if chain is None:
             if symbol.strip() == DEFAULT_HOMEPAGE:
                 cmd = DEFAULT_HOMEPAGE
@@ -1352,7 +1352,7 @@ class Abe:
 
             blk_hash = tx_cc['block_hash']
 # MULTICHAIN START
-            body += html_keyvalue_tablerow('Appeared in', 
+            body += html_keyvalue_tablerow('Appeared in',
                 '<a href="../block/', blk_hash, '">',
                 escape(tx_cc['chain'].name), ' ',
                 tx_cc['block_height'] if tx_cc['in_longest'] else [blk_hash[:10], '...', blk_hash[-4:]],
@@ -1369,7 +1369,7 @@ class Abe:
         body += html_keyvalue_tablerow('Total in', format_satoshis(tx['value_in'], chain))
         body += html_keyvalue_tablerow('Number of outputs', len(tx['out']),
             ' (<a href="#outputs">Jump to outputs</a>)')
-        body += html_keyvalue_tablerow('Total out', format_satoshis(tx['value_out'], chain)) 
+        body += html_keyvalue_tablerow('Total out', format_satoshis(tx['value_out'], chain))
         body += html_keyvalue_tablerow('Size', tx['size'], ' bytes')
         if False:
             body += html_keyvalue_tablerow('Fee', format_satoshis(0 if is_coinbase else
