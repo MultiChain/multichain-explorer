@@ -3756,6 +3756,12 @@ store._ddl['txout_approx'],
         return resp
 
     def get_number_of_asset_holders(store, chain, assetref):
+        """
+        Get the number of addresses holding units of an asset
+        :param chain:
+        :param assetref:
+        :return: int
+        """
         chain_id = chain.id
         prefix = int( assetref.split('-')[-1] )
         row = store.selectrow("""
@@ -3770,6 +3776,12 @@ store._ddl['txout_approx'],
         return result
 
     def get_asset_holders(store, chain, assetref):
+        """
+        Get a list of the addresses holding units of an asset
+        :param chain:
+        :param assetref:
+        :return: List or None, where each list element is a dictionary storing the pubkey and balance.
+        """
         def parse_row(row):
             pubkey, balance = row
             ret = {
@@ -3793,6 +3805,12 @@ store._ddl['txout_approx'],
 
 
     def get_transactions_for_asset(store, chain, assetref):
+        """
+        Get a list of transactions related to an asset.
+        :param chain:
+        :param assetref:
+        :return: list of data (tx hash, height, blockhash) or None.
+        """
         def parse_row(row):
             txhash, height, blockhash = row
             ret = {
@@ -3820,6 +3838,13 @@ store._ddl['txout_approx'],
         return result
 
     def get_transactions_for_asset_address(store, chain, assetref, address):
+        """
+        Get a list of transactions related to both an address and an assetref
+        :param chain:
+        :param assetref:
+        :param address:
+        :return: List of transactions or none.
+        """
         def parse_row(row):
             txhash, height, blockhash = row
             ret = {
@@ -3861,6 +3886,13 @@ store._ddl['txout_approx'],
         return result
 
     def get_number_of_transactions_for_asset_address(store, chain, assetref, pubkey_id):
+        """
+        Get the number of transactions related to both an asset and an address.
+        :param chain:
+        :param assetref: human readable assetref e.g. 111-222-333
+        :param pubkey_id:
+        :return:
+        """
         prefix = int( assetref.split('-')[-1] )
         row = store.selectrow("""
             select count(distinct a.tx_id) from asset_txid a join txout o on (a.tx_id=o.tx_id)
@@ -3872,6 +3904,12 @@ store._ddl['txout_approx'],
         return int(row[0])
 
     def get_number_of_transactions_for_asset(store, chain, assetref):
+        """
+        Get the number of transactions related to an asset which are stored in the database.
+        :param chain:
+        :param assetref: human readable assetref e.g. 111-222-333
+        :return: int
+        """
         prefix = int( assetref.split('-')[-1] )
         row = store.selectrow("""
             select count(distinct a.tx_id) from asset_txid a
@@ -3882,6 +3920,11 @@ store._ddl['txout_approx'],
         return int(row[0])
 
     def does_transaction_exist(store, tx_hash):
+        """
+        Check to see if the database contains a transaction for a given tx hash.
+        :param tx_hash:
+        :return: boolean
+        """
         if tx_hash is None:
             return False
         try:
@@ -3950,6 +3993,12 @@ store._ddl['txout_approx'],
         return resp
 
     def get_labels_for_tx(store, tx_hash, chain):
+        """
+        Get a list of labels describing a transaction
+        :param tx_hash:
+        :param chain:
+        :return: list of string
+        """
         labels = None
         try:
             mytx = store._export_tx_detail(tx_hash, chain)
@@ -3966,6 +4015,12 @@ store._ddl['txout_approx'],
         return labels
 
     def get_label_for_scriptpubkey(store, chain, scriptpubkey):
+        """
+        Get a label describing the scriptpubkey of a txout.
+        :param chain:
+        :param scriptpubkey:
+        :return: label as string, or None if not a recognized MultiChain OP_DROP or OP_RETURN.
+        """
         label = None
         script_type, data = chain.parse_txout_script(scriptpubkey)
         if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
