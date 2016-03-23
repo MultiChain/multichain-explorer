@@ -1644,8 +1644,7 @@ class Abe:
         body += html_keyvalue_tablerow('Name', '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + name + '</a>')
         holders = abe.store.get_number_of_asset_holders(chain, assetref)
         body += html_keyvalue_tablerow('Addresses holding units', holders, ' (<a href="#holders">Jump to holders</a>)')
-        if num_issues>1:
-            body += html_keyvalue_tablerow('Number of Asset Issues', num_issues)
+        body += html_keyvalue_tablerow('Asset Issues', num_issues, ' (<a href="#issues">Jump to issues</a>)')
         body += html_keyvalue_tablerow('Raw units issued', raw_units)
         body += html_keyvalue_tablerow('Display quantity', display_qty)
         body += html_keyvalue_tablerow('Native amount sent', format_satoshis(native_amount, chain))
@@ -1659,17 +1658,37 @@ class Abe:
         body += ['<div id="RawJson" class="collapse"><pre>', json.dumps(resp, sort_keys=True, indent=2), '</pre></div></p>']
         #body += [' <a role="button" class="btn btn-default btn-xs" href="../rawtx/', tx['hash'], '">Bitcoin JSON</a>']
 
-        if num_details > 0:
-            body += ['<h3>Asset Metadata</h3>']
-            body += ['<table class="table table-bordered table-striped table-condensed">']
-            for issue in issues:
-                for k,v in sorted(issue['details'].items()):
+        # Show asset issues with display amount and details
+        body += ['<a name="issues"><h3>Asset Issues</h3></a>']
+        body += ['<table class="table table-condensed"><tr>'
+                 '<th>Txid</th>'
+                 '<th>Issue Amount</th>'
+                 '<th>Details</th>'
+                 '</tr>\n']
+        for issue in issues:
+            issue_txid = issue['txid']
+            body += ['<tr>'
+                     '<td><a href="../../' + escape(chain.name) + '/tx/' + issue_txid + '">', issue_txid[:8], '...</a>']
+
+            issue_raw = issue['raw']
+            issue_display_qty = util.format_display_quantity(asset, issue_raw)
+            body += ['<td>', issue_display_qty, '</td>']
+
+            issue_details = issue.get('details', [])
+            issue_num_details = len(issue_details)
+            body += ['<td>']
+            if issue_num_details > 0:
+                body += ['<table class="table table-bordered table-striped table-condensed">']
+                for k,v in sorted(issue_details.items()):
                     try:
                         v.decode('ascii')
                     except UnicodeDecodeError:
                         v = util.long_hex(v)
                     body += html_keyvalue_tablerow(k, v)
-            body += ['</table>']
+                body += ['</table>']
+            body += ['</td>'
+                     '</tr>']
+        body += ['</table>']
 
         # List asset holders and balances
         body += ['<a name="holders"><h3>Asset Holders </h3></a>\n']
