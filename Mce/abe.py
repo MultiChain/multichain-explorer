@@ -517,8 +517,12 @@ class Abe:
             '</tr>\n']
 
         now = time.time() - EPOCH1970
-        mempool = abe.store.get_rawmempool(chain)
-        recenttx = abe.store.list_transactions(chain, 30)  # we only want 'send' category, not 'receive' or 'move'
+        try:
+            mempool = abe.store.get_rawmempool(chain)
+            recenttx = abe.store.list_transactions(chain, 30)  # we only want 'send' category, not 'receive' or 'move'
+        except Exception as e:
+            return ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+
         sorted_mempool = sorted(mempool.items()[:10], key=lambda tup: tup[1]['time'], reverse=True)
         if len(sorted_mempool) < 10:
             recenttx = filter(lambda x: x['category'] == 'send' and x['confirmations']>-1, recenttx)
@@ -657,9 +661,7 @@ class Abe:
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
             return
         except IOError as e:
-            msg= "I/O error({0}): {1}".format(e.errno, e.strerror)
-            body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
-            #page['title'] = 'IO ERROR'
+            body += ['<div class="alert alert-danger" role="alert">', e, '</div>']
             return
 
         body += ['<div class="container"><div class="row"><div class="col-md-6">']
@@ -895,8 +897,8 @@ class Abe:
 # MULTICHAIN START
         try:
             blockjson = abe.store.get_block_by_hash(chain, b['hash'])
-        except Exception:
-            body += ['<p class="error">Not connected.</p>']
+        except Exception as e:
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
 
         if b['hashPrev'] is not None or b['next_block_hashes'] is not None:
@@ -1162,7 +1164,6 @@ class Abe:
                     data = util.get_multichain_op_drop_data(row['binscript'])
                     if data is not None:
                         opdrop_type, val = util.parse_op_drop_data(data)
-                        label = util.get_op_drop_type_description(opdrop_type)
                         if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                             # Not the most efficient way, but will suffice for now until assets are stored in a database table.
                             try:
@@ -1202,10 +1203,6 @@ class Abe:
                             msg += '<br>'.join(msgparts)
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                             msg = val['type'].capitalize() + " "
-
-                            # if val['all'] is True:
-                            #     msg += ' all permissions'
-                            # else:
                             permissions = []
                             if val['connect']:
                                 permissions += ['Connect']
@@ -1227,18 +1224,12 @@ class Abe:
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                                 msg += ' (blocks {} - {} only)'.format(val['startblock'], val['endblock'])
-                            #msg += 'Revok ' if val['type'] is 'revoke
-                            #msg += ', '.join("{!s}={!r}".format(k,v) for (k,v) in val.iteritems())
                         else:
                             msg = 'Unrecognized MultiChain command'
                             msgtype = 'danger'
 
-                        # msg += '<p/>'
-                        # msg += util.long_hex(data)
-
                 if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
                     opreturn_type, val = util.parse_op_return_data(data)
-                    label = util.get_op_return_type_description(opreturn_type)
                     if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
 
                         msg = 'Issued asset details:'
@@ -1255,7 +1246,6 @@ class Abe:
 
                         msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Name',assetLink)
                         msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Multiplier',val['multiplier'])
-                        #'Name'='Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
                         fields = val['fields']
                         for k,v in sorted(fields.items()):
                             try:
@@ -1263,32 +1253,12 @@ class Abe:
                             except UnicodeDecodeError:
                                 v = util.long_hex(v)
                             msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
-                            #html_keyvalue_tablerow(k, v)
                         msg += '</table>'
-                        # msg += '<p>'
-                        # msg += 'Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
-                        # fields = val['fields']
-                        # if len(fields)>0:
-                        #     msg += ', '
-                        #     msg += ', '.join("{}={}".format(k.capitalize(),v) for (k,v) in fields.iteritems())
-                        #     # {!s}={!r} creates single quotes around data
-                    #elif is_coinbase
+
                     elif opreturn_type==util.OP_RETURN_TYPE_ISSUE_MORE_ASSET:
                         msg = 'Issue more asset details:'
                         msg += '<table class="table table-bordered table-condensed">'
 
-                        # try to create a link for the asset
-                        # assetName = val['name']
-                        # assetLink = assetName
-                        # try:
-                        #     asset = abe.store.get_asset_by_name(chain, assetName)
-                        #     assetLink = '<a href="../assetref/{}">{}</a>'.format(asset['assetref'], assetName)
-                        # except Exception:
-                        #     pass
-
-                        # msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Name',assetLink)
-                        # msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Multiplier',val['multiplier'])
-                        #'Name'='Name={!s}, Multiplier={!r}'.format(val['name'],val['multiplier'])
                         fields = val['fields']
                         for k,v in sorted(fields.items()):
                             try:
@@ -1296,13 +1266,10 @@ class Abe:
                             except UnicodeDecodeError:
                                 v = util.long_hex(v)
                             msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
-                            #html_keyvalue_tablerow(k, v)
                         msg += '</table>'
                     elif opreturn_type==util.OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
                         msg = 'Miner block signature'
                         msgtype = 'info'
-                        #msg += '<p/>'
-                        #msg = util.long_hex(val)
                     else:
                         msg = 'Metadata'
                         msg += '<p/>'
@@ -1312,9 +1279,6 @@ class Abe:
                 # Add MultiChain HTML
                 if msg is not None:
                     body += ['<div style="height:5px;"></div><div class="panel panel-default panel-'+msgtype+'"><div class="panel-body">'+msg+'</div></div>']
-                    #body += ['<div class="alert alert-'+msgtype+'" role="alert">',
-                    #         msg,
-                    #         '</div>']
 
                 body += [ '</td>\n']
             body += ['</tr>\n']
@@ -1434,12 +1398,11 @@ class Abe:
         except util.JsonrpcException as e:
             msg= "Failed to get permissions for address: JSON-RPC error({0}): {1}".format(e.code, e.message)
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
-            #return s
+            return
         except IOError as e:
             msg= "Failed to get permissions for address: I/O error({0}): {1}".format(e.errno, e.strerror)
             body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
-            #page['title'] = 'IO ERROR'
-            #return s
+            return
 
         body += ['<h3>Asset Balances</h3>']
         try:
@@ -1517,18 +1480,13 @@ class Abe:
         try:
             resp = util.jsonrpc(multichain_name, url, "listassets", assetref)
             asset = resp[0]
-            #issuetxid = asset['issuetxid']
-            #resp = util.jsonrpc(multichain_name, url, "getrawtransaction", issuetxid, 1)
-            #issuetx = resp
         except util.JsonrpcException as e:
             msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
-            #if e.code != -5:  # -5: transaction not in index.
-            # JSON-RPC error(-8): Asset with this reference not found: 5-264-60087
-            body += [ msg ]
+            # Example error: JSON-RPC error(-8): Asset with this reference not found: 5-264-60087
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
             return
         except IOError as e:
-            msg = "Network connection error"
-            body += [ msg ]
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
 
         name = asset['name'].encode('unicode-escape')
@@ -1633,7 +1591,6 @@ class Abe:
         if assetref in (None, '') or page['env']['PATH_INFO'] != '':
             raise PageNotFound()
 
-        #page['content_type'] = 'text/html'
         page['title'] = '<a href="../assets/">' + chain.name + '</a>'
         body = page['body']
 
@@ -1644,16 +1601,6 @@ class Abe:
         m = re.search('^(\d+)-\d+-\d+$', assetref)
         height = int(m.group(1))
 
-        # ...so no need to export block
-        # try:
-        #     b = abe.store.export_block(chain, block_number=height)
-        # except DataStore.MalformedHash:
-        #     body += ['<p class="error">Not in correct format.</p>']
-        #     return
-        # if b is None:
-        #     body += ['<p class="error">Block not found.</p>']
-        #     return
-
         # get asset information and issue tx as json
         try:
             resp = util.jsonrpc(multichain_name, url, "listassets", assetref, 1) # verbose to get 'issues' field
@@ -1663,20 +1610,14 @@ class Abe:
             issuetx = resp
         except util.JsonrpcException as e:
             msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
-            #if e.code != -5:  # -5: transaction not in index.
-            # JSON-RPC error(-8): Asset with this reference not found: 5-264-60087
-            body += [ msg ]
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
             return
         except IOError as e:
-            msg = "Network connection error"
-            body += [ msg ]
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
 
-        #num_details = len(asset['details'].items())
         blocktime = issuetx['blocktime']
         blockhash = issuetx['blockhash']
-        #raw_units = issuetx['vout'][0]['assets'][0]['raw']
-        #display_qty = issuetx['vout'][0]['assets'][0]['qty']
         name = issuetx['vout'][0]['assets'][0]['name']
         address_to = issuetx['vout'][0]['scriptPubKey']['addresses'][0]
         address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
@@ -1687,7 +1628,6 @@ class Abe:
         num_details = 0
         for issue in issues:
             num_details += len(issue['details'].items())
-        #issueqty = asset['issueqty']
         raw_units = asset['issueraw']
         display_qty = util.format_display_quantity(asset, raw_units)
 
@@ -1721,8 +1661,6 @@ class Abe:
 
         if num_details > 0:
             body += ['<h3>Asset Metadata</h3>']
-            #details = ', '.join("{}={}".format(k,v) for (k,v) in asset['details'].iteritems())
-            #body += ['<div><pre>', json.dumps(asset['details'], sort_keys=True, indent=2), '</pre></div>']
             body += ['<table class="table table-bordered table-striped table-condensed">']
             for issue in issues:
                 for k,v in sorted(issue['details'].items()):
@@ -1850,18 +1788,15 @@ class Abe:
 
         url = abe.store.get_url_by_chain(chain)
         multichain_name = abe.store.get_multichain_name_by_id(chain.id)
-        num_assets = 0
         try:
             resp = util.jsonrpc(multichain_name, url, "listassets")
             num_assets = len(resp)
         except util.JsonrpcException as e:
             msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
-            #if e.code != -5:  # -5: transaction not in index.
-            body += [ msg ]
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
             return
         except IOError as e:
-            msg = "Network connection error"
-            body += [ msg ]
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
 
         if num_assets is 0:
@@ -1888,7 +1823,6 @@ class Abe:
             numtxs = abe.store.get_number_of_transactions_for_asset(chain, asset['assetref'])
             s = "{:17f}".format(asset['units'])
             units = s.rstrip('0').rstrip('.') if '.' in s else s
-            #issueraw = str(asset['issueraw'])
             body += ['<tr><td><a href="../../' + escape(chain.name) + '/assetref/' + asset['assetref'] + '">' + asset['name'].encode('unicode-escape') + '</a>',
                      '</td><td><a href="../../' + escape(chain.name) + '/assetref/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
                      '</td><td><a href="../../' + escape(chain.name) + '/tx/' + asset['issuetxid'] + '">',
