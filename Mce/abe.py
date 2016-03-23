@@ -1421,6 +1421,7 @@ class Abe:
                          '<th>Asset Name</th>'
                          '<th>Asset Reference</th>'
                          '<th>Transactions</th>'
+                         '<th>Raw Units</th>'
                          '<th>Balance</th>'
                          '</tr>']
 
@@ -1448,6 +1449,7 @@ class Abe:
                         body += ['<tr><td><a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + name + '</a>',
                              '</td><td><a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>',
                              '</td><td><a href="../../' + escape(chain.name) + '/assetaddress/' + address + '/' + assetref + '">' + str(num_tx) + '</a>',
+                             '</td><td>', balance,
                              '</td><td>', balance_display_qty,
                              '</td></tr>']
                 body += ['</table>']
