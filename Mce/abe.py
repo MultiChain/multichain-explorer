@@ -1179,7 +1179,7 @@ class Abe:
                             link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
                             try:
                                 asset = abe.store.get_asset_by_name(chain, assetref)
-                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + asset['name'] + '</a>'
+                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + asset['name'].encode('unicode-escape') + '</a>'
                                 display_amount = util.format_display_quantity(asset, quantity)
                                 msg = "Issue {} more units of {}".format(display_amount, link)
                             except Exception as e:
