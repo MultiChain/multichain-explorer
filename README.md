@@ -138,7 +138,7 @@ By default, the explorer will be listening for web requests on port 2750, unless
 To launch the explorer on a server, make sure the explorer is not accidentally terminated when you close your SSH terminal connection.
 
     cd multichain-explorer
-    nohup python -m Mce.abe --config mychain.conf &
+    nohup python -m Mce.abe --config chain1.conf &
 
 To check the explorer is runnning, in your browser visit:
 
