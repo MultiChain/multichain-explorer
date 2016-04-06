@@ -176,6 +176,14 @@ def html_keyvalue_tablerow(key, *values):
     Where the first element is the key and everything else is treated as the value
     """
     return '<tr><td>', key, '</td><td>', list(values), '</td></tr>'
+
+def html_keyvalue_tablerow_wrap(minwidth, maxwidth, key, *values):
+    """
+    Return string for a two column table row, with word wrapping of <td> element.
+    Where the first element is the key and everything else is treated as the value
+    """
+    return '<tr><td style="word-wrap: break-word;min-width: ', minwidth, 'px;max-width: ',maxwidth,'px;white-space:normal;">', key, '</td><td style="word-wrap: break-word;min-width: ',minwidth,'px;max-width: ',maxwidth,'px;white-space:normal;">', list(values), '</td></tr>'
+
 # MULTICHAIN END
 
 def make_store(args):
@@ -692,7 +700,7 @@ class Abe:
         for k,v in sorted(params_resp.items()):
             if k in ('default-network-port', 'default-rpc-port'):
                 continue
-            body += html_keyvalue_tablerow(k, v)
+            body += html_keyvalue_tablerow_wrap(50, 300, k, v)
         body += ['</table>']
         body += ['</div></div></div>'] # col, row, container
 
