@@ -1169,7 +1169,9 @@ class Abe:
                             try:
                                 asset = abe.store.get_asset_by_name(chain, tx['hash'])
                                 display_amount = util.format_display_quantity(asset, val)
-                                msg = "Issue {} units of new asset".format(display_amount)
+                                assetref = asset['assetref']
+                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
+                                msg = "Issue {} units of new asset {}".format(display_amount, link)
                             except Exception as e:
                                 msg = "Issue {:d} raw units of new asset".format(val)
                         elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
@@ -1179,7 +1181,8 @@ class Abe:
                             link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
                             try:
                                 asset = abe.store.get_asset_by_name(chain, assetref)
-                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + asset['name'].encode('unicode-escape') + '</a>'
+                                assetname = asset.get('name',assetref)
+                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
                                 display_amount = util.format_display_quantity(asset, quantity)
                                 msg = "Issue {} more units of {}".format(display_amount, link)
                             except Exception as e:
@@ -1190,12 +1193,17 @@ class Abe:
                             for dict in val:
                                 quantity = dict['quantity']
                                 assetref = dict['assetref']
+                                # link shows asset ref
                                 link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
 
                                 # Not the most efficient way, but will suffice for now until assets are stored in a database table.
                                 try:
                                     asset = abe.store.get_asset_by_name(chain, assetref)
                                     display_amount = util.format_display_quantity(asset, quantity)
+                                    # update link to display name, if not anonymous, instead of assetref
+                                    assetname = asset.get('name',assetref)
+                                    if len(assetname)>0:
+                                        link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
                                     msgparts.append("{} units of asset {}".format(display_amount, link))
                                 except Exception as e:
                                     msgparts.append("{} raw units of asset {}".format(quantity, link))
@@ -1428,7 +1436,7 @@ class Abe:
                 assetdict = {}
                 for asset in assets_resp:
                     # use escaped form as dict key
-                    name = asset['name'].encode('unicode-escape')
+                    name = asset.get('name','').encode('unicode-escape')
                     assetdict[name] = asset
 
                 for row in abe.store.selectall("""
@@ -1491,7 +1499,7 @@ class Abe:
             body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
 
-        name = asset['name'].encode('unicode-escape')
+        name = asset.get('name','').encode('unicode-escape')
         body += ['<h3>' + name.capitalize() + ' (' + assetref + ')</h3>']
 
         transactions = abe.store.get_transactions_for_asset_address(chain, assetref, address)
@@ -1620,7 +1628,7 @@ class Abe:
 
         blocktime = issuetx['blocktime']
         blockhash = issuetx['blockhash']
-        name = issuetx['vout'][0]['assets'][0]['name']
+        name = issuetx['vout'][0]['assets'][0].get('name','')
         address_to = issuetx['vout'][0]['scriptPubKey']['addresses'][0]
         address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
         native_amount = issuetx['vout'][0]['value']
@@ -1846,7 +1854,9 @@ class Abe:
             numtxs = abe.store.get_number_of_transactions_for_asset(chain, asset['assetref'])
             s = "{:17f}".format(asset['units'])
             units = s.rstrip('0').rstrip('.') if '.' in s else s
-            body += ['<tr><td><a href="../../' + escape(chain.name) + '/assetref/' + asset['assetref'] + '">' + asset['name'].encode('unicode-escape') + '</a>',
+            # handle anonymous assets
+            assetname = asset.get('name','')
+            body += ['<tr><td><a href="../../' + escape(chain.name) + '/assetref/' + asset['assetref'] + '">' + assetname.encode('unicode-escape') + '</a>',
                      '</td><td><a href="../../' + escape(chain.name) + '/assetref/' + asset['assetref'] + '">' + asset['assetref'] + '</a>',
                      '</td><td><a href="../../' + escape(chain.name) + '/tx/' + asset['issuetxid'] + '">',
                      asset['issuetxid'][:20], '...</a>',
@@ -1875,7 +1885,7 @@ class Abe:
             issueqty = util.format_display_quantity(asset, asset['issueqty'])
             s = "{:17f}".format(asset['units'])
             units = s.rstrip('0').rstrip('.') if '.' in s else s
-            body += ['<tr><td>' + asset['name'].encode('unicode-escape'),
+            body += ['<tr><td>' + asset.get('name','').encode('unicode-escape'),
                      '</td><td>', '-',
                      '</td><td><a href="../../' + escape(chain.name) + '/mempooltx/' + asset['issuetxid'] + '">', asset['issuetxid'][:16], '...</a>',
                      '</td><td>', '-',
