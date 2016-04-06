@@ -1321,10 +1321,10 @@ class Abe:
             chain = abe.get_default_chain()
 # MULTICHAIN START
         body += html_keyvalue_tablerow('Number of inputs', len(tx['in']),
-            ' (<a href="#inputs">Jump to inputs</a>)')
+            ' &ndash; <a href="#inputs">jump to inputs</a>')
         body += html_keyvalue_tablerow('Total in', format_satoshis(tx['value_in'], chain))
         body += html_keyvalue_tablerow('Number of outputs', len(tx['out']),
-            ' (<a href="#outputs">Jump to outputs</a>)')
+            ' &ndash; <a href="#outputs">jump to outputs</a>')
         body += html_keyvalue_tablerow('Total out', format_satoshis(tx['value_out'], chain))
         body += html_keyvalue_tablerow('Size', tx['size'], ' bytes')
         if False:
@@ -1653,9 +1653,9 @@ class Abe:
         body += html_keyvalue_tablerow('Asset Reference', '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>')
         body += html_keyvalue_tablerow('Name', '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + name + '</a>')
         holders = abe.store.get_number_of_asset_holders(chain, assetref)
-        body += html_keyvalue_tablerow('Addresses holding units', holders, ' (<a href="#holders">Jump to holders</a>)')
+        body += html_keyvalue_tablerow('Addresses holding units', holders, ' &ndash; <a href="#holders">jump to holders</a>')
         if num_issues>0:
-            body += html_keyvalue_tablerow('Asset Issues', num_issues, ' (<a href="#issues">Jump to issues</a>)')
+            body += html_keyvalue_tablerow('Asset Issues', num_issues, ' &ndash; <a href="#issues">jump to issues</a>')
         body += html_keyvalue_tablerow('Raw units issued', raw_units)
         body += html_keyvalue_tablerow('Display quantity', display_qty)
         body += html_keyvalue_tablerow('Native amount sent', format_satoshis(native_amount, chain))
