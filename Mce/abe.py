@@ -1310,7 +1310,7 @@ class Abe:
 # MULTICHAIN START
             body += html_keyvalue_tablerow('Appeared in',
                 '<a href="../block/', blk_hash, '">',
-                escape(tx_cc['chain'].name), ' ',
+                escape(tx_cc['chain'].name), ', Block ',
                 tx_cc['block_height'] if tx_cc['in_longest'] else [blk_hash[:10], '...', blk_hash[-4:]],
                 '</a> (', format_time(tx_cc['block_nTime']), ')'
                 )
