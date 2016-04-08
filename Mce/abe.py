@@ -1167,9 +1167,10 @@ class Abe:
                 '<td>', addressLabel, '</td>\n']
 
             if row['binscript'] is not None:
-                body += ['<td>', escape(decode_script(row['binscript'])) ]
+                body += ['<td style="max-width: 400px;">', escape(decode_script(row['binscript'])) ]
                 msg = None
                 msgtype = 'success'
+                msgpanelstyle = ''
                 if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
@@ -1273,6 +1274,7 @@ class Abe:
                                 v = util.long_hex(v)
                             msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
                         msg += '</table>'
+                        msgpanelstyle="margin-bottom: -20px;"
 
                     elif opreturn_type==util.OP_RETURN_TYPE_ISSUE_MORE_ASSET:
                         msg = 'Issue more asset details:'
@@ -1286,18 +1288,24 @@ class Abe:
                                 v = util.long_hex(v)
                             msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
                         msg += '</table>'
+                        msgpanelstyle="margin-bottom: -20px;"
+
                     elif opreturn_type==util.OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
                         msg = 'Miner block signature'
+                        msg += '<p/>'
+                        msg += util.long_hex(data)
                         msgtype = 'info'
+                        msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
                     else:
                         msg = 'Metadata'
                         msg += '<p/>'
                         msg += util.long_hex(data)
                         msgtype = 'info'
+                        msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
 
                 # Add MultiChain HTML
                 if msg is not None:
-                    body += ['<div style="height:5px;"></div><div class="panel panel-default panel-'+msgtype+'"><div class="panel-body">'+msg+'</div></div>']
+                    body += ['<div style="height:5px;"></div><div class="panel panel-default panel-'+msgtype+'"><div class="panel-body" style="' + msgpanelstyle + '">'+msg+'</div></div>']
 
                 body += [ '</td>\n']
             body += ['</tr>\n']
