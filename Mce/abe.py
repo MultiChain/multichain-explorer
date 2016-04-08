@@ -87,8 +87,11 @@ DEFAULT_TEMPLATE = """
 </head>
 <body>
     <div class="container">
-    <h1><a title="Back to home" href="%(dotdot)s%(HOMEPAGE)s"><img src="%(dotdot)s%(STATIC_PATH)slogo32.png" alt="MultiChain logo" /></a> %(h1)s
-    </h1>
+	<table><td>
+	<a title="Back to home" href="%(dotdot)s%(HOMEPAGE)s"><img src="%(dotdot)s%(STATIC_PATH)slogo32.png" alt="MultiChain logo" /></a>
+	</td><td style="padding-left: 10px;" valign="middle">
+	<h1>%(h1)s<h1>
+	</td></table>
     %(body)s
     <!--<p><a href="%(dotdot)sq">API</a> (machine-readable pages)</p>-->
     <br><br>
