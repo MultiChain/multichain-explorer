@@ -41,6 +41,8 @@ import base58
 import Chain
 import urllib
 import binascii
+import urllib2
+import threading
 # MULTICHAIN END
 
 __version__ = version.__version__
@@ -3192,6 +3194,28 @@ def serve(store):
         port = int(args.port or 80)
         httpd = make_server(args.host, port, abe)
         abe.log.warning("Listening on http://%s:%d", args.host, port)
+# MULTICHAIN START
+        # Launch background loading of transactions
+        interval = 15.0
+        def background_catch_up():
+            '''
+            Background thread to make dummy requests and trigger abe.store.catch_up().
+            Thread is set as daemon so CTRL-C interrupt will terminate application and not block on thread/timer.
+            '''
+            while True:
+                time.sleep(interval)
+                s = 'http://{0}:{1}'.format(args.host, port)
+                req = urllib2.Request(s)
+                try:
+                    response = urllib2.urlopen(req)
+                    response.read()
+                except Exception as e:
+                    pass
+        thread = threading.Thread(target=background_catch_up, args=())
+        thread.daemon = True
+        thread.start()
+        abe.log.warning("Launched background thread to catch up tx every {0} seconds".format(interval))
+# MULTICHAIN END
         # httpd.shutdown() sometimes hangs, so don't call it.  XXX
         httpd.serve_forever()
     else:
