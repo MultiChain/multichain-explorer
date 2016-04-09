@@ -3231,7 +3231,7 @@ def serve(store):
         abe.log.warning("Listening on http://%s:%d", args.host, port)
 # MULTICHAIN START
         # Launch background loading of transactions
-        interval = 15.0
+        interval = 60.0
         def background_catch_up():
             '''
             Background thread to make dummy requests and trigger abe.store.catch_up().
