@@ -2184,11 +2184,11 @@ class Abe:
         return [
 # MULTICHAIN START
             '<p>Search by address, block number or hash, transaction or'
-            ' public key hash, or chain name:</label></p>'
+            ' chain name:</label></p>'
             '<form class="form-inline" action="', page['dotdot'], 'search"><p>\n'
             '<div class="form-group">'
-            '<input id="search1" type="text" name="q" size="64" value="', escape(q), '" />'
-            '<button type="submit" class="btn btn-default">Search</button>\n'
+            '<input id="search1" type="text" name="q" size="64" value="', escape(q), '" style="height: 32px; margin-right: 10px;"/>'
+            '<button type="submit" class="btn" style="height: 32px; vertical-align: middle;">Search</button>\n'
             '<p class="help-block">Address or hash search requires at least the first ',
             HASH_PREFIX_MIN, ' characters.</p></div></form>\n']
 # MULTICHAIN END
@@ -2198,6 +2198,7 @@ class Abe:
         q = (page['params'].get('q') or [''])[0]
 # MULTICHAIN START
         q = q.strip()
+        page['chain'] = abe.store.get_chain_by_id(1)
 # MULTICHAIN END
         if q == '':
             page['body'] = [
@@ -2208,7 +2209,9 @@ class Abe:
         if HEIGHT_RE.match(q):      found += abe.search_number(int(q))
         if util.possible_address(q):found += abe.search_address(q)
         elif ADDR_PREFIX_RE.match(q):found += abe.search_address_prefix(q)
-        if is_hash_prefix(q):       found += abe.search_hash_prefix(q)
+# MULTICHAIN START
+        if is_hash_prefix(q):       found += abe.search_hash_prefix(q, types = ('tx', 'block'))
+# MULTICHAIN END
         found += abe.search_general(q)
         abe.show_search_results(page, found)
 
@@ -2307,12 +2310,44 @@ class Abe:
 
     def search_address(abe, address):
         try:
-            binaddr = base58.bc_address_to_hash_160(address)
+# MULTICHAIN START
+            # Only search the first chain for now
+            chain = abe.store.get_chain_by_id(1)
+            version, binaddr = util.decode_check_address_multichain(chain.address_version, address)
+# MULTICHAIN END
         except Exception:
             return abe.search_address_prefix(address)
         return [abe._found_address(address)]
 
+# MULTICHAIN START
     def search_address_prefix(abe, ap):
+        '''
+        Naive method to search for an address.
+        :param ap: string containing first few characters of an address
+        :return: list of matches
+        '''
+
+        ret = []
+
+        # Only search the first chain for now
+        chain = abe.store.get_chain_by_id(1)
+        address_version = chain.address_version
+        checksum = chain.address_checksum
+
+        def process(row):
+            hash = abe.store.binout(row[0])
+            if hash is None:
+                return None
+            address = util.hash_to_address_multichain(address_version, hash, checksum)
+            if not address.lower().startswith(ap.lower()):
+                return None
+            return abe._found_address(address)
+
+        ret += filter(None, map(process, abe.store.selectall("SELECT pubkey FROM pubkey" )))
+        return ret
+# MULTICHAIN END
+
+    def DEPRECATED_search_address_prefix(abe, ap):
         ret = []
         ones = 0
         for c in ap:
