@@ -440,7 +440,7 @@ class Abe:
                     if num_assets == -1:
                         body += '?'
                     elif num_assets>=0:
-                        body += ['<a href="{}/assets">'.format(escape(chain.name)), num_assets, '</a>']
+                        body += ['<a href="{0}/assets">'.format(escape(chain.name)), num_assets, '</a>']
                 else:
                     body += ['<td></td>']
                 body += ['<td>', num_addresses, '</td>']
@@ -683,7 +683,7 @@ class Abe:
         body += ['<td>Blocks</td>','<td><a href="/', escape(chain.name), '/blocks/">', info_resp['blocks'], '</a></td>']
         #body += html_keyvalue_tablerow('Blocks', info_resp['blocks'])
         body += html_keyvalue_tablerow('Transactions', num_txs)
-        body += ['<td>Assets</td>', '<td><a href="/{}/assets">'.format(escape(chain.name)), num_assets, '</a></td>']
+        body += ['<td>Assets</td>', '<td><a href="/{0}/assets">'.format(escape(chain.name)), num_assets, '</a></td>']
         #body += html_keyvalue_tablerow('Assets', num_assets)
         body += html_keyvalue_tablerow('Addresses', num_addresses)
         body += ['</table>']
@@ -1185,9 +1185,9 @@ class Abe:
                                 display_amount = util.format_display_quantity(asset, val)
                                 assetref = asset['assetref']
                                 link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
-                                msg = "Issue {} units of new asset {}".format(display_amount, link)
+                                msg = "Issue {0} units of new asset {1}".format(display_amount, link)
                             except Exception as e:
-                                msg = "Issue {:d} raw units of new asset".format(val)
+                                msg = "Issue {0:d} raw units of new asset".format(val)
                         elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
                             dict = val[0]
                             quantity = dict['quantity']
@@ -1198,9 +1198,9 @@ class Abe:
                                 assetname = asset.get('name',assetref)
                                 link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
                                 display_amount = util.format_display_quantity(asset, quantity)
-                                msg = "Issue {} more units of {}".format(display_amount, link)
+                                msg = "Issue {0} more units of {1}".format(display_amount, link)
                             except Exception as e:
-                                msg = "Issue {:d} more raw units of asset {}".format(val, link)
+                                msg = "Issue {0:d} more raw units of asset {1}".format(val, link)
                         elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                             msg = ""
                             msgparts = []
@@ -1218,9 +1218,9 @@ class Abe:
                                     assetname = asset.get('name',assetref)
                                     if len(assetname)>0:
                                         link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
-                                    msgparts.append("{} units of asset {}".format(display_amount, link))
+                                    msgparts.append("{0} units of asset {1}".format(display_amount, link))
                                 except Exception as e:
-                                    msgparts.append("{} raw units of asset {}".format(quantity, link))
+                                    msgparts.append("{0} raw units of asset {1}".format(quantity, link))
 
                             msg += '<br>'.join(msgparts)
                         elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
@@ -1242,10 +1242,10 @@ class Abe:
                                 permissions += ['Activate']
 
                             msg += ' permission to '
-                            msg += ', '.join("{}".format(item) for item in permissions)
+                            msg += ', '.join("{0}".format(item) for item in permissions)
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
-                                msg += ' (blocks {} - {} only)'.format(val['startblock'], val['endblock'])
+                                msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
                         else:
                             msg = 'Unrecognized MultiChain command'
                             msgtype = 'danger'
@@ -1262,19 +1262,19 @@ class Abe:
                         assetLink = assetName
                         try:
                             asset = abe.store.get_asset_by_name(chain, assetName)
-                            assetLink = '<a href="../assetref/{}">{}</a>'.format(asset['assetref'], assetName)
+                            assetLink = '<a href="../assetref/{0}">{1}</a>'.format(asset['assetref'], assetName)
                         except Exception:
                             pass
 
-                        msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Name',assetLink)
-                        msg += '<tr><td>{}</td><td>{}</td></tr>'.format('Multiplier',val['multiplier'])
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Name',assetLink)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Multiplier',val['multiplier'])
                         fields = val['fields']
                         for k,v in sorted(fields.items()):
                             try:
                                 v.decode('ascii')
                             except UnicodeDecodeError:
                                 v = util.long_hex(v)
-                            msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
                         msg += '</table>'
                         msgpanelstyle="margin-bottom: -20px;"
 
@@ -1288,7 +1288,7 @@ class Abe:
                                 v.decode('ascii')
                             except UnicodeDecodeError:
                                 v = util.long_hex(v)
-                            msg += '<tr><td>{}</td><td>{}</td></tr>'.format(k.capitalize(),v)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
                         msg += '</table>'
                         msgpanelstyle="margin-bottom: -20px;"
 
@@ -1421,7 +1421,7 @@ class Abe:
                     end = permission['endblock']
                     range = ""
                     if not (start==0 and end==4294967295):
-                        range = " (blocks {} - {} only)".format(start, end)
+                        range = " (blocks {0} - {1} only)".format(start, end)
                     body += ['<li>', name, range, '</li>']
                 body += ['</ul>']
         except util.JsonrpcException as e:
@@ -1870,7 +1870,7 @@ class Abe:
             issueqty = util.format_display_quantity(asset, asset['issueraw'])
             holders = abe.store.get_number_of_asset_holders(chain, asset['assetref'])
             numtxs = abe.store.get_number_of_transactions_for_asset(chain, asset['assetref'])
-            s = "{:17f}".format(asset['units'])
+            s = "{0:17f}".format(asset['units'])
             units = s.rstrip('0').rstrip('.') if '.' in s else s
             # handle anonymous assets
             assetname = asset.get('name','')
@@ -1901,7 +1901,7 @@ class Abe:
             if asset['assetref'] is not None:
                 continue
             issueqty = util.format_display_quantity(asset, asset['issueqty'])
-            s = "{:17f}".format(asset['units'])
+            s = "{0:17f}".format(asset['units'])
             units = s.rstrip('0').rstrip('.') if '.' in s else s
             body += ['<tr><td>' + asset.get('name','').encode('unicode-escape'),
                      '</td><td>', '-',

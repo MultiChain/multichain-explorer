@@ -515,10 +515,10 @@ def format_display_quantity(asset, rawqty):
     p = len(str(multiple)) - 1
 
     if p is 0:
-        fmt = "{:d}"
+        fmt = "{0:d}"
         v = int(rawqty)
     else:
-        fmt = "{:." + "{}".format(p) + "f}"
+        fmt = "{0:." + "{0}".format(p) + "f}"
         v = float(rawqty) / float(multiple)
     return fmt.format( v )
 
