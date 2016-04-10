@@ -489,7 +489,7 @@ class Abe:
 
 # MULTICHAIN START
         myheader = page['myheader']
-        mempool_refresh_interval_ms = 5000
+        mempool_refresh_interval_ms = abe.store.recent_tx_interval_ms
         myheader += ['<script>'
                     '$(document).ready(function(){'
                     'setInterval(function(){'
@@ -497,7 +497,7 @@ class Abe:
                     '}, ', mempool_refresh_interval_ms, ');'
                     '});'
                     '</script>']
-        page_refresh_interval_secs = 30
+        page_refresh_interval_secs = abe.store.home_refresh_interval_secs
         myheader += ['<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />',
                      '<meta http-equiv="Pragma" content="no-cache" />',
                      '<meta http-equiv="Expires" content="0" />']
@@ -3231,7 +3231,7 @@ def serve(store):
         abe.log.warning("Listening on http://%s:%d", args.host, port)
 # MULTICHAIN START
         # Launch background loading of transactions
-        interval = 60.0
+        interval = float( abe.store.catch_up_tx_interval_secs )
         def background_catch_up():
             '''
             Background thread to make dummy requests and trigger abe.store.catch_up().

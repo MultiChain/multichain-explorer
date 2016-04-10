@@ -63,6 +63,11 @@ CONFIG_DEFAULTS = {
     "import_tx":          [],
     "default_loader":     "default",
     "rpc_load_mempool":   False,
+# MULTICHAIN START
+    "home_refresh_interval_secs": 60,
+    "recent_tx_interval_ms": 5000,
+    "catch_up_tx_interval_secs": 60
+# MULTICHAIN END
 }
 
 WORK_BITS = 304  # XXX more than necessary.
@@ -218,6 +223,12 @@ class DataStore(object):
         store.rpc_load_mempool = args.rpc_load_mempool
 
         store.default_chain = args.default_chain;
+
+# MULTICHAIN START
+        store.home_refresh_interval_secs = args.home_refresh_interval_secs
+        store.recent_tx_interval_ms = args.recent_tx_interval_ms
+        store.catch_up_tx_interval_secs = args.catch_up_tx_interval_secs
+# MULTICHAIN END
 
         store.commit()
 

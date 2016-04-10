@@ -146,7 +146,7 @@ To check the explorer is runnning, in your browser visit:
 
 
 Reset the Explorer
-----------------------
+------------------
 
 To start over with new chain data for a chain of the same name, simply:
 
@@ -155,6 +155,16 @@ To start over with new chain data for a chain of the same name, simply:
 2. Delete the explorer database file ````chain1.explorer.sqlite```` (set in ````connect-args```` parameter in ````chain1.conf````).
 
 3. Launch the explorer as above.
+
+
+Advanced Configuration Options
+------------------------------
+
+The following options can be set in the explorer config file ````chain1.conf```` or as a command-line option with the format ````--option=value````.
+
+* ````home_refresh_interval_secs```` specifies how frequently the home page refreshes itself when open in a browser window.  The default is every 60 seconds.
+* ````recent_tx_interval_ms```` specifies how frequently the home page refreshes the recent transactions table including any mempool transactions.  The default is every 5000 milliseconds (5 seconds),
+* ````catch_up_tx_interval_secs```` specifies how frequently the explorer will load blockchain transactions into the explorer database.  The default is every 60 seconds.
 
 
 Misc Notes
