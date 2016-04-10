@@ -1656,9 +1656,6 @@ class Abe:
 
         issues = asset.get('issues', [])
         num_issues = len(issues)
-        num_details = 0
-        for issue in issues:
-            num_details += len(issue['details'].items())
         raw_units = asset['issueraw']
         display_qty = util.format_display_quantity(asset, raw_units)
 
