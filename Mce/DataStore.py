@@ -3671,6 +3671,8 @@ store._ddl['txout_approx'],
         """, (chain.id,))
         if countrow:
             result = countrow[0]
+            if result > 0:
+                result = result - 1     # NULL_PUBKEY_HASH
         return result
 
     def get_number_of_assets(store, chain):
