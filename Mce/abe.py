@@ -532,14 +532,22 @@ class Abe:
         now = time.time() - EPOCH1970
         try:
             mempool = abe.store.get_rawmempool(chain)
-            recenttx = abe.store.list_transactions(chain, 30)  # we only want 'send' category, not 'receive' or 'move'
+            recenttx = abe.store.list_transactions(chain, 50)
         except Exception as e:
             return ['<div class="alert alert-danger" role="warning">', e ,'</div>']
 
         sorted_mempool = sorted(mempool.items()[:10], key=lambda tup: tup[1]['time'], reverse=True)
         if len(sorted_mempool) < 10:
-            recenttx = filter(lambda x: x['category'] == 'send' and x['confirmations']>-1, recenttx)
-            # recenttx = [tx for tx in recenttx if tx['category']=='send']
+            # get unique txids which have been confirmed, category does not matter
+            temp = set()
+            temp_recenttx = []
+            for x in recenttx:
+                if x['txid'] in temp or x['confirmations']<1:
+                    continue
+                temp.add(x['txid'])
+                temp_recenttx.append(x)
+            recenttx = temp_recenttx
+
             sorted_recenttx = sorted(recenttx, key=lambda tx: tx['time'], reverse=True)
             existing_txids = [txid for (txid, value) in sorted_mempool]
             for tx in sorted_recenttx:
