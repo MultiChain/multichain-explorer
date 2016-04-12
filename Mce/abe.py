@@ -1343,10 +1343,10 @@ class Abe:
 # MULTICHAIN START
         body += html_keyvalue_tablerow('Number of inputs', len(tx['in']),
             ' &ndash; <a href="#inputs">jump to inputs</a>')
-        body += html_keyvalue_tablerow('Total in', format_satoshis(tx['value_in'], chain))
+        #body += html_keyvalue_tablerow('Total in', format_satoshis(tx['value_in'], chain))
         body += html_keyvalue_tablerow('Number of outputs', len(tx['out']),
             ' &ndash; <a href="#outputs">jump to outputs</a>')
-        body += html_keyvalue_tablerow('Total out', format_satoshis(tx['value_out'], chain))
+        #body += html_keyvalue_tablerow('Total out', format_satoshis(tx['value_out'], chain))
         body += html_keyvalue_tablerow('Size', tx['size'], ' bytes')
         if False:
             body += html_keyvalue_tablerow('Fee', format_satoshis(0 if is_coinbase else
