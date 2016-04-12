@@ -1566,7 +1566,7 @@ class Abe:
                 if matchaddress: # and this_ch=='o':
                     return val
                 return 0
-            elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+            elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET or opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
                 for dict in val:
                     quantity = dict['quantity']
                     assetref = dict['assetref']
