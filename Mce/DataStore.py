@@ -3816,6 +3816,35 @@ store._ddl['txout_approx'],
         result = list(map(parse_row, rows))
         return result
 
+    def get_recent_transactions_as_json(store, chain, limit=10):
+        """
+        Get a list of recent transactions, decoded to json
+        :param chain:
+        :param limit: the maxinmum number of transactions to return
+        :return: list of strings or empty list.
+        """
+        # Ignore coinbase transactions where there is no native currency
+        rows = store.selectall("""
+            SELECT DISTINCT tx_hash
+            FROM txout_detail
+            WHERE chain_id=? AND pubkey_id != ?
+            ORDER BY block_height DESC, tx_id DESC
+            LIMIT ?
+        """, (chain.id, NULL_PUBKEY_ID, limit))
+
+        if rows is None:
+             return []
+
+        result = []
+        for row in rows:
+            try:
+                txid = store.hashout_hex(row[0])
+                json = store.get_rawtransaction_decoded(chain, txid)
+                result.append(json)
+            except Exception:
+                pass
+
+        return result
 
     def get_transactions_for_asset(store, chain, assetref):
         """

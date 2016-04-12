@@ -532,22 +532,12 @@ class Abe:
         now = time.time() - EPOCH1970
         try:
             mempool = abe.store.get_rawmempool(chain)
-            recenttx = abe.store.list_transactions(chain, 50)
+            recenttx = abe.store.get_recent_transactions_as_json(chain, 10)
         except Exception as e:
             return ['<div class="alert alert-danger" role="warning">', e ,'</div>']
 
         sorted_mempool = sorted(mempool.items()[:10], key=lambda tup: tup[1]['time'], reverse=True)
         if len(sorted_mempool) < 10:
-            # get unique txids which have been confirmed, category does not matter
-            temp = set()
-            temp_recenttx = []
-            for x in recenttx:
-                if x['txid'] in temp or x['confirmations']<1:
-                    continue
-                temp.add(x['txid'])
-                temp_recenttx.append(x)
-            recenttx = temp_recenttx
-
             sorted_recenttx = sorted(recenttx, key=lambda tx: tx['time'], reverse=True)
             existing_txids = [txid for (txid, value) in sorted_mempool]
             for tx in sorted_recenttx:
