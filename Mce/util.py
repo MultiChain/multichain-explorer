@@ -417,15 +417,15 @@ def parse_op_return_data(data):
             pos += 1
             # print "pos of payload: ", pos
             if flen == 253:
-                (size,) = struct.unpack('<H', subdata[1:])
+                (size,) = struct.unpack('<H', data[pos:pos+2])
                 flen = size
                 pos += 2
             elif flen == 254:
-                (size,) = struct.unpack('<I', subdata[1:])
+                (size,) = struct.unpack('<I', data[pos:pos+4])
                 flen = size
                 pos += 4
             elif flen == 255:
-                (size,) = struct.unpack('<Q', subdata[1:])
+                (size,) = struct.unpack('<Q', data[pos:pos+8])
                 flen = size
                 pos += 8
             # print "pos of payload: ", pos
@@ -464,15 +464,15 @@ def parse_op_return_data(data):
             pos += 1
             # print "pos of payload: ", pos
             if flen == 253:
-                (size,) = struct.unpack('<H', subdata[1:])
+                (size,) = struct.unpack('<H', data[pos:pos+2])
                 flen = size
                 pos += 2
             elif flen == 254:
-                (size,) = struct.unpack('<I', subdata[1:])
+                (size,) = struct.unpack('<I', data[pos:pos+4])
                 flen = size
                 pos += 4
             elif flen == 255:
-                (size,) = struct.unpack('<Q', subdata[1:])
+                (size,) = struct.unpack('<Q', data[pos:pos+8])
                 flen = size
                 pos += 8
             # print "pos of payload: ", pos
