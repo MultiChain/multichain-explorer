@@ -26,20 +26,25 @@ MultiChain Explorer is still under  development, so things may break or change!
 System Requirements
 -------------------
 
-You must have Python 2.x installed on your system.
+You must have Python 2.x installed on your system to run the explorer.
 
-If pycrypto is not on your system, you will have to install it:
-
-    sudo pip install pycrypto
-
-If your Python setup is not complete, you may have to install:
-
-    sudo apt-get install python-dev
-    sudo apt-get install python-pip
-
-You also need to install Sqlite3 on your system.
+On Ubuntu, you will need to install the following dependencies:
 
     sudo apt-get install sqlite3 libsqlite3-dev
+    sudo apt-get install python-dev
+    sudo apt-get install python-pip
+    sudo pip install --upgrade pip
+    sudo pip install pycrypto
+
+On CentOS, you will need to install the following dependencies:
+
+    sudo yum install epel-release
+    sudo yum install python-pip
+    sudo pip install --upgrade pip
+    sudo yum install sqlite-devel
+    sudo yum install python-devel
+    sudo yum groupinstall "Development tools"
+    sudo pip install pycrypto
 
 
 Installation
