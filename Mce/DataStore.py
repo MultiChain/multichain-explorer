@@ -3818,7 +3818,7 @@ store._ddl['txout_approx'],
 
     def get_recent_transactions_as_json(store, chain, limit=10):
         """
-        Get a list of recent transactions, decoded to json
+        Get a list of recent confirmed transactions, decoded to json
         :param chain:
         :param limit: the maxinmum number of transactions to return
         :return: list of strings or empty list.
@@ -3840,7 +3840,8 @@ store._ddl['txout_approx'],
             try:
                 txid = store.hashout_hex(row[0])
                 json = store.get_rawtransaction_decoded(chain, txid)
-                result.append(json)
+                if json is not None and json['confirmations']>0:
+                    result.append(json)
             except Exception:
                 pass
 
