@@ -1380,6 +1380,264 @@ class Abe:
 
         body += ['</table>\n']
 
+# MULTICHAIN START
+    def show_mempool_tx_json(abe, page, tx):
+
+        def row_to_html(row, this_ch, other_ch, no_link_text):
+            body = page['body']
+            body += [
+                '<tr>\n',
+                '<td><a name="', this_ch, row['pos'], '">', row['pos'],
+                '</a></td>\n<td>']
+
+            txid = row.get('txid', None)
+            if txid is None:
+                body += [no_link_text]
+            else:
+                # if input tx is in the database, show the correct url
+                prefix = '../tx/' if abe.store.does_transaction_exist(txid) else ''
+                body += [
+                    '<a href="', prefix, txid, '#', other_ch, row['vout'],
+                    '">', txid[:10], '...:', row['vout'], '</a>']
+            
+            body += ['</td>']
+
+            # Decode earlier as we need to use script type
+            novalidaddress=False
+            
+            the_script = None
+            if this_ch is 'i':
+                the_script = row['scriptSig']['hex']
+            else:
+                the_script = row['scriptPubKey']['hex']
+            
+            binscript = None
+
+            if the_script is not None:
+                binscript = binascii.unhexlify(the_script)
+                script_type, data = chain.parse_txout_script(binscript)
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+                    novalidaddress = True
+
+            addressLabel = 'None'
+            value = 0
+            
+            if novalidaddress is False:
+                if this_ch is 'i':
+                    try:
+                        resp = util.jsonrpc(chain_name, chain_url, "getrawtransaction", txid, 1)
+                        n = int(row['vout'])
+                        addressLabel = resp['vout'][n]['scriptPubKey']['addresses'][0]
+                        value = resp['vout'][n]['value'] 
+                    except Exception as e:
+                        pass
+                else:
+                    try:
+                        addressLabel = row['scriptPubKey']['addresses'][0]
+                        value = row['value']
+                    except Exception as e:
+                        pass
+            
+            if addressLabel is not 'None':
+                addressLabel = '<a href="../address/' + addressLabel + '">' + addressLabel + '</a>'
+            
+            body += [
+                '</td>\n',
+                '<td>', format_satoshis(value, chain), '</td>\n',
+                '<td>', addressLabel, '</td>\n']
+            
+            if binscript is not None:
+                body += ['<td style="max-width: 400px;">', escape(decode_script(binscript)) ]
+                msg = None
+                msgtype = 'success'
+                msgpanelstyle = ''
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                    # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
+                    data = util.get_multichain_op_drop_data(binscript)
+                    if data is not None:
+                        opdrop_type, val = util.parse_op_drop_data(data)
+                        if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
+                            # Not the most efficient way, but will suffice for now until assets are stored in a database table.
+                            try:
+                                asset = abe.store.get_asset_by_name(chain, tx['hash'])
+                                display_amount = util.format_display_quantity(asset, val)
+                                assetref = asset['assetref']
+                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
+                                msg = "Issue {0} units of new asset {1}".format(display_amount, link)
+                            except Exception as e:
+                                msg = "Issue {0:d} raw units of new asset".format(val)
+                        elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
+                            dict = val[0]
+                            quantity = dict['quantity']
+                            assetref = dict['assetref']
+                            link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
+                            try:
+                                asset = abe.store.get_asset_by_name(chain, assetref)
+                                assetname = asset.get('name',assetref)
+                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
+                                display_amount = util.format_display_quantity(asset, quantity)
+                                msg = "Issue {0} more units of {1}".format(display_amount, link)
+                            except Exception as e:
+                                msg = "Issue {0:d} more raw units of asset {1}".format(val, link)
+                        elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
+                            msg = ""
+                            msgparts = []
+                            for dict in val:
+                                quantity = dict['quantity']
+                                assetref = dict['assetref']
+                                # link shows asset ref
+                                link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
+
+                                # Not the most efficient way, but will suffice for now until assets are stored in a database table.
+                                try:
+                                    asset = abe.store.get_asset_by_name(chain, assetref)
+                                    display_amount = util.format_display_quantity(asset, quantity)
+                                    # update link to display name, if not anonymous, instead of assetref
+                                    assetname = asset.get('name',assetref)
+                                    if len(assetname)>0:
+                                        link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
+                                    msgparts.append("{0} units of asset {1}".format(display_amount, link))
+                                except Exception as e:
+                                    msgparts.append("{0} raw units of asset {1}".format(quantity, link))
+
+                            msg += '<br>'.join(msgparts)
+                        elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
+                            msg = val['type'].capitalize() + " "
+                            permissions = []
+                            if val['connect']:
+                                permissions += ['Connect']
+                            if val['send']:
+                                permissions += ['Send']
+                            if val['receive']:
+                                permissions += ['Receive']
+                            if val['issue']:
+                                permissions += ['Issue']
+                            if val['mine']:
+                                permissions += ['Mine']
+                            if val['admin']:
+                                permissions += ['Admin']
+                            if val['activate']:
+                                permissions += ['Activate']
+
+                            msg += ' permission to '
+                            msg += ', '.join("{0}".format(item) for item in permissions)
+
+                            if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
+                                msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
+                        else:
+                            msg = 'Unrecognized MultiChain command'
+                            msgtype = 'danger'
+
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+                    opreturn_type, val = util.parse_op_return_data(data)
+                    if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
+
+                        msg = 'Issued asset details:'
+                        msg += '<table class="table table-bordered table-condensed">'
+
+                        # try to create a link for the asset
+                        assetName = val['name']
+                        assetLink = assetName
+                        try:
+                            asset = abe.store.get_asset_by_name(chain, assetName)
+                            assetLink = '<a href="../assetref/{0}">{1}</a>'.format(asset['assetref'], assetName)
+                        except Exception:
+                            pass
+
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Name',assetLink)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Multiplier',val['multiplier'])
+                        fields = val['fields']
+                        for k,v in sorted(fields.items()):
+                            try:
+                                v.decode('ascii')
+                            except UnicodeDecodeError:
+                                v = util.long_hex(v)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        msg += '</table>'
+                        msgpanelstyle="margin-bottom: -20px;"
+
+                    elif opreturn_type==util.OP_RETURN_TYPE_ISSUE_MORE_ASSET:
+                        msg = 'Issue more asset details:'
+                        msg += '<table class="table table-bordered table-condensed">'
+
+                        fields = val['fields']
+                        for k,v in sorted(fields.items()):
+                            try:
+                                v.decode('ascii')
+                            except UnicodeDecodeError:
+                                v = util.long_hex(v)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        msg += '</table>'
+                        msgpanelstyle="margin-bottom: -20px;"
+
+                    elif opreturn_type==util.OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
+                        msg = 'Miner block signature'
+                        msg += '<p/>'
+                        msg += util.long_hex(data)
+                        msgtype = 'info'
+                        msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
+                    else:
+                        msg = 'Metadata'
+                        msg += '<p/>'
+                        msg += util.long_hex(data)
+                        msgtype = 'info'
+                        msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
+
+                # Add MultiChain HTML
+                if msg is not None:
+                    body += ['<div style="height:5px;"></div><div class="panel panel-default panel-'+msgtype+'"><div class="panel-body" style="' + msgpanelstyle + '">'+msg+'</div></div>']
+
+                body += [ '</td>\n']
+            body += ['</tr>\n']
+
+        body = page['body']
+
+        # body += abe.short_link(page, 't/' + hexb58(tx['hash'][:14]))
+        body += ['<table class="table table-bordered table-condensed">']
+        body += html_keyvalue_tablerow('Hash', tx['txid'])
+        chain = page['chain']
+        
+        chain_name = abe.store.get_multichain_name_by_id(chain.id)
+        chain_url = abe.store.get_url_by_chain(chain)
+
+        is_coinbase = tx.get('coinbase', None)
+
+        body += html_keyvalue_tablerow('Appeared in', escape(chain.name) + ' (Mempool)')
+        body += html_keyvalue_tablerow('Number of inputs', len(tx['vin']),
+            ' &ndash; <a href="#inputs">jump to inputs</a>')
+        body += html_keyvalue_tablerow('Number of outputs', len(tx['vout']),
+            ' &ndash; <a href="#outputs">jump to outputs</a>')
+        body += html_keyvalue_tablerow('Size', len(tx['hex']), ' bytes')
+        body += ['</table>']
+
+
+        body += ['<a name="inputs"><h3>Inputs</h3></a>\n<table class="table table-striped">\n',
+                 '<tr><th>Index</th><th>Previous output</th><th>Native</th>',
+                 '<th>From address</th>']
+        #if abe.store.keep_scriptsig:
+        body += ['<th>ScriptSig</th>']
+        body += ['</tr>\n']
+        pos = 0
+        for txin in tx['vin']:
+            txin['pos'] = pos
+            pos = pos + 1
+            row_to_html(txin, 'i', 'o',
+                        'Generation' if is_coinbase else 'Unknown')
+
+        body += ['</table>\n',
+                 '<a name="outputs"><h3>Outputs</h3></a>\n<table class="table table-striped">\n',
+                 '<tr><th>Index</th><th>Redeemed at input</th><th>Native</th>',
+                 '<th>To address</th><th>ScriptPubKey</th></tr>\n']
+        
+        pos = 0
+        for txout in tx['vout']:
+            txout['pos'] = pos
+            pos = pos + 1
+            row_to_html(txout, 'o', 'i', 'Not yet redeemed')
+
+        body += ['</table>\n']
+# MULTICHAIN END
+
     def handle_rawtx(abe, page):
         abe.do_raw(page, abe.do_rawtx)
 
@@ -2015,12 +2273,8 @@ class Abe:
             body += '<div class="alert alert-danger" role="alert">' + msg + '</div>'
             return s
 
-        if resp is not None:
-            body += ['<h3>Mempool Transaction</h3>']
-            body += ['<pre>', json.dumps(resp, sort_keys=True, indent=2), '</pre>']
-
-
-
+        return abe.show_mempool_tx_json(page, resp)
+        
 # MULTICHAIN END
 
     def do_rawtx(abe, page, chain):
