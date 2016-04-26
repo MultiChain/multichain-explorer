@@ -1005,7 +1005,7 @@ class Abe:
                         # we have found the main purpose of this tx
                         break
                     script_type, data = chain.parse_txout_script(txout['binscript'])
-                    if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                    if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                         data = util.get_multichain_op_drop_data(txout['binscript'])
                         if data is not None:
                             opdrop_type, val = util.parse_op_drop_data(data)
@@ -1171,7 +1171,7 @@ class Abe:
                 msg = None
                 msgtype = 'success'
                 msgpanelstyle = ''
-                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
                     if data is not None:
@@ -1451,7 +1451,7 @@ class Abe:
                 msg = None
                 msgtype = 'success'
                 msgpanelstyle = ''
-                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(binscript)
                     if data is not None:
@@ -1659,7 +1659,7 @@ class Abe:
         multichain_name = abe.store.get_multichain_name_by_id(chain.id)
 
         # check the address
-        version, pubkeyhash = util.decode_check_address_multichain(chain.address_version, address)
+        version, pubkeyhash = util.decode_check_address_multichain(address)
         if pubkeyhash is None:
             raise PageNotFound()
             #raise MalformedAddress("Invalid address")
@@ -1691,7 +1691,7 @@ class Abe:
 
         body += ['<h3>Asset Balances</h3>']
         try:
-            row = abe.store.selectrow("""select pubkey_id from pubkey where pubkey = ?""",
+            row = abe.store.selectrow("""select pubkey_id from pubkey where pubkey_hash = ?""",
                                       (abe.store.binin(pubkeyhash),) )
             assets_resp = abe.store.get_assets(chain)
             if len(assets_resp) is 0:
@@ -1813,7 +1813,7 @@ class Abe:
 
             script_type, data = chain.parse_txout_script(binscript)
 
-            if script_type is not Chain.SCRIPT_TYPE_MULTICHAIN:
+            if script_type not in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                 return 0
 
             data = util.get_multichain_op_drop_data(binscript)
@@ -1984,15 +1984,18 @@ class Abe:
                  '</tr>\n']
         holders = abe.store.get_asset_holders(chain, assetref)
         for holder in holders:
-            #address = util.long_hex(holder['pubkey_hash'])
-            binaddr = holder['pubkey']
+# MULTICHAIN START
+            pubkeyhash = holder['pubkey_hash']
+            if (holder['pubkey_flags'] & DataStore.PUBKEY_FLAGS_P2SH) > 0:
+                vers = chain.script_addr_vers
+            else:
+                vers = chain.address_version
             checksum = chain.address_checksum
             if checksum is None:
-                address = util.hash_to_address(chain.address_version, binaddr)
+                address = util.hash_to_address(vers, pubkeyhash)
             else:
-                address = util.hash_to_address_multichain(chain.address_version, binaddr, checksum)
+                address = util.hash_to_address_multichain(vers, pubkeyhash, checksum)
 
-# MULTICHAIN START
             amount = util.format_display_quantity(asset, float( holder['balance'] ))
 # MULTICHAIN END
 
@@ -2017,7 +2020,7 @@ class Abe:
             if this_ch=='i':
                 binscript = tx['multichain_scriptPubKey']
             script_type, data = chain.parse_txout_script(binscript)
-            if script_type is not Chain.SCRIPT_TYPE_MULTICHAIN:
+            if script_type not in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                 return 0
             data = util.get_multichain_op_drop_data(binscript)
             if data is None:
@@ -2562,7 +2565,7 @@ class Abe:
 # MULTICHAIN START
             # Only search the first chain for now
             chain = abe.store.get_chain_by_id(1)
-            version, binaddr = util.decode_check_address_multichain(chain.address_version, address)
+            version, binaddr = util.decode_check_address_multichain(address)
 # MULTICHAIN END
         except Exception:
             return abe.search_address_prefix(address)
@@ -2592,7 +2595,7 @@ class Abe:
                 return None
             return abe._found_address(address)
 
-        ret += filter(None, map(process, abe.store.selectall("SELECT pubkey FROM pubkey" )))
+        ret += filter(None, map(process, abe.store.selectall("SELECT pubkey_hash FROM pubkey" )))
         return ret
 # MULTICHAIN END
 
@@ -2898,7 +2901,7 @@ class Abe:
             return 'Translates ADDRESS for use in CHAIN.\n' \
                 '/chain/CHAIN/q/translate_address/ADDRESS\n'
 # MULTICHAIN START
-        version, hash = util.decode_check_address_multichain(chain.address_version, addr)
+        version, hash = util.decode_check_address_multichain(addr)
 # MULTICHAIN END
         if hash is None:
             return addr + " (INVALID ADDRESS)"

@@ -86,6 +86,10 @@ NULL_PUBKEY_HASH = "\0" * Chain.PUBKEY_HASH_LENGTH
 NULL_PUBKEY_ID = 0
 PUBKEY_ID_NETWORK_FEE = NULL_PUBKEY_ID
 
+# MULTICHAIN START
+PUBKEY_FLAGS_P2SH = 1<<0
+# MULTICHAIN END
+
 # Size of the script and pubkey columns in bytes.
 MAX_SCRIPT = 1000000
 MAX_PUBKEY = 65
@@ -835,7 +839,8 @@ store._ddl['configvar'],
 """CREATE TABLE pubkey (
     pubkey_id     NUMERIC(26) NOT NULL PRIMARY KEY,
     pubkey_hash   BINARY(20)  UNIQUE NOT NULL,
-    pubkey        VARBINARY(""" + str(MAX_PUBKEY) + """) NULL
+    pubkey        VARBINARY(""" + str(MAX_PUBKEY) + """) NULL,
+    pubkey_flags  NUMERIC(32) NULL
 )""",
 
 """CREATE TABLE multisig_pubkey (
@@ -1631,6 +1636,9 @@ store._ddl['txout_approx'],
         # MULTICHAIN START
         elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN:
             txout['binaddr'] = data
+        elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
+            txout['address_version'] = chain.script_addr_vers
+            txout['binaddr'] = data
         # MULTICHAIN END
         else:
             txout['binaddr'] = None
@@ -1963,7 +1971,7 @@ store._ddl['txout_approx'],
 # MULTICHAIN START
             binscript = store.binout(txout['scriptPubKey'])
             script_type, data = chain.parse_txout_script(binscript)
-            if pubkey_id is not None and script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+            if pubkey_id is not None and script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                 data = util.get_multichain_op_drop_data(binscript)
                 if data is not None:
                     opdrop_type, val = util.parse_op_drop_data(data)
@@ -1984,12 +1992,12 @@ store._ddl['txout_approx'],
                             (new_asset_id, tx_id, pos))
                         # txout['scriptPubKey'] or binscript work fine here
                         vers = chain.address_version
-                        the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
+                        the_script_type, pubkey_hash = chain.parse_txout_script(txout['scriptPubKey'])
                         checksum = chain.address_checksum
                         if checksum is None:
-                            address = util.hash_to_address(vers, pubkey_raw)
+                            address = util.hash_to_address(vers, pubkey_hash)
                         else:
-                            address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
+                            address = util.hash_to_address_multichain(vers, pubkey_hash, checksum)
                         #print "New asset issued to address: {}, balance {}".format(address, val)
                     elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET or opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
                         msgparts = []
@@ -1998,12 +2006,12 @@ store._ddl['txout_approx'],
                             assetref = dict['assetref']
                             prefix = int( assetref.split('-')[-1] )
                             vers = chain.address_version
-                            the_script_type, pubkey_raw = chain.parse_txout_script(txout['scriptPubKey'])
+                            the_script_type, pubkey_hash = chain.parse_txout_script(txout['scriptPubKey'])
                             checksum = chain.address_checksum
                             if checksum is None:
-                                address = util.hash_to_address(vers, pubkey_raw)
+                                address = util.hash_to_address(vers, pubkey_hash)
                             else:
-                                address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
+                                address = util.hash_to_address_multichain(vers, pubkey_hash, checksum)
                             #print "Asset sent to: {}, sent amount {}".format(address, quantity)
 
                             row = store.selectrow("""
@@ -2096,17 +2104,19 @@ store._ddl['txout_approx'],
             if txout_id is not None and binscript is not None:
                 spent_tx_hash = store.hashout(txin['prevout_hash'])     # reverse out, otherwise it is backwards
                 vers = chain.address_version
-                the_script_type, pubkey_raw = chain.parse_txout_script(binscript)
+                the_script_type, pubkey_hash = chain.parse_txout_script(binscript)
+                if the_script_type is Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
+                    vers = chain.script_addr_vers
                 checksum = chain.address_checksum
                 if checksum is None:
-                    address = util.hash_to_address(vers, pubkey_raw)
+                    address = util.hash_to_address(vers, pubkey_hash)
                 else:
-                    address = util.hash_to_address_multichain(vers, pubkey_raw, checksum)
-                pubkey_id = store.pubkey_to_id(chain, pubkey_raw)
+                    address = util.hash_to_address_multichain(vers, pubkey_hash, checksum)
+                pubkey_id = store.pubkey_hash_to_id(pubkey_hash, 0)
 
                 #print "Multichain tx input = {} : {}".format(util.long_hex( spent_tx_hash ), txin['prevout_n'])
 
-                if the_script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+                if the_script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                     data = util.get_multichain_op_drop_data(binscript)
                     if data is not None:
                         opdrop_type, val = util.parse_op_drop_data(data)
@@ -2411,7 +2421,7 @@ store._ddl['txout_approx'],
         return tx
 
     def export_address_history(store, address, chain=None, max_rows=-1, types=frozenset(['direct', 'escrow'])):
-        version, binaddr = util.decode_check_address_multichain(chain.address_version if chain is not None else "\0", address)
+        version, binaddr = util.decode_check_address_multichain(address)
         if binaddr is None:
             raise MalformedAddress("Invalid address")
 
@@ -2765,8 +2775,12 @@ store._ddl['txout_approx'],
             return store.pubkey_hash_to_id(data)
 
 # MULTICHAIN START
+        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
+            return store.pubkey_hash_to_id(data, PUBKEY_FLAGS_P2SH)
+
         if script_type == Chain.SCRIPT_TYPE_MULTICHAIN:
-            return store.pubkey_to_id(chain, data) #hash_to_id(data)
+            return store.pubkey_hash_to_id(data)
+
 # MULTICHAIN END
 
         if script_type == Chain.SCRIPT_TYPE_PUBKEY:
@@ -2789,14 +2803,14 @@ store._ddl['txout_approx'],
 
         return None
 
-    def pubkey_hash_to_id(store, pubkey_hash):
-        return store._pubkey_id(pubkey_hash, None)
+    def pubkey_hash_to_id(store, pubkey_hash, flags=0):
+        return store._pubkey_id(pubkey_hash, None, flags)
 
-    def pubkey_to_id(store, chain, pubkey):
+    def pubkey_to_id(store, chain, pubkey, flags=0):
         pubkey_hash = chain.pubkey_hash(pubkey)
-        return store._pubkey_id(pubkey_hash, pubkey)
+        return store._pubkey_id(pubkey_hash, pubkey, flags)
 
-    def _pubkey_id(store, pubkey_hash, pubkey):
+    def _pubkey_id(store, pubkey_hash, pubkey, flags=0):
         dbhash = store.binin(pubkey_hash)  # binin, not hashin for 160-bit
         row = store.selectrow("""
             SELECT pubkey_id
@@ -2810,9 +2824,9 @@ store._ddl['txout_approx'],
             pubkey = None
 
         store.sql("""
-            INSERT INTO pubkey (pubkey_id, pubkey_hash, pubkey)
-            VALUES (?, ?, ?)""",
-                  (pubkey_id, dbhash, store.binin(pubkey)))
+            INSERT INTO pubkey (pubkey_id, pubkey_hash, pubkey, pubkey_flags)
+            VALUES (?, ?, ?, ?)""",
+                  (pubkey_id, dbhash, store.binin(pubkey), flags ))
         return pubkey_id
 
     def flush(store):
@@ -3796,9 +3810,11 @@ store._ddl['txout_approx'],
         :return: List or None, where each list element is a dictionary storing the pubkey and balance.
         """
         def parse_row(row):
-            pubkey, balance = row
+            pubkey, pubkey_hash, pubkey_flags, balance = row
             ret = {
                 "pubkey": store.binout(pubkey),
+                "pubkey_hash": store.binout(pubkey_hash),
+                "pubkey_flags": pubkey_flags,
                 "balance": balance
                 }
             return ret
@@ -3806,7 +3822,7 @@ store._ddl['txout_approx'],
         chain_id = chain.id
         prefix = int( assetref.split('-')[-1] )
         rows = store.selectall("""
-            SELECT p.pubkey, a.balance
+            SELECT p.pubkey, p.pubkey_hash, p.pubkey_flags, a.balance
             FROM asset_address_balance a
             JOIN pubkey p ON (a.pubkey_id = p.pubkey_id)
             WHERE balance>0 AND asset_id=( SELECT asset_id FROM asset WHERE chain_id=? AND prefix=?)
@@ -3899,10 +3915,10 @@ store._ddl['txout_approx'],
             return ret
 
         # get pubkey id
-        version, pubkeyhash = util.decode_check_address_multichain(chain.address_version, address)
+        version, pubkeyhash = util.decode_check_address_multichain(address)
         if pubkeyhash is None:
             return None
-        row = store.selectrow("""select pubkey_id from pubkey where pubkey = ?""",
+        row = store.selectrow("""select pubkey_id from pubkey where pubkey_hash = ?""",
                                     (store.binin(pubkeyhash),) )
         if row is None:
             return None
@@ -4066,7 +4082,7 @@ store._ddl['txout_approx'],
         """
         label = None
         script_type, data = chain.parse_txout_script(scriptpubkey)
-        if script_type is Chain.SCRIPT_TYPE_MULTICHAIN:
+        if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
             data = util.get_multichain_op_drop_data(scriptpubkey)
             if data is not None:
                 opdrop_type, val = util.parse_op_drop_data(data)

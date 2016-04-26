@@ -150,28 +150,32 @@ def hash_to_address_multichain(version, hash, checksum):
     vh += new_checksum[:4]
     return base58.b58encode(vh)
 
-def decode_check_address_multichain(version, address):
+def decode_check_address_multichain(address):
     if possible_address(address):
         raw = base58.b58decode(address, None)
         # if len(raw) < 25:
         #     raw = ('\0' * (25 - len(raw))) + raw
 
         #print "base58 decoded len = {}".format(len(raw))
+        checksum = raw[-4:0]
         raw = raw[:-4] # drop checksum
         #print "no checksum        = {} ".format(len(raw))
         n = len(raw)
-        skip = len(version)
+        skip = n - 20
         #print "skip num raw     = {} ".format(skip)
         i =0
         resulthash = '' #bytearray()
+        resultversion = ''
         while i<n:
             if skip>0 and i % 6 == 0:
                 skip = skip - 1
+                resultversion += raw[i]
             else:
                 resulthash += raw[i]
             i = i + 1
         #print "ripemd length = {}, hex = {}".format(len(resulthash), long_hex(resulthash))
-        return version, resulthash #raw[1:len(raw)-4]
+        if hash_to_address_multichain(resultversion, resulthash, checksum):
+            return resultversion, resulthash #raw[1:len(raw)-4]
     return None, None
 # MULTICHAIN END
 
@@ -497,6 +501,8 @@ def get_multichain_op_drop_data(script):
     data = None
     if deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_TEMPLATE):
         data = decoded[5][1]
+    elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_P2SH_TEMPLATE):
+        data = decoded[3][1] # 4th element contains the OP_DROP data.
     return data
 
 def format_display_quantity(asset, rawqty):

@@ -35,6 +35,10 @@ SCRIPT_MULTICHAIN_TEMPLATE = [
 # See: https://en.bitcoin.it/wiki/Script
 SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE = [ opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
 
+# Template to match a MultiChain asset pay-to-script-hash (P2SH) output script
+# e.g. "OP_HASH160 f1191c44953b7da866dba982d155bbd8eeb89dfc OP_EQUAL 73706b7104000000f70200001ae41027000000000000 OP_DROP"
+SCRIPT_MULTICHAIN_P2SH_TEMPLATE = [ opcodes.OP_HASH160, PUBKEY_HASH_LENGTH, opcodes.OP_EQUAL, opcodes.OP_PUSHDATA4, opcodes.OP_DROP]
+
 # MULTICHAIN END
 
 # Template to match a pubkey hash ("Bitcoin address transaction") in
@@ -61,6 +65,7 @@ SCRIPT_TYPE_P2SH = 6
 # MULTICHAIN START
 SCRIPT_TYPE_MULTICHAIN = 7
 SCRIPT_TYPE_MULTICHAIN_OP_RETURN = 8
+SCRIPT_TYPE_MULTICHAIN_P2SH = 9
 # MULTICHAIN END
 
 
@@ -195,6 +200,7 @@ class BaseChain(object):
         * SCRIPT_TYPE_P2SH     - DATA is the binary script hash
 # MULTICHAIN START
         * SCRIPT_TYPE_MULTICHAIN - DATA is the binary public key (there is another method to get the OPDROP data)
+        * SCRIPT_TYPE_MULTICHAIN_P2SH - DATA is the binary script hash (there is another method to get the OPDROP data)
 # MULTICHAIN END
         """
         if script is None:
@@ -209,13 +215,21 @@ class BaseChain(object):
 # MULTICHAIN START
         # Return script type and address
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
-            pubkey = decoded[2][1]
-            return SCRIPT_TYPE_MULTICHAIN, pubkey
+            pubkey_hash = decoded[2][1]
+            if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
+                return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
 
         # Return script type and metadata byte array
         elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):
             metadata = decoded[1][1]
             return SCRIPT_TYPE_MULTICHAIN_OP_RETURN, metadata
+
+        # Return script type and script hash
+        elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_P2SH_TEMPLATE):
+            script_hash = decoded[1][1]
+            assert len(script_hash) == PUBKEY_HASH_LENGTH
+            return SCRIPT_TYPE_MULTICHAIN_P2SH, script_hash
+
 # MULTICHAIN END
 
         elif deserialize.match_decoded(decoded, SCRIPT_ADDRESS_TEMPLATE):
