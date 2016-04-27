@@ -151,13 +151,21 @@ def hash_to_address_multichain(version, hash, checksum):
     return base58.b58encode(vh)
 
 def decode_check_address_multichain(address):
+    version, hash = decode_address_multichain(address)
+    if version is not None and hash is not None:
+        raw = base58.b58decode(address, None)
+        checksum = raw[-4:0]
+        if hash_to_address_multichain(version, hash, checksum):
+            return version, hash
+    return None, None
+
+def decode_address_multichain(address):
     if possible_address(address):
         raw = base58.b58decode(address, None)
         # if len(raw) < 25:
         #     raw = ('\0' * (25 - len(raw))) + raw
 
         #print "base58 decoded len = {}".format(len(raw))
-        checksum = raw[-4:0]
         raw = raw[:-4] # drop checksum
         #print "no checksum        = {} ".format(len(raw))
         n = len(raw)
@@ -174,8 +182,7 @@ def decode_check_address_multichain(address):
                 resulthash += raw[i]
             i = i + 1
         #print "ripemd length = {}, hex = {}".format(len(resulthash), long_hex(resulthash))
-        if hash_to_address_multichain(resultversion, resulthash, checksum):
-            return resultversion, resulthash #raw[1:len(raw)-4]
+        return resultversion, resulthash
     return None, None
 # MULTICHAIN END
 
