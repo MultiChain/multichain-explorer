@@ -1163,7 +1163,10 @@ class Abe:
             body += [
                 '</td>\n',
                 '<td>', format_satoshis(row['value'], chain), '</td>\n',
-                '<td>', addressLabel, '</td>\n']
+                '<td>', addressLabel]
+            if row['address_version'] is chain.script_addr_vers:
+                body += ['<div><span class="label label-info">P2SH</span></div>']
+            body += [ '</td>\n']
 
             if row['binscript'] is not None:
                 body += ['<td style="max-width: 400px;">', escape(decode_script(row['binscript'])) ]
@@ -1436,15 +1439,23 @@ class Abe:
                         value = row['value']
                     except Exception as e:
                         pass
-            
+
+            p2sh_flag = False
             if addressLabel is not 'None':
+                version, pubkeyhash = util.decode_address_multichain(addressLabel)
+                if version is chain.script_addr_vers:
+                    p2sh_flag = True
                 addressLabel = '<a href="../address/' + addressLabel + '">' + addressLabel + '</a>'
             
             body += [
                 '</td>\n',
                 '<td>', format_satoshis(value, chain), '</td>\n',
-                '<td>', addressLabel, '</td>\n']
+                '<td>', addressLabel]
             
+            if p2sh_flag is True:
+                body += ['<div><span class="label label-info">P2SH</span></div>']
+            body += [ '</td>\n']
+
             if binscript is not None:
                 body += ['<td style="max-width: 400px;">', escape(decode_script(binscript)) ]
                 msg = None
