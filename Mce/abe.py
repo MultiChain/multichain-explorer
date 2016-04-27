@@ -578,9 +578,8 @@ class Abe:
                     d = set()
                     for hex in scriptpubkeys:
                         binscript = binascii.unhexlify(hex)
-                        label = abe.store.get_label_for_scriptpubkey(chain, binscript)
-                        if label is not None:
-                            d.add(label)
+                        tmp = abe.store.get_labels_for_scriptpubkey(chain, binscript)
+                        d |= set(tmp)
                     labels = list(d)
 
             if labels is None:

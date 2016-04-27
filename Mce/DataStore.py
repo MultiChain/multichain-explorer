@@ -4067,43 +4067,44 @@ store._ddl['txout_approx'],
         if mytx is not None:
             d = set()
             for txout in mytx['out']:
-                label = store.get_label_for_scriptpubkey(chain, txout['binscript'])
-                if label is not None:
-                    d.add(label)
+                tmp = store.get_labels_for_scriptpubkey(chain, txout['binscript'])
+                d |= set(tmp)
             labels = list(d)
         return labels
 
-    def get_label_for_scriptpubkey(store, chain, scriptpubkey):
+    def get_labels_for_scriptpubkey(store, chain, scriptpubkey):
         """
-        Get a label describing the scriptpubkey of a txout.
+        Get labels describing the scriptpubkey of a txout.
         :param chain:
         :param scriptpubkey:
-        :return: label as string, or None if not a recognized MultiChain OP_DROP or OP_RETURN.
+        :return: labels as list, or empty list if not a recognized MultiChain OP_DROP or OP_RETURN.
         """
-        label = None
+        label = []
         script_type, data = chain.parse_txout_script(scriptpubkey)
+        if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
+            label.append('P2SH')
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
             data = util.get_multichain_op_drop_data(scriptpubkey)
             if data is not None:
                 opdrop_type, val = util.parse_op_drop_data(data)
                 if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
-                    label = 'Asset'
+                    label.append('Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
-                    label = 'Asset'
+                    label.append('Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
-                    label = 'Permissions'
+                    label.append('Permissions')
                 elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
-                    label = 'Asset'
+                    label.append('Asset')
                 else:
-                    label = 'OP_DROP'
+                    label.append('OP_DROP')
             else:
-                label = 'Unknown'
+                label.append('Unknown')
         elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
             opreturn_type, val = util.parse_op_return_data(data)
             if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
-                label = 'Asset'
+                label.append('Asset')
             else:
-                label = 'Metadata'
+                label.append('Metadata')
         return label
 
 def new(args):
