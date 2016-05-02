@@ -268,7 +268,9 @@ class CmdLine(object):
 
         args, argv = readconf.parse_argv(self.argv, self.conf, strict=False)
         if argv and argv[0] in ('-h', '--help'):
-            print self.usage()
+# MULTICHAIN START
+            print(self.usage())
+# MULTICHAIN END
             return None, []
 
         logging.basicConfig(

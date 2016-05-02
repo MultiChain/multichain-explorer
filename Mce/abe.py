@@ -3478,11 +3478,15 @@ def serve(store):
             pass
         import urlparse
         parsed = urlparse.urlparse(args.query)
-        print abe({
+# MULTICHAIN START
+        print(abe({
+# MULTICHAIN END
                 'SCRIPT_NAME':  '',
                 'PATH_INFO':    parsed.path,
                 'QUERY_STRING': parsed.query
-                }, start_response)
+# MULTICHAIN START
+                }, start_response))
+# MULTICHAIN END
     elif args.host or args.port:
         # HTTP server.
         if args.host is None:
@@ -3675,11 +3679,15 @@ All configuration variables may be given as command arguments.
 See abe.conf for commented examples.""")
         return 0
     elif argv[0] in ('-v', '--version'):
-        print ABE_APPNAME, ABE_VERSION
-        print "Schema version", DataStore.SCHEMA_VERSION
+# MULTICHAIN START
+        print(ABE_APPNAME, ABE_VERSION)
+        print("Schema version", DataStore.SCHEMA_VERSION)
+# MULTICHAIN END
         return 0
     elif argv[0] == '--print-htdocs-directory':
-        print find_htdocs()
+# MULTICHAIN START
+        print(find_htdocs())
+# MULTICHAIN END
         return 0
     else:
         sys.stderr.write(
