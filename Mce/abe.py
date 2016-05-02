@@ -1630,7 +1630,7 @@ class Abe:
         pos = 0
         for txin in tx['vin']:
             txin['pos'] = pos
-            pos = pos + 1
+            pos += 1
             row_to_html(txin, 'i', 'o',
                         'Generation' if is_coinbase else 'Unknown')
 
@@ -1642,7 +1642,7 @@ class Abe:
         pos = 0
         for txout in tx['vout']:
             txout['pos'] = pos
-            pos = pos + 1
+            pos += 1
             row_to_html(txout, 'o', 'i', 'Not yet redeemed')
 
         body += ['</table>\n']
@@ -3381,7 +3381,7 @@ def format_difficulty(diff):
     ret = '.%03d' % (int(round((diff - idiff) * 1000)),)
     while idiff > 999:
         ret = (' %03d' % (idiff % 1000,)) + ret
-        idiff = idiff / 1000
+        idiff /= 1000
     return str(idiff) + ret
 
 # MULTICHAIN START
