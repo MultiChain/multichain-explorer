@@ -2583,11 +2583,11 @@ class Abe:
 
 # MULTICHAIN START
     def search_address_prefix(abe, ap):
-        '''
+        """
         Naive method to search for an address.
         :param ap: string containing first few characters of an address
         :return: list of matches
-        '''
+        """
 
         ret = []
 
@@ -3499,10 +3499,10 @@ def serve(store):
         # Launch background loading of transactions
         interval = float( abe.store.catch_up_tx_interval_secs )
         def background_catch_up():
-            '''
+            """
             Background thread to make dummy requests and trigger abe.store.catch_up().
             Thread is set as daemon so CTRL-C interrupt will terminate application and not block on thread/timer.
-            '''
+            """
             while True:
                 time.sleep(interval)
                 s = 'http://{0}:{1}'.format(args.host, port)
