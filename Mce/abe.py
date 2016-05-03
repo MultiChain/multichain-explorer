@@ -2811,7 +2811,7 @@ class Abe:
                    txout.txout_pos
              LIMIT ?"""), bind)
 
-        if max_rows >= 0 and len(received_rows) > max_rows:
+        if 0 <= max_rows < len(received_rows):
             return "ERROR: too many records to process"
 
         rows = []
