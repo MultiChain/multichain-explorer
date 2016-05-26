@@ -1611,6 +1611,7 @@ store._ddl['txout_approx'],
         if scriptPubKey is None:
             txout['script_type'] = None
             txout['binaddr'] = None
+            txout['address_version'] = None
             return
 
         script_type, data = chain.parse_txout_script(scriptPubKey)
