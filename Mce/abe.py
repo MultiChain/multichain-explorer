@@ -17,14 +17,12 @@
 
 import sys
 import os
-import optparse
 import re
 from cgi import escape
 import posixpath
 import wsgiref.util
 import time
 import calendar
-import math
 import logging
 import json
 
