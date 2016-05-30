@@ -61,7 +61,7 @@ EPOCH1970 = calendar.timegm(TIME1970)
 # Configurable templates may contain either.  HTML seems better supported
 # under Internet Explorer.
 DEFAULT_CONTENT_TYPE = "text/html; charset=utf-8"
-DEFAULT_HOMEPAGE = "chains";
+DEFAULT_HOMEPAGE = "chains"
 # MULTICHAIN START
 DEFAULT_TEMPLATE = """
 <!DOCTYPE html>
@@ -2736,7 +2736,7 @@ class Abe:
         if addrs is None:
             addrs = []
         else:
-            addrs = addrs.split("|");
+            addrs = addrs.split("|")
         if len(addrs) < 1 or len(addrs) > MAX_UNSPENT_ADDRESSES:
             return 'Number of addresses must be between 1 and ' + \
                 str(MAX_UNSPENT_ADDRESSES)
@@ -3078,7 +3078,7 @@ class Abe:
 
         elif fmt == "svg":
             page['template'] = NETHASH_SVG_TEMPLATE
-            page['template_vars']['block_time'] = 600;  # XXX BTC-specific
+            page['template_vars']['block_time'] = 600  # XXX BTC-specific
             ret = ""
 
         else:
