@@ -573,12 +573,12 @@ class DataStore(object):
         return os.path.basename(dirname)
 
     def get_dirname_by_id(store, chain_id):
-        '''
+        """
         Get the chain name of a multichain network, given the chain id.
         :param store:
         :param chain_id:
         :return:
-        '''
+        """
         chain_id = int(chain_id)
         row = store.selectrow("""
                 SELECT dirname
