@@ -106,8 +106,8 @@ You can store the config file ````chain1.conf```` anywhere you want. When you la
 
 The following changes can be made:
 
-* Change ````port```` to the port number for serving web pages.
-* Change ````host```` to ````0.0.0.0```` to serve web pages to anybody.
+* Change ````port```` to the port number for serving web pages (make sure your host's firewall allows traffic through that port).
+* Change ````host```` to ````0.0.0.0```` to serve web pages to anybody (make sure there is only a single host entry in the config file).
 * Change ````dirname```` to match the directory for your blockchain.
 * Change ````chain```` to set how the chain should be listed in the explorer.
 * Change ````connect-args```` for the location to store the explorer database.
