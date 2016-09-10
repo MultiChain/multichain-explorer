@@ -2139,8 +2139,8 @@ store._ddl['txout_approx'],
                             #     VALUES ((SELECT asset_id FROM asset WHERE prefix = ?),?,?)""",
                             #     (prefix, store.hashin(spent_tx_hash),  store.intin(txin['prevout_n'])))
 
-                        elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
-                            # Spending sent tx
+                        elif opdrop_type in [util.OP_DROP_TYPE_SEND_ASSET, util.OP_DROP_TYPE_ISSUE_MORE_ASSET]:
+                            # Spending sent tx or issue more tx
                             for dict in val:
                                 quantity = dict['quantity']
                                 assetref = dict['assetref']
