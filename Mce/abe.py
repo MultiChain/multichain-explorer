@@ -1399,18 +1399,18 @@ class Abe:
                 body += [
                     '<a href="', prefix, txid, '#', other_ch, row['vout'],
                     '">', txid[:10], '...:', row['vout'], '</a>']
-            
+
             body += ['</td>']
 
             # Decode earlier as we need to use script type
             novalidaddress=False
-            
+
             the_script = None
             if this_ch is 'i':
                 the_script = row['scriptSig']['hex']
             else:
                 the_script = row['scriptPubKey']['hex']
-            
+
             binscript = None
 
             if the_script is not None:
@@ -1421,14 +1421,14 @@ class Abe:
 
             addressLabel = 'None'
             value = 0
-            
+
             if novalidaddress is False:
                 if this_ch is 'i':
                     try:
                         resp = util.jsonrpc(chain_name, chain_url, "getrawtransaction", txid, 1)
                         n = int(row['vout'])
                         addressLabel = resp['vout'][n]['scriptPubKey']['addresses'][0]
-                        value = resp['vout'][n]['value'] 
+                        value = resp['vout'][n]['value']
                     except Exception as e:
                         pass
                 else:
@@ -1444,12 +1444,12 @@ class Abe:
                 if version is chain.script_addr_vers:
                     p2sh_flag = True
                 addressLabel = '<a href="../address/' + addressLabel + '">' + addressLabel + '</a>'
-            
+
             body += [
                 '</td>\n',
                 '<td>', format_satoshis(value, chain), '</td>\n',
                 '<td>', addressLabel]
-            
+
             if p2sh_flag is True:
                 body += ['<div><span class="label label-info">P2SH</span></div>']
             body += [ '</td>\n']
@@ -1604,7 +1604,7 @@ class Abe:
         body += ['<table class="table table-bordered table-condensed">']
         body += html_keyvalue_tablerow('Hash', tx['txid'])
         chain = page['chain']
-        
+
         chain_name = abe.store.get_multichain_name_by_id(chain.id)
         chain_url = abe.store.get_url_by_chain(chain)
 
@@ -1636,7 +1636,7 @@ class Abe:
                  '<a name="outputs"><h3>Outputs</h3></a>\n<table class="table table-striped">\n',
                  '<tr><th>Index</th><th>Redeemed at input</th><th>Native</th>',
                  '<th>To address</th><th>ScriptPubKey</th></tr>\n']
-        
+
         pos = 0
         for txout in tx['vout']:
             txout['pos'] = pos
@@ -1696,6 +1696,27 @@ class Abe:
             msg= "Failed to get permissions for address: I/O error({0}): {1}".format(e.errno, e.strerror)
             body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
             return
+
+        body += ['<h3>Native Balance</h3>']
+        try:
+            resp = util.jsonrpc(multichain_name, url, "getaddressbalances", address)
+            if len(resp) is 0:
+                body += ['None']
+            else:
+                body += ['<ul>']
+                for balance in resp:
+                    if str(balance['assetref']) is '':
+                        body += ['<li>', str(balance['qty']), '</li>']
+                body += ['</ul>']
+        except util.JsonrpcException as e:
+            msg= "Failed to get balancefor address: JSON-RPC error({0}): {1}".format(e.code, e.message)
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+            return
+        except IOError as e:
+            msg= "Failed to get balance for address: I/O error({0}): {1}".format(e.errno, e.strerror)
+            body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
+            return
+
 
         body += ['<h3>Asset Balances</h3>']
         try:
@@ -2285,7 +2306,7 @@ class Abe:
             return s
 
         return abe.show_mempool_tx_json(page, resp)
-        
+
 # MULTICHAIN END
 
     def do_rawtx(abe, page, chain):
