@@ -1719,6 +1719,28 @@ class Abe:
             body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
             return
 
+        # Display native currency if the blockchain has one
+        if abe.get_blockchainparams(chain).get('initial-block-reward', 0) > 0:
+            body += ['<h3>Native Balance</h3>']
+            try:
+                resp = util.jsonrpc(multichain_name, url, "getaddressbalances", address)
+                if len(resp) is 0:
+                    body += ['None']
+                else:
+                    body += ['<ul>']
+                    for balance in resp:
+                        if str(balance['assetref']) is '':
+                            body += ['<li>', str(balance['qty']), '</li>']
+                    body += ['</ul>']
+            except util.JsonrpcException as e:
+                msg= "Failed to get balance for address: JSON-RPC error({0}): {1}".format(e.code, e.message)
+                body += ['<div class="alert alert-danger" role="warning">', msg, '</div>']
+                return
+            except IOError as e:
+                msg= "Failed to get balance for address: I/O error({0}): {1}".format(e.errno, e.strerror)
+                body += ['<div class="alert alert-danger" role="alert">', msg, '</div>']
+                return
+
         body += ['<h3>Asset Balances</h3>']
         try:
             row = abe.store.selectrow("""select pubkey_id from pubkey where pubkey_hash = ?""",
