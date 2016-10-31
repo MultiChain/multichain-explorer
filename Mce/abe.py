@@ -1469,7 +1469,8 @@ class Abe:
             
             body += [
                 '</td>\n',
-                '<td>', format_satoshis(value, chain), '</td>\n',
+                 # value is already in currency format, does not require calling format_satoshis
+                '<td>', value, '</td>\n',
                 '<td>', addressLabel]
             
             if p2sh_flag is True:
