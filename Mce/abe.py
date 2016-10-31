@@ -245,6 +245,10 @@ class Abe:
         if abe.shortlink_type == "non-firstbits":
             abe.shortlink_type = 10
 
+# MULTICHAIN START
+        abe.blockchainparams = {}
+# MULTICHAIN END
+
     def __call__(abe, env, start_response):
         import urlparse
 
@@ -351,6 +355,24 @@ class Abe:
         if isinstance(content, unicode):
             content = content.encode('latin-1') # Convert Unicode escaped bytes into binary.  Used to be UTF-8.
         return [content]
+
+# MULTICHAIN START
+    # Return and cache blockchain params.  Empty dictionary is returned if there is an error.
+    def get_blockchainparams(abe, chain):
+        if len(abe.blockchainparams) > 0:
+            return abe.blockchainparams
+        url = abe.store.get_url_by_chain(chain)
+        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+        params = {}
+        try:
+            params = util.jsonrpc(multichain_name, url, "getblockchainparams")
+            assert(len(params['chain-protocol']) > 0)   # if we get invalid result, an exception is thrown
+            abe.blockchainparams = params
+        except Exception as e:
+            pass # nop
+        return params
+
+# MULTICHAIN END
 
     def get_handler(abe, cmd):
         return getattr(abe, 'handle_' + cmd, None)
