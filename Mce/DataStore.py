@@ -4004,6 +4004,7 @@ store._ddl['txout_approx'],
     def list_transactions(store, chain, count):
         """
         Get the result of listtransactions json-rpc command as json object
+        NOTE: This call does not work with MultiChain v2 scalable wallets.
         :param chain:
         :return: json object
         """
