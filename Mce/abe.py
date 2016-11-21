@@ -393,6 +393,7 @@ class Abe:
             #'<th>Time</th>',
             '<th>Assets</th>',
             '<th>Addresses</th>',
+            '<th>Streams</th>',
             '<th>Peers</th>'
             '<th>Started</th><th>Age (days)</th>',
             #'<th>Coins Created</th>',
@@ -426,11 +427,13 @@ class Abe:
             try:
                 num_peers = abe.store.get_number_of_peers(chain)
                 num_assets = abe.store.get_number_of_assets(chain)
+                num_streams = abe.store.get_number_of_streams(chain)
             except Exception as e:
                 connection_status = False
                 abe.log.warning(e)
                 num_assets = -1
                 num_peers = -1
+                num_streams = -1
 
             body += ['<tr><td>']
             if connection_status is True:
@@ -465,6 +468,21 @@ class Abe:
                     body += ['<td></td>']
                 body += ['<td>', num_addresses, '</td>']
                 body += '</td>'
+
+                # Display number of streams in the chain
+                body += '<td>'
+                if chain.__class__.__name__ is "MultiChain":
+                    if num_streams == -1:
+                        body += '?'
+                    elif num_streams == 0:
+                        body += '0'
+                    else:
+                        body += ['<a href="{0}/streams">'.format(escape(chain.name)), num_streams, '</a>']
+                else:
+                    pass #body += ['<td></td>']
+                #body += ['<td>', num_streams, '</td>']
+                body += '</td>'
+
 # MULTICHAIN END
 
                 if row[6] is not None and row[7] is not None:
