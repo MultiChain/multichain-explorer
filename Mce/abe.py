@@ -2244,6 +2244,53 @@ class Abe:
         body += ['</table>']
 
 
+    # Page to show the streams that exist on a chain
+    def handle_streams(abe, page):
+        chain = page['chain']
+
+        page['content_type'] = 'text/html'
+        page['title'] = chain.name
+        body = page['body']
+
+        # url = abe.store.get_url_by_chain(chain)
+        # multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+        try:
+            resp = abe.store.list_streams(chain)
+            num_streams = len(resp)
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+            return
+        except IOError as e:
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+            return
+
+        if num_streams is 0:
+            body += [ "No streams published"]
+            return
+
+        body += ['<h3>Streams</h3>']
+        body += ['<table class="table table-striped">'
+                 '<tr><th>Stream Name</th>'
+                 '<th>Stream Reference</th>'
+                 '<th>Anybody Can Publish</th>'
+                 '<th>Creator</th>'
+                 '<th>Creation Transaction</th>'
+                 '</tr>']
+
+        for stream in resp:
+            #creators = '</br>'.join("{}".format(creator) for creator in stream['creators'])
+            streamname = stream.get('name','')
+            body += ['<tr><td><a href="../../' + escape(chain.name) + '/streamref/' + stream['streamref'] + '">' + streamname.encode('unicode-escape') + '</a>',
+                     '</td><td><a href="../../' + escape(chain.name) + '/streamref/' + stream['streamref'] + '">' + stream['streamref'] + '</a>',
+                     '</td><td>', stream['open'],
+                     '</td><td><a href="../../' + escape(chain.name) + '/address/' + stream['creators'][0] + '">', stream['creators'][0], '</a>',
+                     '</td><td><a href="../../' + escape(chain.name) + '/tx/' + stream['createtxid'] + '">',
+                     stream['createtxid'][:20], '...</a>',
+                     '</td></tr>']
+
+        body += ['</table>']
+
 
     # Experimental handler for getting json and raw hex data from RPC calls
     def do_rpc(abe, page, func):
