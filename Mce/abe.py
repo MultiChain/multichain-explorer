@@ -3600,10 +3600,14 @@ def serve(store):
         if args.host is None:
             args.host = "localhost"
         from wsgiref.simple_server import make_server
-        port = int(args.port or 80)
-        httpd = make_server(args.host, port, abe)
-        abe.log.warning("Listening on http://%s:%d", args.host, port)
 # MULTICHAIN START
+        from wsgiref import simple_server
+        class ExplorerWSGIServer(simple_server.WSGIServer):
+            # To increase the backlog
+            request_queue_size = 500
+        port = int(args.port or 80)
+        httpd = make_server(args.host, port, abe, ExplorerWSGIServer)
+        abe.log.warning("Listening on http://%s:%d", args.host, port)
         # Launch background loading of transactions
         interval = float( abe.store.catch_up_tx_interval_secs )
         def background_catch_up():
