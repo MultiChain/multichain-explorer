@@ -295,11 +295,14 @@ OP_DROP_TYPE_ISSUE_ASSET = 1
 OP_DROP_TYPE_SEND_ASSET = 2
 OP_DROP_TYPE_PERMISSION = 3
 OP_DROP_TYPE_ISSUE_MORE_ASSET = 4
+OP_DROP_TYPE_CREATE_STREAM = 5
+OP_DROP_TYPE_STREAM_ITEM = 6
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
 OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE = 2
-OP_RETURN_TYPE_ISSUE_MORE_ASSET =3
+OP_RETURN_TYPE_SPKC = 3
+# OP_RETURN_TYPE_SPKC is used when (1) issuing follow-on units of an asset, (2) when creating a stream
 
 def get_op_drop_type_description(t):
     if t == OP_DROP_TYPE_ISSUE_ASSET:
@@ -311,13 +314,17 @@ def get_op_drop_type_description(t):
         return "Permission"
     elif t == OP_DROP_TYPE_ISSUE_MORE_ASSET:
         return "Issue Asset (More)"
+    elif t == OP_DROP_TYPE_CREATE_STREAM:
+        return "Create Stream"
+    elif t == OP_DROP_TYPE_STREAM_ITEM:
+        return "Stream Item"
 
     return "Unrecognized Command"
 
 def get_op_return_type_description(t):
     if t == OP_RETURN_TYPE_ISSUE_ASSET:
         return "Issue Asset"
-    elif t == OP_RETURN_TYPE_ISSUE_MORE_ASSET:
+    elif t == OP_RETURN_TYPE_SPKC:
         return "Issue Asset (More)"
     elif t == OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
         return "Miner Signature"
@@ -332,6 +339,8 @@ def parse_op_drop_data(data):
     * OP_DROP_TYPE_ISSUE_ASSET - DATA is the quantity of raw units issued
     * OP_DROP_TYPE_SEND_ASSET  - DATA is a list of dictionary of key values: asset reference, quantity
     * OP_DROP_TYPE_PERMISSION  -  DATA is a dictionary of key values: Permission flags, type (grant/revoke), block range, time
+    * OP_DROP_TYPE_CREATE_STREAM - DATA is value of stream type e.g. 0x02
+    * OP_DROP_TYPE_OP_DROP_TYPE_STREAM_ITEM - DATA is first 16 bytes of stream creation txid
 
     :param data:
     :return:
@@ -339,11 +348,12 @@ def parse_op_drop_data(data):
     # print "parse_op_drop_data: = %s" % binascii.hexlify(data)
     rettype = OP_DROP_TYPE_UNKNOWN
     retval = None
-    if data[0:4]==bytearray.fromhex(u'73706b67'):
+    if data[0:4]==bytearray.fromhex(u'73706b67'):   # spkg
         (qty,) = struct.unpack("<Q",data[4:12]);
         rettype = OP_DROP_TYPE_ISSUE_ASSET
         retval = qty
     elif data[0:4]==bytearray.fromhex(u'73706b71') or data[0:4]==bytearray.fromhex(u'73706b6f'):
+        # spkq, spko
         # prefix: if txid begins ce8a..., 0x8ace = 35534 is the correct prefix.
         assets = []
         pos = 4
@@ -355,11 +365,13 @@ def parse_op_drop_data(data):
             assets.append( {'assetref':assetref, 'quantity':quantity} )
             pos += 18
         if data[0:4]==bytearray.fromhex(u'73706b6f'):
+            # spko
             rettype = OP_DROP_TYPE_ISSUE_MORE_ASSET
         else:
             rettype = OP_DROP_TYPE_SEND_ASSET
         retval = assets
     elif data[0:4]==bytearray.fromhex(u'73706b70'):
+        # spkp
         # 4 byte bitmap uint32, uint32 from, unit32 to, uint32 timestamp
         # bitmap connect=1, send=2, receive=4, issue=16, mine=256, admin=4096.
         (bitmap, block_from, block_to, timestamp) = struct.unpack("<LLLL", data[4:])
@@ -381,6 +393,21 @@ def parse_op_drop_data(data):
                   #'all':all,
                   'type':'revoke' if revoke is True else 'grant',
                   'startblock':block_from, 'endblock':block_to}
+    elif data[0:4]==bytearray.fromhex(u'73706b6e'):
+        # spkn
+        # "asm": "73706b6e02 OP_DROP OP_RETURN 53504b6300010873747265616d3100",
+        # "hex": "0573706b6e02756a0f53504b6300010873747265616d3100",
+
+        # entity type must be 0x02 (stream)
+        if ord(data[4]) == 0x02:
+            rettype = OP_DROP_TYPE_CREATE_STREAM
+            retval = ord(data[4])
+    elif data[0:4]==bytearray.fromhex(u'73706b65'):
+        # SPKc
+        # "asm": "73706b650e869894bc77452a9c8eeb2d9391a217 OP_DROP 73706b6b6b657931 OP_DROP OP_RETURN 2232576",
+        # "hex": "1473706b650e869894bc77452a9c8eeb2d9391a217750873706b6b6b657931756a03001122",
+        rettype = OP_DROP_TYPE_STREAM_ITEM
+        retval = long_hex(data[4:20][::-1])     # reverse the bytes and resulting hex string
     return rettype, retval
 
 def parse_op_return_data(data):
@@ -394,7 +421,7 @@ def parse_op_return_data(data):
     """
     rettype = OP_RETURN_TYPE_UNKNOWN
     retval = None
-    if data[0:4]==bytearray.fromhex(u'53504b61'):
+    if data[0:4]==bytearray.fromhex(u'53504b61'):       # SPKa
         (multiplier,) = struct.unpack("<L", data[4:8])
         pos = 8
         searchdata = data[pos:]
@@ -448,10 +475,10 @@ def parse_op_return_data(data):
 
         rettype = OP_RETURN_TYPE_ISSUE_ASSET
         retval = {'multiplier':multiplier, 'name':str(assetname), 'fields':fields}
-    elif data[0:4]==bytearray.fromhex(u'53504b62'):
+    elif data[0:4]==bytearray.fromhex(u'53504b62'):     # SPKb
         rettype = OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE
         retval = data[4:]
-    elif data[0:4]==bytearray.fromhex(u'53504b63'):
+    elif data[0:4]==bytearray.fromhex(u'53504b63'):     # SPKc
         pos = 4
         searchdata = data[pos:]
         # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
@@ -461,8 +488,20 @@ def parse_op_return_data(data):
             if data[pos:pos+1] == "\0":
                 assetproplen = ord(data[pos+2:pos+3])
                 assetprop = data[pos+3:pos+3+assetproplen]
-                fname = "Property at offset {0}".format(pos)
-                fields[fname] = long_hex(assetprop)
+                proptype = ord(data[pos+1])
+                # Create stream has special properties
+                if proptype==0x01:
+                    fname = "Name"
+                    fields[fname] = assetprop
+                elif proptype==0x04:
+                    fname = "Open to all writers"
+                    if ord(assetprop) == 1:
+                        fields[fname] = "True"
+                    else:
+                        fields[fname] = "False"
+                else:
+                    fname = "Property at offset {0}".format(pos)
+                    fields[fname] = long_hex(assetprop)
                 pos = pos + 3 + assetproplen
                 continue
 
@@ -492,7 +531,7 @@ def parse_op_return_data(data):
             # print "payload length: ", flen
             fields[fname]=data[pos:pos+flen]
             pos += flen
-        rettype = OP_RETURN_TYPE_ISSUE_MORE_ASSET
+        rettype = OP_RETURN_TYPE_SPKC
         retval = {'multiplier':None, 'name':None, 'fields':fields}
 
     return rettype, retval
@@ -512,6 +551,25 @@ def get_multichain_op_drop_data(script):
         data = decoded[5][1]
     elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_P2SH_TEMPLATE):
         data = decoded[3][1] # 4th element contains the OP_DROP data.
+    elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE):
+        data = decoded[0][1] # 1st element contains the creation txid OP_DROP data
+    elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
+        data = decoded[0][1] # 1st element contains the OP_DROP data.
+    return data
+
+def get_multichain_op_return_data(script):
+    """
+    Get OP_RETURN data.
+    :param script: script byte data
+    :return:
+    """
+    try:
+        decoded = [x for x in deserialize.script_GetOp(script)]
+    except Exception:
+        return None
+    data = None
+    if deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
+        data = decoded[3][1] # 4th element contains the OP_RETURN data.
     return data
 
 def format_display_quantity(asset, rawqty):

@@ -31,6 +31,12 @@ MAX_MULTISIG_KEYS = 3
 SCRIPT_MULTICHAIN_TEMPLATE = [
     opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG, opcodes.OP_PUSHDATA4, opcodes.OP_DROP ]
 
+# Template to match a MultiChain stream item
+SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
+
+# Template to match a MultiChain create stream command
+SCRIPT_MULTICHAIN_STREAM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
+
 # Matches all opcodes < PUSHDATA4
 # See: https://en.bitcoin.it/wiki/Script
 SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE = [ opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
@@ -66,6 +72,8 @@ SCRIPT_TYPE_P2SH = 6
 SCRIPT_TYPE_MULTICHAIN = 7
 SCRIPT_TYPE_MULTICHAIN_OP_RETURN = 8
 SCRIPT_TYPE_MULTICHAIN_P2SH = 9
+SCRIPT_TYPE_MULTICHAIN_STREAM = 10
+SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM = 11
 # MULTICHAIN END
 
 
@@ -201,6 +209,8 @@ class BaseChain(object):
 # MULTICHAIN START
         * SCRIPT_TYPE_MULTICHAIN - DATA is the binary public key (there is another method to get the OPDROP data)
         * SCRIPT_TYPE_MULTICHAIN_P2SH - DATA is the binary script hash (there is another method to get the OPDROP data)
+        * SCRIPT_TYPE_MULTICHAIN_STREAM - DATA is a dicationary containing op_drop and op_return data.
+        * SCRIPT_TYPE_MULTICAHIN_STREAM_ITEM - Data is a dictionary containing stream creation txid, item key, item data.
 # MULTICHAIN END
         """
         if script is None:
@@ -218,6 +228,16 @@ class BaseChain(object):
             pubkey_hash = decoded[2][1]
             if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
                 return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
+
+        # Return dict
+        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE):
+            dict = {"streamtxid":decoded[0][1], "itemkey":decoded[2][1], "itemdata":decoded[5][1]}
+            return SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM, dict
+
+        # Return dict
+        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
+            dict = {"op_drop":decoded[0][1], "op_return":decoded[3][1]}
+            return SCRIPT_TYPE_MULTICHAIN_STREAM, dict
 
         # Return script type and metadata byte array
         elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):

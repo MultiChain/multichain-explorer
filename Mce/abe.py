@@ -1055,6 +1055,12 @@ class Abe:
                         opreturn_type, val = util.parse_op_return_data(data)
                         label = util.get_op_return_type_description(opreturn_type)
 
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM:
+                        label = 'Create Stream'
+
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM:
+                        label = 'Stream Item'
+
             if label is None:
                 labelclass = ''
             else:
@@ -1183,7 +1189,9 @@ class Abe:
             novalidaddress=False
             if row['binscript'] is not None:
                 script_type, data = chain.parse_txout_script(row['binscript'])
-                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
+                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
                     novalidaddress = True
 
             if row['binaddr'] is None and row['o_hash'] is None:
@@ -1211,7 +1219,10 @@ class Abe:
                 msg = None
                 msgtype = 'success'
                 msgpanelstyle = ''
-                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
+                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_P2SH,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
                     if data is not None:
@@ -1284,9 +1295,45 @@ class Abe:
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                                 msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
-                        else:
-                            msg = 'Unrecognized MultiChain command'
-                            msgtype = 'danger'
+                        elif opdrop_type == util.OP_DROP_TYPE_CREATE_STREAM:
+                            msg = 'Create stream:'
+                            data = util.get_multichain_op_return_data(row['binscript'])
+                            opreturn_type, val = util.parse_op_return_data(data)
+                            #it should be  OP_RETURN_TYPE_ISSUE_MORE_ASSET, lets rename to OP_RETURN_TYPE_SPKC
+                            if opreturn_type==util.OP_RETURN_TYPE_SPKC:
+                                msg += '<table class="table table-bordered table-condensed">'
+
+                                fields = val['fields']
+                                for k,v in sorted(fields.items()):
+                                    try:
+                                        v.decode('ascii')
+                                    except UnicodeDecodeError:
+                                        v = util.long_hex(v)
+                                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                                msg += '</table>'
+                                msgpanelstyle="margin-bottom: -20px;"
+                            else:
+                                msg = 'Unrecognized Create Stream OP_RETURN payload'
+                                msgtype = 'danger'
+                        elif opdrop_type == util.OP_DROP_TYPE_STREAM_ITEM:
+                            msg = ''
+                            script_type, dict = chain.parse_txout_script(row['binscript'])
+                            streamlink = val  # TODO: hyperlink should be based on sql database records
+                            itemkey = dict['itemkey'][4:] # we don't need prefix 'spkk' or 0x73 0x70 0x6b 0x6b
+                            msg += '<table class="table table-bordered table-condensed">'
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Stream', streamlink)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Key', itemkey)
+
+                            itemdata = dict['itemdata']
+                            itemdata = util.long_hex(itemdata)
+                            # try:
+                            #     itemdata.decode('ascii')
+                            # except UnicodeDecodeError:
+                            #     itemdata = util.long_hex(itemdata)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Data', itemdata )
+                            msg += '</table>'
+                            msgpanelstyle="margin-bottom: -20px;"
+
 
                 if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
                     opreturn_type, val = util.parse_op_return_data(data)
@@ -1316,7 +1363,7 @@ class Abe:
                         msg += '</table>'
                         msgpanelstyle="margin-bottom: -20px;"
 
-                    elif opreturn_type==util.OP_RETURN_TYPE_ISSUE_MORE_ASSET:
+                    elif opreturn_type==util.OP_RETURN_TYPE_SPKC:
                         msg = 'Issue more asset details:'
                         msg += '<table class="table table-bordered table-condensed">'
 
@@ -1573,6 +1620,10 @@ class Abe:
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                                 msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
+                        elif opdrop_type==util.OP_DROP_TYPE_CREATE_STREAM:
+                            msg = 'Create stream'
+                        elif opdrop_type==util.OP_DROP_TYPE_STREAM_ITEM:
+                            msg = 'Stream Item'
                         else:
                             msg = 'Unrecognized MultiChain command'
                             msgtype = 'danger'
@@ -1605,7 +1656,7 @@ class Abe:
                         msg += '</table>'
                         msgpanelstyle="margin-bottom: -20px;"
 
-                    elif opreturn_type==util.OP_RETURN_TYPE_ISSUE_MORE_ASSET:
+                    elif opreturn_type==util.OP_RETURN_TYPE_SPKC:
                         msg = 'Issue more asset details:'
                         msg += '<table class="table table-bordered table-condensed">'
 
