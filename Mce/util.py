@@ -297,6 +297,7 @@ OP_DROP_TYPE_PERMISSION = 3
 OP_DROP_TYPE_ISSUE_MORE_ASSET = 4
 OP_DROP_TYPE_CREATE_STREAM = 5
 OP_DROP_TYPE_STREAM_ITEM = 6
+OP_DROP_TYPE_STREAM_PERMISSION = 7
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
@@ -318,7 +319,8 @@ def get_op_drop_type_description(t):
         return "Create Stream"
     elif t == OP_DROP_TYPE_STREAM_ITEM:
         return "Stream Item"
-
+    elif t == OP_DROP_TYPE_STREAM_PERMISSION:
+        return "Stream Permission"
     return "Unrecognized Command"
 
 def get_op_return_type_description(t):
@@ -371,7 +373,7 @@ def parse_op_drop_data(data):
             rettype = OP_DROP_TYPE_SEND_ASSET
         retval = assets
     elif data[0:4]==bytearray.fromhex(u'73706b70'):
-        # spkp
+        # spkp (for regular permissions and stream permissions)
         # 4 byte bitmap uint32, uint32 from, unit32 to, uint32 timestamp
         # bitmap connect=1, send=2, receive=4, issue=16, mine=256, admin=4096.
         (bitmap, block_from, block_to, timestamp) = struct.unpack("<LLLL", data[4:])
@@ -382,15 +384,18 @@ def parse_op_drop_data(data):
         connect = (bitmap & 1) > 0
         send = (bitmap & 2) > 0
         receive = (bitmap & 4) > 0
+        write = (bitmap & 8) > 0
         issue = (bitmap & 16) > 0
+        create = (bitmap & 32) > 0
         mine = (bitmap & 256) > 0
         admin = (bitmap & 4096) > 0
         activate = (bitmap & 8192) > 0
-        #allsum = 1+2+4+16+256+4096+8192
+        #allsum = 1+2+4+8+16+32+256+4096+8192
         #all = (bitmap & allsum) == allsum
         rettype = OP_DROP_TYPE_PERMISSION
         retval = {'connect':connect, 'send':send, 'receive':receive, 'issue':issue, 'mine':mine, 'admin':admin, 'activate':activate,
                   #'all':all,
+                  'create':create, 'write':write,
                   'type':'revoke' if revoke is True else 'grant',
                   'startblock':block_from, 'endblock':block_to}
     elif data[0:4]==bytearray.fromhex(u'73706b6e'):

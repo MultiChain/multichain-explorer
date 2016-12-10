@@ -4114,6 +4114,10 @@ store._ddl['txout_approx'],
         script_type, data = chain.parse_txout_script(scriptpubkey)
         if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
             label.append('P2SH')
+        if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
+            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION,
+            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
+            label.append('Stream')
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
             data = util.get_multichain_op_drop_data(scriptpubkey)
             if data is not None:
