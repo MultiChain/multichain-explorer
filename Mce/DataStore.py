@@ -4126,6 +4126,27 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
+    def list_stream_publishers(store, chain, streamref, publisher="*"):
+        """
+        Get the result of liststreampublisheritems json-rpc command as json object.
+        We ask for all streams and verbose data, such as the creators field.
+        :param chain:
+        :param streamref:
+        :param publisher:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            # liststreampublishers streamref publisheraddress
+            resp = util.jsonrpc(multichain_name, url, "liststreampublishers", streamref, publisher)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
     def get_rawmempool(store, chain):
         """
         Get the result of getrawmempool json-rpc command as json object

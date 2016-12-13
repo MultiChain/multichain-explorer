@@ -2397,6 +2397,7 @@ class Abe:
 
         try:
             resp = abe.store.list_stream(chain, streamname)
+            publishers = abe.store.list_stream_publishers(chain, streamname)
         except util.JsonrpcException as e:
             msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
@@ -2417,30 +2418,60 @@ class Abe:
             body += html_keyvalue_tablerow_wrap(50, 300, k, v)
         body += ['</table>']
 
+        body += ['<h3>Publishers</h3>']
+        body += ['<table class="table table-striped"><tr>'
+                 '<colgroup><col class="col-md-4"><col class="col-md-8"></colgroup>'
+                 '<th>Publisher</th>'
+                 '<th>Items</th>'
+                 '</tr>\n']
+
+       # body += ['<table class="table table-bordered table-striped table-condensed">']
+        for publisher in publishers:
+            address = publisher['publisher']
+            publisher_link = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + address + '">' + address + '</a>'
+            body += ['<tr><td>', publisher_link,
+                     '</td><td>', str(publisher['items']),
+                     '</td></tr>']
+        body += ['</table>']
+
+
+
+    # Handle URL: base/chain/publisheritems/streamname/publisher
+    def handle_publisheritems(abe, page):
+        streamname = wsgiref.util.shift_path_info(page['env'])
+        if streamname in (None, ''): # or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+        publisher = wsgiref.util.shift_path_info(page['env'])
+        if publisher in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+        abe.do_streamitems(page, streamname, publisher)
 
     # Handle URL: base/chain/streamitems/streamname
     def handle_streamitems(abe, page):
-        chain = page['chain']
-
-        # Shift stream name
         streamname = wsgiref.util.shift_path_info(page['env'])
         if streamname in (None, '') or page['env']['PATH_INFO'] != '':
             raise PageNotFound()
+        abe.do_streamitems(page, streamname)
 
-        page['title'] = 'Stream: <a href="../streams/">' + streamname + '</a>'
+
+    def do_streamitems(abe, page, streamname, publisher = None):
+        chain = page['chain']
+
+        page['title'] = 'Stream: <a href="' + page['dotdot'] + '/' + escape(chain.name) + '/streams/">' + streamname + '</a>'
         body = page['body']
 
-        url = abe.store.get_url_by_chain(chain)
-        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+        # url = abe.store.get_url_by_chain(chain)
+        # multichain_name = abe.store.get_multichain_name_by_id(chain.id)
 
         # url encoded parameters to control paging of items
         count = get_int_param(page, 'count') or 20
         hi = get_int_param(page, 'hi')
-        orig_hi = hi
 
         try:
-            resp = abe.store.list_streams(chain)
-            num_streams = len(resp)
+            resp = abe.store.list_stream(chain, streamname)
+            if publisher is not None:
+                resp2 = abe.store.list_stream_publishers(chain, streamname, publisher)
+                num_publisher_items = resp2[0]['items']
         except util.JsonrpcException as e:
             msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
@@ -2449,31 +2480,36 @@ class Abe:
             body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
 
-        mystream = None
-        for stream in resp:
-            if stream['name'] == streamname:
-                mystream = stream
-                break
+        mystream = resp
 
         if mystream is None:
             msg = "Stream '{0}' does not exist".format(streamname)
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
             return
 
-        num_items = stream.get('items', 0)
+        if publisher is None:
+            num_items = mystream['items']
+        else:
+            num_items = num_publisher_items
+
         if hi is None:
             hi = num_items
-            orig_hi = hi
 
         # check to make sure hi is not too high
         if hi > num_items:
             hi = num_items
 
-        body += ['<h3>Stream Items</h3>']
+        if publisher is None:
+            body += ['<h3>Stream Items</h3>']
+        else:
+            body += ['<h3>Items Published By ' + publisher + '</h3>']
+
         createtxid = mystream['createtxid']
         try:
-            streamitems = abe.store.list_stream_items(chain, createtxid, count, max( hi - count, 0) ) # 0 if remainder is less than count
-            # num_items = len(streamitems)
+            if publisher is None:
+                streamitems = abe.store.list_stream_items(chain, createtxid, count, max( hi - count, 0) ) # 0 if remainder is less than count
+            else:
+                streamitems = abe.store.list_stream_publisher_items(chain, createtxid, publisher, count, max( hi - count, 0) )
         except Exception as e:
             body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
@@ -2520,7 +2556,7 @@ class Abe:
 
         for item in sorted_streamitems:
             publisher = item['publishers'][0]   # TODO: for now we take the first publisher
-            publisher_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/address/' + publisher + '">' + publisher + '</a>'
+            publisher_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
 
             # A runtime paramater -maxshowndata=20 determines if the node returns data in json output or not.
             # The node itself will not store more than 256 bytes of data.  The blockchain database stores all dadta.
@@ -2586,6 +2622,7 @@ class Abe:
                 '</td></tr>\n']
 
         body += ['</table>\n<p>', nav, '</p>\n']
+
 
     def handle_txoutdata(abe, page):
         abe.do_rpc(page, abe.do_rpc_txoutdata)
