@@ -4030,18 +4030,96 @@ store._ddl['txout_approx'],
             return len(resp)
         return 0
 
-    def list_streams(store, chain):
+    def list_stream(store, chain, name):
         """
-        Get the result of liststreas json-rpc command as json object.
+        Get the result of liststreams json-rpc command as json object.
+        We ask for a specific stream and verbose data.
+        :param chain:
+        :param name:
+        :return: None or json object for the stream
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "liststreams", name, True)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+
+        if len(resp) < 1:
+            return None
+        return resp[0]
+
+    def list_streams(store, chain, count=0):
+        """
+        Get the result of liststreams json-rpc command as json object.
         We ask for all streams and verbose data, such as the creators field.
         :param chain:
+        :param count: by default all
         :return: json object
         """
         url = store.get_url_by_chain(chain)
         multichain_name = store.get_multichain_name_by_id(chain.id)
         resp = None
         try:
-            resp = util.jsonrpc(multichain_name, url, "liststreams", "*", True)
+            # liststreans streamref verbose count start
+            # e.g. liststreams "*" true 2 -2
+            # display last two streams.
+            # e.g. liststreams "*" true 2 0
+            # display first two streams
+
+            # all streams
+            if count <= 0:
+                resp = util.jsonrpc(multichain_name, url, "liststreams", "*", True)
+            else:
+                resp = util.jsonrpc(multichain_name, url, "liststreams", "*", True, count, -count)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
+    def list_stream_items(store, chain, streamref, count=10, start=-10):
+        """
+        Get the result of liststreamitems json-rpc command as json object.
+        We ask for all streams and verbose data, such as the creators field.
+        :param chain:
+        :param streamref:
+        :param count:
+        :param start:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            # liststreamitems streamref verbose count start localordering
+            resp = util.jsonrpc(multichain_name, url, "liststreamitems", streamref, True, count, start)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
+    def list_stream_publisher_items(store, chain, streamref, publisher, count=10, start=-10):
+        """
+        Get the result of liststreampublisheritems json-rpc command as json object.
+        We ask for all streams and verbose data, such as the creators field.
+        :param chain:
+        :param streamref:
+        :param publisher:
+        :param count:
+        :param start:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            # liststreampublisheritems streamref publisheraddress verbose count start localordering
+            resp = util.jsonrpc(multichain_name, url, "liststreampublisheritems", streamref, publisher, True, count, start)
         except util.JsonrpcException as e:
             raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
         except IOError as e:

@@ -26,6 +26,7 @@ import Crypto.Hash.SHA256 as SHA256
 import struct
 import deserialize
 import Chain
+import string
 # MULTICHAIN END
 
 try:
@@ -600,5 +601,14 @@ def format_display_quantity(asset, rawqty):
         v = float(rawqty) / float(multiple)
     return fmt.format( v )
 
-
+def is_printable(s):
+    """
+    Return True if the string is ASCII (with punctuation) and printable
+    :param s:
+    :return:
+    """
+    for c in s:
+        if c not in string.printable:
+            return False
+    return True
 # MULTICHAIN END

@@ -2364,7 +2364,7 @@ class Abe:
         body += ['<h3>Streams</h3>']
         body += ['<table class="table table-striped">'
                  '<tr><th>Stream Name</th>'
-                 '<th>Stream Reference</th>'
+                 '<th>Stream Items</th>'
                  '<th>Anybody Can Publish</th>'
                  '<th>Creator</th>'
                  '<th>Creation Transaction</th>'
@@ -2373,8 +2373,8 @@ class Abe:
         for stream in resp:
             #creators = '</br>'.join("{}".format(creator) for creator in stream['creators'])
             streamname = stream.get('name','')
-            body += ['<tr><td><a href="../../' + escape(chain.name) + '/streamref/' + stream['streamref'] + '">' + streamname.encode('unicode-escape') + '</a>',
-                     '</td><td><a href="../../' + escape(chain.name) + '/streamref/' + stream['streamref'] + '">' + stream['streamref'] + '</a>',
+            body += ['<tr><td><a href="../../' + escape(chain.name) + '/stream/' + streamname + '">' + streamname.encode('unicode-escape') + '</a>',
+                     '</td><td><a href="../../' + escape(chain.name) + '/streamitems/' + streamname + '">' + str(stream['items']) + '</a>',
                      '</td><td>', stream['open'],
                      '</td><td><a href="../../' + escape(chain.name) + '/address/' + stream['creators'][0] + '">', stream['creators'][0], '</a>',
                      '</td><td><a href="../../' + escape(chain.name) + '/tx/' + stream['createtxid'] + '">',
@@ -2382,6 +2382,254 @@ class Abe:
                      '</td></tr>']
 
         body += ['</table>']
+
+
+    def handle_stream(abe, page):
+        chain = page['chain']
+
+        # Shift stream name
+        streamname = wsgiref.util.shift_path_info(page['env'])
+        if streamname in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+
+        page['title'] = 'Stream: <a href="../streams/">' + streamname + '</a>'
+        body = page['body']
+
+        try:
+            resp = abe.store.list_stream(chain, streamname)
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+            return
+        except IOError as e:
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+            return
+
+        if resp is None:
+            body += ['<div class="alert alert-danger" role="warning">', 'liststreams did not return any data for stream' ,'</div>']
+            return
+
+        body += ['<h3>Summary</h3>']
+        body += ['<table class="table table-bordered table-striped table-condensed">']
+        for k,v in sorted(resp.items()):
+            if k in ('confirmed', 'items'):
+                v = '<a href="../../' + escape(chain.name) + '/streamitems/' + streamname + '">' + str(v) + '</a>'
+            body += html_keyvalue_tablerow_wrap(50, 300, k, v)
+        body += ['</table>']
+
+
+    # Handle URL: base/chain/streamitems/streamname
+    def handle_streamitems(abe, page):
+        chain = page['chain']
+
+        # Shift stream name
+        streamname = wsgiref.util.shift_path_info(page['env'])
+        if streamname in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+
+        page['title'] = 'Stream: <a href="../streams/">' + streamname + '</a>'
+        body = page['body']
+
+        url = abe.store.get_url_by_chain(chain)
+        multichain_name = abe.store.get_multichain_name_by_id(chain.id)
+
+        # url encoded parameters to control paging of items
+        count = get_int_param(page, 'count') or 20
+        hi = get_int_param(page, 'hi')
+        orig_hi = hi
+
+        try:
+            resp = abe.store.list_streams(chain)
+            num_streams = len(resp)
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+            return
+        except IOError as e:
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+            return
+
+        mystream = None
+        for stream in resp:
+            if stream['name'] == streamname:
+                mystream = stream
+                break
+
+        if mystream is None:
+            msg = "Stream '{0}' does not exist".format(streamname)
+            body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+            return
+
+        num_items = stream.get('items', 0)
+        if hi is None:
+            hi = num_items
+            orig_hi = hi
+
+        # check to make sure hi is not too high
+        if hi > num_items:
+            hi = num_items
+
+        body += ['<h3>Stream Items</h3>']
+        createtxid = mystream['createtxid']
+        try:
+            streamitems = abe.store.list_stream_items(chain, createtxid, count, max( hi - count, 0) ) # 0 if remainder is less than count
+            # num_items = len(streamitems)
+        except Exception as e:
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+            return
+
+        # timestamp, publisher key, data (link to raw data), txid,
+
+        basename = os.path.basename(page['env']['PATH_INFO'])
+
+        nav = ['<a href="',
+               basename, '?count=', str(count), '">&lt;&lt;</a>']
+        nav += [' <a href="', basename, '?hi=', str(hi + count),
+                 '&amp;count=', str(count), '">&lt;</a>']
+        nav += [' ', '&gt;']
+        if hi >= count:
+            nav[-1] = ['<a href="', basename, '?hi=', str(hi - count),
+                        '&amp;count=', str(count), '">', nav[-1], '</a>']
+        nav += [' ', '&gt;&gt;']
+        if hi != count - 1:
+            nav[-1] = ['<a href="', basename, '?hi=', str(count - 1),
+                        '&amp;count=', str(count), '">', nav[-1], '</a>']
+        for c in (20, 50, 100, 500):
+            nav += [' ']
+            if c != count:
+                nav += ['<a href="', basename, '?count=', str(c)]
+                if hi is not None:
+                    nav += ['&amp;hi=', str(max(hi, c - 1))]
+                nav += ['">']
+            nav += [' ', str(c)]
+            if c != count:
+                nav += ['</a>']
+
+        #nav += [' <a href="', page['dotdot'], '">Search</a>']
+
+        body += ['<p>', nav, '</p>\n',
+                 '<table class="table table-striped"><tr>'
+                 '<th>Time</th>'
+                 '<th>Key</th><th>Value</th><th>Raw Data</th>',
+                 '<th>Publisher</th><th>Transaction</th>'
+                 '</tr>\n']
+
+        # sort streamitems in descending order, so most recent timestamp is at top of page
+        sorted_streamitems = sorted(streamitems, key=lambda item: item['time'], reverse=True)
+
+
+        for item in sorted_streamitems:
+            publisher = item['publishers'][0]   # TODO: for now we take the first publisher
+            publisher_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/address/' + publisher + '">' + publisher + '</a>'
+
+            # A runtime paramater -maxshowndata=20 determines if the node returns data in json output or not.
+            # The node itself will not store more than 256 bytes of data.  The blockchain database stores all dadta.
+            # If the length of the data is > maxshowndata, instead of hex data you receieve:
+            # "data" : {
+            #  "txid" : "7b9a6e1b948e426e82d0fd94b1686c301516ce0fd9522a2f8189cd52c046bd62",
+            #  "vout" : 0,
+            #  "size" : 576
+            # }
+            txid = item['txid']  # data['txid'] should be the same
+            data = item['data']
+            vout = 0
+            size = 0
+            printdata = False
+            if type(data) is dict:
+                mydata = 'Too large to show'
+                vout = data['vout']
+                size = data['size']
+            else:
+                size = len(data) / 2
+
+                # try to decode hex data as ascii, and also check length
+                try:
+                    rawdata = binascii.unhexlify(data)
+                    if util.is_printable(rawdata) is True:
+                        mydata = rawdata
+                        printdata = True
+                    else:
+                        #rawdata.decode('utf-8')
+                        mydata = 'Binary data'
+                except UnicodeDecodeError:
+                    numchars = 20
+                    mydata = data[:numchars * 2]
+                    if len(data) > numchars:
+                        mydata += '... '
+                    printdata = True
+
+            if printdata is True:
+                datahtml =  mydata
+                #datahtml = ['<strong>', mydata, '</strong>']
+                #datahtml = ['<div class="well well-sm">', mydata, '</div>']
+                #datahtml = ['<div class="panel panel-default panel-info"><div class="panel-body" style="word-break:break-all;">' + mydata +'</div></div>']
+            else:
+                datahtml = ['<em>', mydata, '</em>']
+
+            blocktime = int(item.get('blocktime', -1))
+            if blocktime == -1:
+                timestamp_label = 'Unconfirmed'
+            else:
+                timestamp_label = format_time(blocktime)
+
+            sizelink ='<a href="' + page['dotdot'] + '/' + escape(chain.name)
+            sizelink += '/txoutdata/' + txid + '/' + str(vout) + '">' + str(size) + ' bytes</a>'
+
+            body += [
+                '<tr>'
+                '</td><td>', timestamp_label,
+                '</td><td>', item['key'],
+                '</td><td>', datahtml,
+                '</td><td>', sizelink,
+                '</td><td>', publisher_address,
+                '</td><td>', '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/tx/' + txid + '">', txid[0:10], '...</a>',
+                '</td></tr>\n']
+
+        body += ['</table>\n<p>', nav, '</p>\n']
+
+    def handle_txoutdata(abe, page):
+        abe.do_rpc(page, abe.do_rpc_txoutdata)
+
+    def do_rpc_txoutdata(abe, page, chain):
+        chain = page['chain']
+
+        # Shift txid
+        txid = wsgiref.util.shift_path_info(page['env'])
+        if txid in (None, ''): # or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+
+        # Shift vout
+        vout = wsgiref.util.shift_path_info(page['env'])
+        if vout in (None, '') or page['env']['PATH_INFO'] != '':
+             raise PageNotFound()
+
+        page['title'] = 'Data for ' + txid + ' vout ' + vout
+        body = page['body']
+
+        chain_name = abe.store.get_multichain_name_by_id(chain.id)
+        url = abe.store.get_url_by_chain(chain)
+
+        try:
+            resp = util.jsonrpc(chain_name, url, "gettxoutdata", txid, int(vout))
+        except util.JsonrpcException as e:
+            msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
+            #if e.code != -5:  # -5: transaction not in index.
+            s = '<div class="alert alert-danger" role="warning">' + msg + '</div>'
+            page['content_type'] = 'text/html'
+            return s
+        except IOError as e:
+            msg= "I/O error({0}): {1}".format(e.errno, e.strerror)
+            s = '<div class="alert alert-danger" role="alert">' + msg + '</div>'
+            page['title'] = 'IO ERROR'
+            page['content_type'] = 'text/html'
+            return s
+
+        s = resp
+
+        # this removes the standard html template, we are ok returning text now, no error.
+        page['template'] = '%(body)s'
+
+        return s
 
 
     # Experimental handler for getting json and raw hex data from RPC calls
