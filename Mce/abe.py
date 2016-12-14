@@ -2373,8 +2373,14 @@ class Abe:
         for stream in resp:
             #creators = '</br>'.join("{}".format(creator) for creator in stream['creators'])
             streamname = stream.get('name','')
+            subscribed = stream['subscribed']
+            if subscribed:
+                streamitems_cell= '<a href="../../' + escape(chain.name) + '/streamitems/' + streamname + '">' + str(stream['items']) + '</a>'
+            else:
+                streamitems_cell = 'Not subscribed'
+
             body += ['<tr><td><a href="../../' + escape(chain.name) + '/stream/' + streamname + '">' + streamname.encode('unicode-escape') + '</a>',
-                     '</td><td><a href="../../' + escape(chain.name) + '/streamitems/' + streamname + '">' + str(stream['items']) + '</a>',
+                     '</td><td>', streamitems_cell,
                      '</td><td>', stream['open'],
                      '</td><td><a href="../../' + escape(chain.name) + '/address/' + stream['creators'][0] + '">', stream['creators'][0], '</a>',
                      '</td><td><a href="../../' + escape(chain.name) + '/tx/' + stream['createtxid'] + '">',
@@ -2404,6 +2410,9 @@ class Abe:
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
             return
         except IOError as e:
+            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+            return
+        except Exception as e:
             body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
 
