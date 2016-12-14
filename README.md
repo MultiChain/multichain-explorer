@@ -20,7 +20,7 @@ popularized by Bitcoin block explorers like http://blockexplorer.com/.
 
 MultiChain Explorer is a fork of the popular [Abe](https://github.com/bitcoin-abe/bitcoin-abe) project to add support for MultiChain blockchains with assets and permissions.  MultiChain nodes must be online for all Explorer functions to work.
 
-MultiChain Explorer is still under  development, so things may break or change!
+MultiChain Explorer is still under development, so things may break or change!
 
 
 System Requirements
@@ -45,6 +45,12 @@ On CentOS, you will need to install the following dependencies:
     sudo yum install python-devel
     sudo yum groupinstall "Development tools"
     sudo pip install pycrypto
+
+
+MultiChain Compatibility
+------------------------
+
+The explorer currently supports MultiChain Alpha 26.
 
 
 Installation
@@ -72,6 +78,8 @@ If you do not yet have a chain you want to explore, [Download MultiChain](http:/
     multichaind chain1 -daemon
 
 By default the [runtime parameter](http://www.multichain.com/developers/runtime-parameters/) ````txindex```` is enabled so that the node keeps track of all transactions across the blockchain, and not just those for the node's wallet. This is required for the Explorer to work correctly.
+
+The explorer supports viewing streams which the node has subscribed to.  Launch MultiChain with the runtime parameter ````autosubscribe=streams```` to automatically subscribe to every stream.
 
 _The rest of this document assumes your blockchain is named ````chain1````. If not, please substitute accordingly._
 
