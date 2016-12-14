@@ -4147,6 +4147,50 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
+    def list_stream_keys(store, chain, streamref, keys="*"):
+        """
+        Get the result of liststreamkeys json-rpc command as json object.
+        We ask for all keys and verbose data, such as the creators field.
+        :param chain:
+        :param streamref:
+        :param keys:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            # liststreamkeys streamref keys
+            resp = util.jsonrpc(multichain_name, url, "liststreamkeys", streamref, keys)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
+    def list_stream_key_items(store, chain, streamref, streamkey, count=10, start=-10):
+        """
+        Get the result of liststreamkeyitems json-rpc command as json object.
+        We ask for all streams and verbose data, such as the creators field.
+        :param chain:
+        :param streamref:
+        :param key:
+        :param count:
+        :param start:
+        :return: json object
+        """
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            # liststreamkeyitems streamref publisheraddress verbose count start localordering
+            resp = util.jsonrpc(multichain_name, url, "liststreamkeyitems", streamref, streamkey, True, count, start)
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
     def get_rawmempool(store, chain):
         """
         Get the result of getrawmempool json-rpc command as json object

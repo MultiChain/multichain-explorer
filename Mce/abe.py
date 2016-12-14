@@ -2398,6 +2398,7 @@ class Abe:
         try:
             resp = abe.store.list_stream(chain, streamname)
             publishers = abe.store.list_stream_publishers(chain, streamname)
+            recentkeys = abe.store.list_stream_keys(chain, streamname)
         except util.JsonrpcException as e:
             msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
@@ -2434,6 +2435,20 @@ class Abe:
                      '</td></tr>']
         body += ['</table>']
 
+        body += ['<h3>Recently Updated Keys</h3>']
+        body += ['<table class="table table-striped"><tr>'
+                 '<colgroup><col class="col-md-4"><col class="col-md-8"></colgroup>'
+                 '<th>Key</th>'
+                 '<th>Number of Items</th>'
+                 '</tr>\n']
+
+        for obj in recentkeys:
+            keylink = '<a href="' + page['dotdot'] + '/' + escape(chain.name)
+            keylink += '/keyitems/' + streamname + '/' + obj['key'] + '">' + obj['key'] + '</a>'
+            body += ['<tr><td>', keylink,
+                     '</td><td>', str(obj['items']),
+                     '</td></tr>']
+        body += ['</table>']
 
 
     # Handle URL: base/chain/publisheritems/streamname/publisher
@@ -2453,8 +2468,17 @@ class Abe:
             raise PageNotFound()
         abe.do_streamitems(page, streamname)
 
+    def handle_keyitems(abe, page):
+        streamname = wsgiref.util.shift_path_info(page['env'])
+        if streamname in (None, ''): # or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+        key = wsgiref.util.shift_path_info(page['env'])
+        if key in (None, '') or page['env']['PATH_INFO'] != '':
+            raise PageNotFound()
+        abe.do_streamitems(page, streamname, None, key)
 
-    def do_streamitems(abe, page, streamname, publisher = None):
+
+    def do_streamitems(abe, page, streamname, publisher = None, streamkey = None):
         chain = page['chain']
 
         page['title'] = 'Stream: <a href="' + page['dotdot'] + '/' + escape(chain.name) + '/streams/">' + streamname + '</a>'
@@ -2472,6 +2496,13 @@ class Abe:
             if publisher is not None:
                 resp2 = abe.store.list_stream_publishers(chain, streamname, publisher)
                 num_publisher_items = resp2[0]['items']
+            if streamkey is not None:
+                resp3 = abe.store.list_stream_keys(chain, streamname, streamkey)
+                num_filterkey_items = resp3[0]['items']
+                if num_filterkey_items == 0:
+                    msg = "Stream has no items for key '{0}'".format(streamkey)
+                    body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
+                    return
         except util.JsonrpcException as e:
             msg= "JSON-RPC error({0}): {1}".format(e.code, e.message)
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
@@ -2487,10 +2518,13 @@ class Abe:
             body += ['<div class="alert alert-danger" role="warning">', msg ,'</div>']
             return
 
-        if publisher is None:
-            num_items = mystream['items']
-        else:
+        if publisher is not None:
             num_items = num_publisher_items
+        elif streamkey is not None:
+            num_items = num_filterkey_items
+        else:
+            num_items = mystream['items']
+
 
         if hi is None:
             hi = num_items
@@ -2499,17 +2533,23 @@ class Abe:
         if hi > num_items:
             hi = num_items
 
-        if publisher is None:
-            body += ['<h3>Stream Items</h3>']
+
+        if publisher is not None:
+            body += ['<h3>Items Published By: ' + publisher + '</h3>']
+        elif streamkey is not None:
+            body += ['<h3>Items For Key: ' + streamkey + '</h3>']
         else:
-            body += ['<h3>Items Published By ' + publisher + '</h3>']
+            body += ['<h3>Stream Items</h3>']
+
 
         createtxid = mystream['createtxid']
         try:
-            if publisher is None:
-                streamitems = abe.store.list_stream_items(chain, createtxid, count, max( hi - count, 0) ) # 0 if remainder is less than count
-            else:
+            if publisher is not None:
                 streamitems = abe.store.list_stream_publisher_items(chain, createtxid, publisher, count, max( hi - count, 0) )
+            elif streamkey is not None:
+                streamitems = abe.store.list_stream_key_items(chain, createtxid, streamkey, count, max(hi - count, 0))
+            else:
+                streamitems = abe.store.list_stream_items(chain, createtxid, count, max( hi - count, 0) ) # 0 if remainder is less than count
         except Exception as e:
             body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
             return
@@ -2611,10 +2651,13 @@ class Abe:
             sizelink ='<a href="' + page['dotdot'] + '/' + escape(chain.name)
             sizelink += '/txoutdata/' + txid + '/' + str(vout) + '">' + str(size) + ' bytes</a>'
 
+            keylink = '<a href="' + page['dotdot'] + '/' + escape(chain.name)
+            keylink += '/keyitems/' + streamname + '/' + item['key'] + '">' + item['key'] + '</a>'
+
             body += [
                 '<tr>'
                 '</td><td>', timestamp_label,
-                '</td><td>', item['key'],
+                '</td><td>', keylink,
                 '</td><td>', datahtml,
                 '</td><td>', sizelink,
                 '</td><td>', publisher_address,
