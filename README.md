@@ -18,7 +18,7 @@ This software reads the MultiChain block file, transforms and loads the
 data into a database, and presents a web interface similar to that
 popularized by Bitcoin block explorers like http://blockexplorer.com/.
 
-MultiChain Explorer is a fork of the popular [Abe](https://github.com/bitcoin-abe/bitcoin-abe) project to add support for MultiChain blockchains with assets and permissions.  MultiChain nodes must be online for all Explorer functions to work.
+MultiChain Explorer is a fork of the popular [Abe](https://github.com/bitcoin-abe/bitcoin-abe) project to add support for MultiChain blockchains with assets and permissions.  MultiChain nodes must be online for all explorer functions to work.
 
 MultiChain Explorer is still under development, so things may break or change!
 
@@ -50,18 +50,22 @@ On CentOS, you will need to install the following dependencies:
 MultiChain Compatibility
 ------------------------
 
-The explorer currently supports MultiChain Alpha 26.
+The explorer does not yet support protocol version `10007`, which is the default for new blockchains created with MultiChain 1.0 alpha 27. Either use MultiChain 1.0 alpha 26 or create a chain using protocol `10006`:
+
+    multichain-util create [chain-name] 10006
+
+You can check the protocol version of an existing chain using the `getinfo` command. Support for the new protocol will be available shortly.
 
 
 Installation
 ------------
 
-To install MultiChain explorer for the current user (recommended):
+To install MultiChain Explorer for the current user (recommended):
 
     cd multichain-explorer
     python setup.py install --user
 
-If you have root permission and want to install MultiChain explorer for all users on the system:
+If you have root permission and want to install MultiChain Explorer for all users on the system:
 
     cd multichain-explorer
     sudo python setup.py install
@@ -77,7 +81,7 @@ If you do not yet have a chain you want to explore, [Download MultiChain](http:/
     multichain-util create chain1
     multichaind chain1 -daemon
 
-By default the [runtime parameter](http://www.multichain.com/developers/runtime-parameters/) ````txindex```` is enabled so that the node keeps track of all transactions across the blockchain, and not just those for the node's wallet. This is required for the Explorer to work correctly.
+By default the [runtime parameter](http://www.multichain.com/developers/runtime-parameters/) ````txindex```` is enabled so that the node keeps track of all transactions across the blockchain, and not just those for the node's wallet. This is required for the explorer to work correctly.
 
 The explorer supports viewing streams which the node has subscribed to.  Launch MultiChain with the runtime parameter ````autosubscribe=streams```` to automatically subscribe to every stream.
 
