@@ -215,8 +215,8 @@ class BaseChain(object):
         * SCRIPT_TYPE_MULTICHAIN - DATA is the binary public key (there is another method to get the OPDROP data)
         * SCRIPT_TYPE_MULTICHAIN_P2SH - DATA is the binary script hash (there is another method to get the OPDROP data)
         * SCRIPT_TYPE_MULTICHAIN_STREAM - DATA is a dicationary containing op_drop and op_return data.
-        * SCRIPT_TYPE_MULTICAHIN_STREAM_ITEM - Data is a dictionary containing stream creation txid, item key, item data.
-        * SCRIPT_TYPE_MULTICAHIN_STREAM_PERMISSION - Data is a dictionary containing stream creation txid, item key, item data.
+        * SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM - Data is a dictionary containing stream creation txid, item key, item data.
+        * SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION - Data is a dictionary containing stream creation txid, permissions, pubkey_hash
 # MULTICHAIN END
         """
         if script is None:
@@ -231,7 +231,7 @@ class BaseChain(object):
 # MULTICHAIN START
         # Return dict
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_PERMISSION_TEMPLATE):
-            dict = {"streamtxid":decoded[5][1], "permissions":decoded[7][1]}
+            dict = {"streamtxid":decoded[5][1], "permissions":decoded[7][1], "pubkey_hash":decoded[2][1]}
             return SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION, dict
 
         # Return script type and address

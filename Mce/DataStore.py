@@ -1640,6 +1640,8 @@ store._ddl['txout_approx'],
         elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
             txout['address_version'] = chain.script_addr_vers
             txout['binaddr'] = data
+        elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+            txout['binaddr'] = data['pubkey_hash']
         # MULTICHAIN END
         else:
             txout['binaddr'] = None
@@ -2105,7 +2107,13 @@ store._ddl['txout_approx'],
             if txout_id is not None and binscript is not None:
                 spent_tx_hash = store.hashout(txin['prevout_hash'])     # reverse out, otherwise it is backwards
                 vers = chain.address_version
-                the_script_type, pubkey_hash = chain.parse_txout_script(binscript)
+                the_script_type, data = chain.parse_txout_script(binscript)     # data is usually the pubkey_hash but could be dict
+
+                if the_script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+                    pubkey_hash = data['pubkey_hash']
+                else:
+                    pubkey_hash = data
+
                 if the_script_type is Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
                     vers = chain.script_addr_vers
                 checksum = chain.address_checksum
@@ -2782,6 +2790,8 @@ store._ddl['txout_approx'],
         if script_type == Chain.SCRIPT_TYPE_MULTICHAIN:
             return store.pubkey_hash_to_id(data)
 
+        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+            return store.pubkey_hash_to_id(data['pubkey_hash'])
 # MULTICHAIN END
 
         if script_type == Chain.SCRIPT_TYPE_PUBKEY:
