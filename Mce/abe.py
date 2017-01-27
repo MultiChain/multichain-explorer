@@ -1325,7 +1325,21 @@ class Abe:
                         elif opdrop_type == util.OP_DROP_TYPE_STREAM_ITEM:
                             msg = ''
                             script_type, dict = chain.parse_txout_script(row['binscript'])
-                            streamlink = val  # TODO: hyperlink should be based on sql database records
+                            txidfragment = val
+                            streamlink = 'Invalid: ' + val
+
+                            try:
+                                resp = abe.store.list_streams(chain)
+                                for stream in resp:
+                                    if stream.get('createtxid','').startswith(txidfragment):
+                                        streamname = stream.get('name','')
+                                        streamlink = '<a href="../../' + escape(chain.name) + '/streams/' + streamname + '">' + streamname + '</a>'
+                                        break
+
+                            except Exception as e:
+                                body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+                                return
+
                             itemkey = dict['itemkey'][4:] # we don't need prefix 'spkk' or 0x73 0x70 0x6b 0x6b
                             msg += '<table class="table table-bordered table-condensed">'
                             msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Stream', streamlink)
