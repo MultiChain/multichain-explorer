@@ -489,6 +489,11 @@ def parse_op_return_data(data):
         searchdata = data[pos:]
         # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
         fields = dict()
+
+        # If the property 'Open to all writers' is not present, we treat it as false.
+        opentoall = "Open to all writers"
+        fields[opentoall] = "False"
+        
         while pos<len(data):
             # Is this a special property with meaning only for MultiChain?
             if data[pos:pos+1] == "\0":
@@ -500,7 +505,7 @@ def parse_op_return_data(data):
                     fname = "Name"
                     fields[fname] = assetprop
                 elif proptype==0x04:
-                    fname = "Open to all writers"
+                    fname = opentoall
                     if ord(assetprop) == 1:
                         fields[fname] = "True"
                     else:
