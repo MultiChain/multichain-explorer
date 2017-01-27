@@ -2439,6 +2439,8 @@ class Abe:
         for k,v in sorted(resp.items()):
             if k in ('confirmed', 'items'):
                 v = '<a href="../../' + escape(chain.name) + '/streamitems/' + streamname + '">' + str(v) + '</a>'
+            elif k in ('createtxid'):
+                v = '<a href="../../' + escape(chain.name) + '/tx/' + v + '">' + v + '</a>'
             body += html_keyvalue_tablerow_wrap(50, 300, k, v)
         body += ['</table>']
 
