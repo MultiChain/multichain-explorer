@@ -2055,7 +2055,8 @@ class Abe:
         if assetref in (None, '') or page['env']['PATH_INFO'] != '':
             raise PageNotFound()
 
-        page['title'] = '<a href="../assets/">' + chain.name + '</a>'
+        page['title'] = 'Asset'
+        page['h1'] = '<a href="../assets/">' + chain.name + '</a>'
         body = page['body']
 
         url = abe.store.get_url_by_chain(chain)
@@ -2268,7 +2269,7 @@ class Abe:
         chain = page['chain']
 
         page['content_type'] = 'text/html'
-        page['title'] = chain.name
+        page['title'] = 'Assets of ' + chain.name
         body = page['body']
 
         url = abe.store.get_url_by_chain(chain)
@@ -2355,7 +2356,7 @@ class Abe:
         chain = page['chain']
 
         page['content_type'] = 'text/html'
-        page['title'] = chain.name
+        page['title'] = 'Streams of ' + chain.name
         body = page['body']
 
         # url = abe.store.get_url_by_chain(chain)
@@ -2412,7 +2413,8 @@ class Abe:
         if streamname in (None, '') or page['env']['PATH_INFO'] != '':
             raise PageNotFound()
 
-        page['title'] = 'Stream: <a href="../streams/">' + streamname + '</a>'
+        page['title'] = 'Stream'
+        page['h1'] = 'Stream: <a href="../streams/">' + streamname + '</a>'
         body = page['body']
 
         try:
@@ -2506,7 +2508,8 @@ class Abe:
     def do_streamitems(abe, page, streamname, publisher = None, streamkey = None):
         chain = page['chain']
 
-        page['title'] = 'Stream: <a href="' + page['dotdot'] + '/' + escape(chain.name) + '/streams/">' + streamname + '</a>'
+        page['title'] = 'Stream Items'
+        page['h1'] = 'Stream: <a href="' + page['dotdot'] + '/' + escape(chain.name) + '/streams/">' + streamname + '</a>'
         body = page['body']
 
         # url = abe.store.get_url_by_chain(chain)
