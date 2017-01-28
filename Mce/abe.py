@@ -1598,7 +1598,10 @@ class Abe:
                 msg = None
                 msgtype = 'success'
                 msgpanelstyle = ''
-                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
+                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_P2SH,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(binscript)
                     if data is not None:
@@ -1665,23 +1668,103 @@ class Abe:
                                 permissions += ['Admin']
                             if val['activate']:
                                 permissions += ['Activate']
+                            if val['create']:
+                                permissions += ['Create']
+                            if val['write']:
+                                permissions += ['Write']
 
                             msg += ' permission to '
                             msg += ', '.join("{0}".format(item) for item in permissions)
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                                 msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
-                        elif opdrop_type==util.OP_DROP_TYPE_CREATE_STREAM:
-                            msg = 'Create stream'
-                        elif opdrop_type==util.OP_DROP_TYPE_STREAM_ITEM:
-                            msg = 'Stream Item'
+                        elif opdrop_type == util.OP_DROP_TYPE_CREATE_STREAM:
+                            msg = 'Create stream:'
+                            data = util.get_multichain_op_return_data(binscript)
+                            opreturn_type, val = util.parse_op_return_data(data)
+                            #it should be  OP_RETURN_TYPE_ISSUE_MORE_ASSET, lets rename to OP_RETURN_TYPE_SPKC
+                            if opreturn_type==util.OP_RETURN_TYPE_SPKC:
+                                msg += '<table class="table table-bordered table-condensed">'
+
+                                fields = val['fields']
+                                for k,v in sorted(fields.items()):
+                                    try:
+                                        v.decode('ascii')
+                                    except UnicodeDecodeError:
+                                        v = util.long_hex(v)
+                                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                                msg += '</table>'
+                                msgpanelstyle="margin-bottom: -20px;"
+                            else:
+                                msg = 'Unrecognized Create Stream OP_RETURN payload'
+                                msgtype = 'danger'
+                        elif opdrop_type == util.OP_DROP_TYPE_STREAM_ITEM:
+                            msg = ''
+                            script_type, dict = chain.parse_txout_script(binscript)
+                            txidfragment = val
+                            streamlink = 'Invalid: ' + val
+
+                            try:
+                                resp = abe.store.list_streams(chain)
+                                for stream in resp:
+                                    if stream.get('createtxid','').startswith(txidfragment):
+                                        streamname = stream.get('name','')
+                                        streamlink = '<a href="../../' + escape(chain.name) + '/streams/' + streamname + '">' + streamname + '</a>'
+                                        break
+
+                            except Exception as e:
+                                body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+                                return
+
+                            itemkey = dict['itemkey'][4:] # we don't need prefix 'spkk' or 0x73 0x70 0x6b 0x6b
+                            msg += '<table class="table table-bordered table-condensed">'
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Stream', streamlink)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Key', itemkey)
+
+                            itemdata = dict['itemdata']
+                            itemdata = util.long_hex(itemdata)
+                            # try:
+                            #     itemdata.decode('ascii')
+                            # except UnicodeDecodeError:
+                            #     itemdata = util.long_hex(itemdata)
+                            msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Data', itemdata )
+                            msg += '</table>'
+                            msgpanelstyle="margin-bottom: -20px;"
+
                         else:
                             msg = 'Unrecognized MultiChain command'
                             msgtype = 'danger'
 
-                if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION]:
-                    msg = "Stream Permission"
-                    # TODO: Implement this.
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+                    # If this output is not signed by an address with admin (to change activate or write) or activate (to change write) permission for the stream, the transaction is invalid. On the protocol level we will allow permission flags other than admin/activate/write, but these will be forbidden/hidden in the APIs for now. "
+                    script_type, dict = chain.parse_txout_script(binscript)
+
+                    opdrop_spke = dict['streamtxid']
+                    opdrop_type, streamtxid = util.parse_op_drop_data(opdrop_spke)
+
+                    opdrop_spkp = dict['permissions']
+                    opdrop_type, val = util.parse_op_drop_data(opdrop_spkp)
+
+                    if val['type'] is 'grant':
+                        msg = 'Grant permission to '
+                    else:
+                        msg = 'Revoke permission to '
+
+                    permissions = []
+                    if val['admin']:
+                         permissions += ['Admin']
+                    if val['activate']:
+                         permissions += ['Activate']
+                    if val['write']:
+                         permissions += ['Write']
+                    if val['create']:
+                         permissions += ['Create']
+
+                    msg += ', '.join("{0}".format(item) for item in permissions)
+                    msg += ' on stream ' + streamtxid
+
+                    if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
+                        msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
 
                 if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
                     opreturn_type, val = util.parse_op_return_data(data)
