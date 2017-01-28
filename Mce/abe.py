@@ -2623,8 +2623,14 @@ class Abe:
 
 
         for item in sorted_streamitems:
-            publisher = item['publishers'][0]   # TODO: for now we take the first publisher
-            publisher_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
+
+            if len(item['publishers'])==1:
+                publisher = item['publishers'][0]
+                publisher_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
+            else:
+                for publisher in item['publishers']:
+                    publisher_link = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
+                    publisher_address += '{0}<br/>'.format(publisher_link)
 
             # A runtime paramater -maxshowndata=20 determines if the node returns data in json output or not.
             # The node itself will not store more than 256 bytes of data.  The blockchain database stores all dadta.
