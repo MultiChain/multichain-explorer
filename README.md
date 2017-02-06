@@ -5,7 +5,7 @@ MultiChain Explorer is a free block chain browser for [MultiChain](http://www.mu
 
 https://github.com/MultiChain/multichain-explorer
 
-    Copyright(C) 2015,2016 by Coin Sciences Ltd.
+    Copyright(C) 2015,2016,2017 by Coin Sciences Ltd.
     Copyright(C) 2011,2012,2013 by Abe developers.
     License: GNU Affero General Public License, see the file LICENSE.txt.
     Portions Copyright (c) 2010 Gavin Andresen, see bct-LICENSE.txt.
