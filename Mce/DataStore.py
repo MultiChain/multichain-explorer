@@ -435,7 +435,9 @@ class DataStore(object):
                             address_checksum = binascii.unhexlify(x)
                             x = params.get("network-message-start","f9beb4d9").strip()
                             chain_magic = binascii.unhexlify(x)
+                            protocol_version = params.get("protocol-version",10007)
                         else:
+                            protocol_version = 10007
                             chain_magic = '\xf9\xbe\xb4\xd9'
                             address_checksum = "\0\0\0\0"
                             addr_vers = dircfg.get('address_version')
@@ -461,12 +463,12 @@ class DataStore(object):
                             INSERT INTO chain (
                                 chain_id, chain_name, chain_code3,
                                 chain_magic, chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy,
-                                chain_decimals
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                chain_decimals, chain_protocol_version
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                                   (chain_id, chain_name, code3,
                                    store.binin(chain_magic), store.binin(address_checksum), store.binin(addr_vers), store.binin(script_addr_vers),
 # MULTICHAIN END
-                                   dircfg.get('policy', chain_name), decimals))
+                                   dircfg.get('policy', chain_name), decimals, protocol_version))
                         store.commit()
                         store.log.warning("Assigned chain_id %d to %s",
                                           chain_id, chain_name)
@@ -503,10 +505,11 @@ class DataStore(object):
             no_bit8_chains = [no_bit8_chains]
 # MULTICHAIN START
         for chain_id, magic, chain_name, chain_code3, address_checksum, address_version, script_addr_vers, \
-                chain_policy, chain_decimals in \
+                chain_policy, chain_decimals, chain_protocol_version in \
                 store.selectall("""
                     SELECT chain_id, chain_magic, chain_name, chain_code3,
-                           chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals
+                           chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals,
+                           chain_protocol_version
                       FROM chain
                 """):
 # MULTICHAIN END
@@ -517,6 +520,7 @@ class DataStore(object):
                 code3           = chain_code3 and unicode(chain_code3),
 # MULTICHAIN START
                 address_checksum = store.binout(address_checksum),
+                protocol_version = int(chain_protocol_version),
 # MULTICHAIN END
                 address_version = store.binout(address_version),
                 script_addr_vers = store.binout(script_addr_vers),
@@ -773,6 +777,7 @@ store._ddl['configvar'],
     chain_policy VARCHAR(255) NOT NULL,
     chain_decimals NUMERIC(2) NULL,
     chain_last_block_id NUMERIC(14) NULL,
+    chain_protocol_version NUMERIC(10) NOT NULL,
     FOREIGN KEY (chain_last_block_id)
         REFERENCES block (block_id)
 )""",
@@ -1012,12 +1017,13 @@ store._ddl['txout_approx'],
         store.sql("""
             INSERT INTO chain (
                 chain_id, chain_magic, chain_name, chain_code3,
-                chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals
+                chain_address_checksum, chain_address_version, chain_script_addr_vers, chain_policy, chain_decimals,
+                chain_protocol_version
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                   (chain.id, store.binin(chain.magic), chain.name,
                    chain.code3, store.binin(chain.address_checksum), store.binin(chain.address_version), store.binin(chain.script_addr_vers),
+                   chain.policy, chain.decimals, chain.protocol_version))
 # MULTICHAIN END
-                   chain.policy, chain.decimals))
 
     def get_lock(store):
         if store.version_below('Abe26'):

@@ -84,7 +84,7 @@ SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION = 12
 
 class BaseChain(object):
 # MULTICHAIN START
-    POLICY_ATTRS = ['magic', 'name', 'code3', 'address_checksum', 'address_version', 'decimals', 'script_addr_vers']
+    POLICY_ATTRS = ['magic', 'name', 'code3', 'address_checksum', 'address_version', 'decimals', 'script_addr_vers', 'protocol_version']
 # MULTICHAIN END
     __all__ = ['id', 'policy'] + POLICY_ATTRS
 
