@@ -49,7 +49,7 @@ ABE_APPNAME = "MultiChain Explorer"
 ABE_VERSION = __version__
 ABE_URL = 'https://github.com/multichain/multichain-explorer'
 
-COPYRIGHT_YEARS = '2011-2016'
+COPYRIGHT_YEARS = '2011-2017'
 COPYRIGHT = "Coin Sciences Ltd and Abe developers"
 COPYRIGHT_URL = 'https://github.com/multichain/multichain-explorer'
 # MULTICHAIN END
