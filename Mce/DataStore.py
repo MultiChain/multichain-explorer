@@ -1983,7 +1983,7 @@ store._ddl['txout_approx'],
             if pubkey_id is not None and script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                 data = util.get_multichain_op_drop_data(binscript)
                 if data is not None:
-                    opdrop_type, val = util.parse_op_drop_data(data)
+                    opdrop_type, val = util.parse_op_drop_data(data, chain)
                     if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                         (prefix, ) = struct.unpack("<H", dbhash[0:2])
                         new_asset_id = store.new_id("asset")
@@ -2056,7 +2056,7 @@ store._ddl['txout_approx'],
                         #print 'Permissions command detected'
                         pass
             elif pubkey_id is None and script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
-                opreturn_type, val = util.parse_op_return_data(data)
+                opreturn_type, val = util.parse_op_return_data(data, chain)
                 # Extract mandatory metadata and update asset column
                 if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
                     store.sql("""
@@ -2134,7 +2134,7 @@ store._ddl['txout_approx'],
                 if the_script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                     data = util.get_multichain_op_drop_data(binscript)
                     if data is not None:
-                        opdrop_type, val = util.parse_op_drop_data(data)
+                        opdrop_type, val = util.parse_op_drop_data(data, chain)
                         if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                             # Spending issue asset tx
                             #print "Issue {:d} raw units of new asset".format(val)
@@ -4280,7 +4280,7 @@ store._ddl['txout_approx'],
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
             data = util.get_multichain_op_drop_data(scriptpubkey)
             if data is not None:
-                opdrop_type, val = util.parse_op_drop_data(data)
+                opdrop_type, val = util.parse_op_drop_data(data, chain)
                 if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                     label.append('Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
@@ -4294,7 +4294,7 @@ store._ddl['txout_approx'],
             else:
                 label.append('Unknown')
         elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
-            opreturn_type, val = util.parse_op_return_data(data)
+            opreturn_type, val = util.parse_op_return_data(data, chain)
             if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
                 label.append('Asset')
             else:

@@ -27,6 +27,7 @@ import struct
 import deserialize
 import Chain
 import string
+import sys
 # MULTICHAIN END
 
 try:
@@ -334,8 +335,24 @@ def get_op_return_type_description(t):
     return "Unrecognized Metadata"
 
 
+def parse_op_drop_data(data, chain):
+    version = chain.protocol_version
+    if version <= 10006:
+        func_name = 'parse_op_drop_data_10006'
+    else:
+        func_name = 'parse_op_drop_data_' + str(version)
+    def func_not_found(data): # just in case we dont have the function
+         print "No function found to parse data for protocol version " + str(version)
+    func = getattr(sys.modules[__name__], func_name, func_not_found)
+    print "func = ", func
+    return func(data)
+
+def parse_op_drop_data_10007(data):
+    return parse_op_drop_data_10006(data)
+
+
 # https://docs.python.org/2/library/struct.html
-def parse_op_drop_data(data):
+def parse_op_drop_data_10006(data):
     """
     Return TYPE, DATA where the format of DATA depends on TYPE.
 
@@ -416,7 +433,23 @@ def parse_op_drop_data(data):
         retval = long_hex(data[4:20][::-1])     # reverse the bytes and resulting hex string
     return rettype, retval
 
-def parse_op_return_data(data):
+
+def parse_op_return_data(data, chain):
+    version = chain.protocol_version
+    if version <= 10006:
+        func_name = 'parse_op_return_data_10006'
+    else:
+        func_name = 'parse_op_return_data_' + str(version)
+    def func_not_found(data): # just in case we dont have the function
+         print "No function found to parse data for protocol version " + str(version)
+    func = getattr(sys.modules[__name__], func_name, func_not_found)
+    print "func = ", func
+    return func(data)
+
+def parse_op_return_data_10007(data):
+    return parse_op_return_data_10006(data)
+
+def parse_op_return_data_10006(data):
     """
     Return TYPE, DATA where the format of DATA depends on TYPE.
 

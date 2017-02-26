@@ -1045,14 +1045,14 @@ class Abe:
                     if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                         data = util.get_multichain_op_drop_data(txout['binscript'])
                         if data is not None:
-                            opdrop_type, val = util.parse_op_drop_data(data)
+                            opdrop_type, val = util.parse_op_drop_data(data, chain)
                             label = util.get_op_drop_type_description(opdrop_type)
                         else:
                             label = 'Unknown MultiChain command'
                             labeltype = 'danger'
 
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
-                        opreturn_type, val = util.parse_op_return_data(data)
+                        opreturn_type, val = util.parse_op_return_data(data, chain)
                         label = util.get_op_return_type_description(opreturn_type)
 
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM:
@@ -1229,7 +1229,7 @@ class Abe:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
                     if data is not None:
-                        opdrop_type, val = util.parse_op_drop_data(data)
+                        opdrop_type, val = util.parse_op_drop_data(data, chain)
                         if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                             # Not the most efficient way, but will suffice for now until assets are stored in a database table.
                             try:
@@ -1305,7 +1305,7 @@ class Abe:
                         elif opdrop_type == util.OP_DROP_TYPE_CREATE_STREAM:
                             msg = 'Create stream:'
                             data = util.get_multichain_op_return_data(row['binscript'])
-                            opreturn_type, val = util.parse_op_return_data(data)
+                            opreturn_type, val = util.parse_op_return_data(data, chain)
                             #it should be  OP_RETURN_TYPE_ISSUE_MORE_ASSET, lets rename to OP_RETURN_TYPE_SPKC
                             if opreturn_type==util.OP_RETURN_TYPE_SPKC:
                                 msg += '<table class="table table-bordered table-condensed">'
@@ -1360,10 +1360,10 @@ class Abe:
                     script_type, dict = chain.parse_txout_script(row['binscript'])
 
                     opdrop_spke = dict['streamtxid']
-                    opdrop_type, streamtxid = util.parse_op_drop_data(opdrop_spke)
+                    opdrop_type, streamtxid = util.parse_op_drop_data(opdrop_spke, chain)
 
                     opdrop_spkp = dict['permissions']
-                    opdrop_type, val = util.parse_op_drop_data(opdrop_spkp)
+                    opdrop_type, val = util.parse_op_drop_data(opdrop_spkp, chain)
 
                     if val['type'] is 'grant':
                         msg = 'Grant permission to '
@@ -1387,7 +1387,7 @@ class Abe:
                         msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
 
                 if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
-                    opreturn_type, val = util.parse_op_return_data(data)
+                    opreturn_type, val = util.parse_op_return_data(data, chain)
                     if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
 
                         msg = 'Issued asset details:'
@@ -1605,7 +1605,7 @@ class Abe:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(binscript)
                     if data is not None:
-                        opdrop_type, val = util.parse_op_drop_data(data)
+                        opdrop_type, val = util.parse_op_drop_data(data, chain)
                         if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                             # Not the most efficient way, but will suffice for now until assets are stored in a database table.
                             try:
@@ -1681,7 +1681,7 @@ class Abe:
                         elif opdrop_type == util.OP_DROP_TYPE_CREATE_STREAM:
                             msg = 'Create stream:'
                             data = util.get_multichain_op_return_data(binscript)
-                            opreturn_type, val = util.parse_op_return_data(data)
+                            opreturn_type, val = util.parse_op_return_data(data, chain)
                             #it should be  OP_RETURN_TYPE_ISSUE_MORE_ASSET, lets rename to OP_RETURN_TYPE_SPKC
                             if opreturn_type==util.OP_RETURN_TYPE_SPKC:
                                 msg += '<table class="table table-bordered table-condensed">'
@@ -1740,10 +1740,10 @@ class Abe:
                     script_type, dict = chain.parse_txout_script(binscript)
 
                     opdrop_spke = dict['streamtxid']
-                    opdrop_type, streamtxid = util.parse_op_drop_data(opdrop_spke)
+                    opdrop_type, streamtxid = util.parse_op_drop_data(opdrop_spke, chain)
 
                     opdrop_spkp = dict['permissions']
-                    opdrop_type, val = util.parse_op_drop_data(opdrop_spkp)
+                    opdrop_type, val = util.parse_op_drop_data(opdrop_spkp, chain)
 
                     if val['type'] is 'grant':
                         msg = 'Grant permission to '
@@ -1767,7 +1767,7 @@ class Abe:
                         msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
 
                 if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
-                    opreturn_type, val = util.parse_op_return_data(data)
+                    opreturn_type, val = util.parse_op_return_data(data, chain)
                     if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
 
                         msg = 'Issued asset details:'
@@ -2079,7 +2079,7 @@ class Abe:
             data = util.get_multichain_op_drop_data(binscript)
             if data is None:
                 return 0
-            opdrop_type, val = util.parse_op_drop_data(data)
+            opdrop_type, val = util.parse_op_drop_data(data, chain)
             if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                 if matchaddress: # and this_ch=='o':
                     return val
@@ -2286,7 +2286,7 @@ class Abe:
             data = util.get_multichain_op_drop_data(binscript)
             if data is None:
                 return 0
-            opdrop_type, val = util.parse_op_drop_data(data)
+            opdrop_type, val = util.parse_op_drop_data(data, chain)
             if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
                 return val
             elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
@@ -2350,7 +2350,7 @@ class Abe:
     # Page to show the assets that exist on a chain
     def handle_assets(abe, page):
         chain = page['chain']
-
+        print "chain.protocol_version = ", chain.protocol_version
         page['content_type'] = 'text/html'
         page['title'] = 'Assets of ' + chain.name
         body = page['body']
