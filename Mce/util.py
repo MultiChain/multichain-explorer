@@ -301,6 +301,9 @@ OP_DROP_TYPE_CREATE_STREAM = 5
 OP_DROP_TYPE_STREAM_ITEM = 6
 OP_DROP_TYPE_STREAM_PERMISSION = 7
 
+OP_DROP_TYPE_NEW_ISSUANCE_METADATA = 8
+OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA = 9
+
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
 OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE = 2
@@ -344,11 +347,168 @@ def parse_op_drop_data(data, chain):
     def func_not_found(data): # just in case we dont have the function
          print "No function found to parse data for protocol version " + str(version)
     func = getattr(sys.modules[__name__], func_name, func_not_found)
-    print "func = ", func
+    #print "func = ", func
     return func(data)
 
 def parse_op_drop_data_10007(data):
+    rettype = OP_DROP_TYPE_UNKNOWN
+    retval = None
+    # spkn
+    # "asm" : "73706b6e01000106646f6c6c617200410464000000 OP_DROP OP_RETURN",
+    # "hex" : "1573706b6e01000106646f6c6c617200410464000000756a",
+    if data[0:4]==bytearray.fromhex(u'73706b6e'):
+        # spkn
+        if ord(data[4]) == 0x01:
+            rettype = OP_DROP_TYPE_NEW_ISSUANCE_METADATA
+            retval = parse_new_issuance_metadata_10007(data[5:])
+        if ord(data[4]) == 0x02:
+            rettype = OP_DROP_TYPE_CREATE_STREAM
+            retval = ord(data[4])
+        return rettype, retval
+    elif data[0:4]==bytearray.fromhex(u'73706b71') or data[0:4]==bytearray.fromhex(u'73706b6f'):
+        # spkq or spko
+        # prefix: if txid begins ce8a..., 0x8ace = 35534 is the correct prefix.
+        assets = []
+        pos = 4
+        datalen=len(data)
+        while (pos+24)<=datalen:
+            txid = long_hex(data[pos:pos+16][::-1])     # reverse the bytes and resulting hex string
+            (quantity, ) = struct.unpack("<Q", data[pos+16:pos+24])
+            assets.append( {'assetref':txid, 'quantity':quantity} )
+            pos += 24
+
+        if data[0:4]==bytearray.fromhex(u'73706b6f'):
+            rettype = OP_DROP_TYPE_ISSUE_MORE_ASSET
+        else:
+            rettype = OP_DROP_TYPE_SEND_ASSET
+        retval = assets
+        return rettype, retval
+    elif data[0:4]==bytearray.fromhex(u'73706b65'):
+        # spke
+        pos = 4
+        retvalue = long_hex(data[pos:pos+16][::-1])     # reverse the bytes and resulting hex string
+        rettype = OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA  # TODO: Return op_drop type of assetidentifier?
+        return rettype, retvalue
+    elif data[0:4]==bytearray.fromhex(u'73706b75'):
+        # spku
+        if ord(data[4]) == 0x01:
+            # asset = 0x01
+            retvalue = parse_follow_on_issuance_metadata_10007(data[5:])
+                # "asm" : "73706b658de2f6f31a17419091ab89dcb91fcda8 OP_DROP 73706b75016465736372697074696f6e0004626c6168 OP_DROP OP_RETURN",
+                # "hex" : "1473706b658de2f6f31a17419091ab89dcb91fcda8751673706b75016465736372697074696f6e0004626c6168756a",
+                # "type" : "nulldata"
+            rettype = OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA  # TODO: Return op_drop type of assetdetails?
+            return rettype, retvalue
+        # If not 0x01, unknown type of spku
+
+    # Backwards compatibility: if the op_drop data has not been handled yet, fall through to 10006 parsing
     return parse_op_drop_data_10006(data)
+
+def parse_follow_on_issuance_metadata_10007(data):
+    pos = 0
+    # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
+    fields = dict()
+    while pos<len(data):
+        # Protocol 10007: there are no special properties for follow on issuance metadata
+        if data[pos:pos+1] == "\0":
+            assetproplen = ord(data[pos+2:pos+3])
+            assetprop = data[pos+3:pos+3+assetproplen]
+            proptype = ord(data[pos+1])
+            fname = "MultiChain special property at offset {0}".format(pos)
+            fields[fname] = long_hex(assetprop)
+            pos = pos + 3 + assetproplen
+            continue
+
+        searchdata = data[pos:]
+        fname = searchdata[:searchdata.index("\0")]
+        pos = pos + len(fname) + 1
+
+        flen = ord(data[pos:pos+1])
+        pos += 1
+        # print "pos of payload: ", pos
+        if flen == 253:
+            (size,) = struct.unpack('<H', data[pos:pos+2])
+            flen = size
+            pos += 2
+        elif flen == 254:
+            (size,) = struct.unpack('<I', data[pos:pos+4])
+            flen = size
+            pos += 4
+        elif flen == 255:
+            (size,) = struct.unpack('<Q', data[pos:pos+8])
+            flen = size
+            pos += 8
+
+        fields[fname]=data[pos:pos+flen]
+        pos += flen
+    return fields
+
+
+def parse_new_issuance_metadata_10007(data):
+    pos = 0
+    searchdata = data[pos:]
+    # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
+    fields = dict()
+
+    # If the property 'Open to follow-on issuance' is not present, we treat it as false.
+    opentoissuance = "Open to follow-on issuance"
+    fields[opentoissuance] = False
+
+    while pos<len(data):
+        # Is this a special property with meaning only for MultiChain?
+        if data[pos:pos+1] == "\0":
+            assetproplen = ord(data[pos+2:pos+3])
+            assetprop = data[pos+3:pos+3+assetproplen]
+            proptype = ord(data[pos+1])
+            # Create stream has special properties
+            if proptype==0x01:
+                fname = "Asset Name"
+                fields[fname] = assetprop
+            elif proptype==0x02:
+                fname = opentoissuance
+                fields[fname] = bool(ord(assetprop) == 1)
+                # if ord(assetprop) == 1:
+                #     fields[fname] = "True"
+                # else:
+                #     fields[fname] = "False"
+            elif proptype==0x41:
+                fname = "Quantity Multiple"
+                (multiplier,) = struct.unpack("<L", assetprop)
+                fields[fname] = multiplier
+            else:
+                fname = "MultiChain special property at offset {0}".format(pos)
+                fields[fname] = long_hex(assetprop)
+            pos = pos + 3 + assetproplen
+            continue
+
+        searchdata = data[pos:]
+        fname = searchdata[:searchdata.index("\0")]
+        # print "field name: ", fname, " field name len: ", len(fname)
+        pos = pos + len(fname) + 1
+        # print "pos of vle: ", pos
+        #subdata = subdata[len(fname):]
+
+        flen = ord(data[pos:pos+1])
+        pos += 1
+        # print "pos of payload: ", pos
+        if flen == 253:
+            (size,) = struct.unpack('<H', data[pos:pos+2])
+            flen = size
+            pos += 2
+        elif flen == 254:
+            (size,) = struct.unpack('<I', data[pos:pos+4])
+            flen = size
+            pos += 4
+        elif flen == 255:
+            (size,) = struct.unpack('<Q', data[pos:pos+8])
+            flen = size
+            pos += 8
+        # print "pos of payload: ", pos
+        # print "payload length: ", flen
+        fields[fname]=data[pos:pos+flen]
+        pos += flen
+
+    return fields
 
 
 # https://docs.python.org/2/library/struct.html
@@ -577,7 +737,6 @@ def parse_op_return_data_10006(data):
             pos += flen
         rettype = OP_RETURN_TYPE_SPKC
         retval = {'multiplier':None, 'name':None, 'fields':fields}
-
     return rettype, retval
 
 def get_multichain_op_drop_data(script):
@@ -598,6 +757,10 @@ def get_multichain_op_drop_data(script):
     elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE):
         data = decoded[0][1] # 1st element contains the creation txid OP_DROP data
     elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
+        data = decoded[0][1] # 1st element contains the OP_DROP data.
+    elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_SPKN_TEMPLATE):
+        data = decoded[0][1] # 1st element contains the OP_DROP data.
+    elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE):
         data = decoded[0][1] # 1st element contains the OP_DROP data.
     return data
 

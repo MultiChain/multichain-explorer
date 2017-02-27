@@ -35,11 +35,19 @@ SCRIPT_MULTICHAIN_TEMPLATE = [
 SCRIPT_MULTICHAIN_STREAM_PERMISSION_TEMPLATE = [
     opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP ]
 
+
+
 # Template to match a MultiChain stream item
 SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
 
+# spke - asset
+SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN]
+
 # Template to match a MultiChain create stream command
 SCRIPT_MULTICHAIN_STREAM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
+
+# spkn
+SCRIPT_MULTICHAIN_SPKN_TEMPLATE = [opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN ]
 
 # Matches all opcodes < PUSHDATA4
 # See: https://en.bitcoin.it/wiki/Script
@@ -79,6 +87,8 @@ SCRIPT_TYPE_MULTICHAIN_P2SH = 9
 SCRIPT_TYPE_MULTICHAIN_STREAM = 10
 SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM = 11
 SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION = 12
+SCRIPT_TYPE_MULTICHAIN_SPKN = 13
+SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA = 14
 # MULTICHAIN END
 
 
@@ -217,6 +227,8 @@ class BaseChain(object):
         * SCRIPT_TYPE_MULTICHAIN_STREAM - DATA is a dicationary containing op_drop and op_return data.
         * SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM - Data is a dictionary containing stream creation txid, item key, item data.
         * SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION - Data is a dictionary containing stream creation txid, permissions, pubkey_hash
+        * SCRIPT_TYPE_MULTICHAIN_SPKN
+        * SCRIPT_TYPE MULTICHAIN_SPKE
 # MULTICHAIN END
         """
         if script is None:
@@ -249,6 +261,15 @@ class BaseChain(object):
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
             dict = {"op_drop":decoded[0][1], "op_return":decoded[3][1]}
             return SCRIPT_TYPE_MULTICHAIN_STREAM, dict
+
+        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE):
+            dict = {"assetidentifier":decoded[0][1], "assetdetails":decoded[2][1]}
+            return SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA, dict
+
+        #SCRIPT_MULTICHAIN_SPKN_TEMPLATE
+        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_SPKN_TEMPLATE):
+            metadata = decoded[0][1]
+            return SCRIPT_TYPE_MULTICHAIN_SPKN, metadata
 
         # Return script type and metadata byte array
         elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):

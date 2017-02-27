@@ -2013,7 +2013,11 @@ store._ddl['txout_approx'],
                         for dict in val:
                             quantity = dict['quantity']
                             assetref = dict['assetref']
-                            prefix = int( assetref.split('-')[-1] )
+                            if chain.protocol_version < 10007:
+                                prefix = int( assetref.split('-')[-1] )
+                            else:
+                                (prefix, ) = struct.unpack("<H", binascii.unhexlify(assetref)[0:2])
+
                             vers = chain.address_version
                             the_script_type, pubkey_hash = chain.parse_txout_script(txout['scriptPubKey'])
                             checksum = chain.address_checksum
@@ -2158,7 +2162,13 @@ store._ddl['txout_approx'],
                             for dict in val:
                                 quantity = dict['quantity']
                                 assetref = dict['assetref']
-                                prefix = int( assetref.split('-')[-1] )
+                                if chain.protocol_version < 10007:
+                                    prefix = int( assetref.split('-')[-1] )
+                                else:
+                                    (prefix, ) = struct.unpack("<H", binascii.unhexlify(assetref)[0:2])
+                                    # If txid begins 5484... the prefix is 0x8454 in decimal.
+                                    # x-y-zzzz  where zzzz = 33876
+
                                 #print "Spending sent asset at {}, qty = {}, prefix = {} ".format(address, quantity, prefix)
 
                                 store.sql("""

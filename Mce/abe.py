@@ -1172,8 +1172,23 @@ class Abe:
 
         return abe.show_tx(page, tx)
 
+    def get_assets_by_txid_fragment(abe, chain):
+        result = {}
+        try:
+            resp = abe.store.get_assets(chain)
+            for o in resp:
+                txid = o.get('issuetxid',None)
+                if txid is not None:
+                    fragment = txid[0:32]   # first 16 hex chars
+                    result[fragment] = o
+        except Exception as e:
+            print "Exception:", e
+
+        return result
+
     def show_tx(abe, page, tx):
         body = page['body']
+        asset_txid_dict = {}    # map: txid fragment (first 16 bytes as hex string) --> asset obj
 
         def row_to_html(row, this_ch, other_ch, no_link_text):
             body = page['body']
@@ -1194,7 +1209,9 @@ class Abe:
                 script_type, data = chain.parse_txout_script(row['binscript'])
                 if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
-                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA]:
                     novalidaddress = True
 
             if row['binaddr'] is None and row['o_hash'] is None:
@@ -1225,7 +1242,9 @@ class Abe:
                 if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_P2SH,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
-                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA]:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
                     if data is not None:
@@ -1243,7 +1262,10 @@ class Abe:
                         elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
                             dict = val[0]
                             quantity = dict['quantity']
-                            assetref = dict['assetref']
+                            if chain.protocol_version < 10007:
+                                assetref = dict['assetref']
+                            else:
+                                assetref = asset_txid_dict[dict['assetref']]['assetref']
                             link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
                             try:
                                 asset = abe.store.get_asset_by_name(chain, assetref)
@@ -1258,7 +1280,11 @@ class Abe:
                             msgparts = []
                             for dict in val:
                                 quantity = dict['quantity']
-                                assetref = dict['assetref']
+                                if chain.protocol_version < 10007:
+                                    assetref = dict['assetref']
+                                else:
+                                    assetref = asset_txid_dict[dict['assetref']]['assetref']
+
                                 # link shows asset ref
                                 link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
 
@@ -1322,6 +1348,42 @@ class Abe:
                             else:
                                 msg = 'Unrecognized Create Stream OP_RETURN payload'
                                 msgtype = 'danger'
+                        # 10007
+                        elif opdrop_type==util.OP_DROP_TYPE_NEW_ISSUANCE_METADATA:
+                            msg = 'New Issuance Metadata:'
+                            msg += '<table class="table table-bordered table-condensed">'
+                            fields = val
+                            for k,v in sorted(fields.items()):
+                                # try:
+                                #     v.decode('ascii')
+                                # except UnicodeDecodeError:
+                                #     v = util.long_hex(v)
+                                msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                            msg += '</table>'
+                            msgpanelstyle="margin-bottom: -20px;"
+                            msgtype = 'danger'
+                        # 10007
+                        elif opdrop_type==util.OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
+                            script_type, dict = chain.parse_txout_script(row['binscript'])
+                            # dict keys contain opdrop data: assetidentifier, assetdetails
+
+                            opdrop_spke = dict['assetidentifier']
+                            opdrop_type, assettxid = util.parse_op_drop_data(opdrop_spke, chain)
+
+                            opdrop_spku = dict['assetdetails']
+                            opdrop_type, fields = util.parse_op_drop_data(opdrop_spku, chain)
+
+                            assetref = asset_txid_dict[assettxid]['assetref']
+                            assetname = asset_txid_dict[assettxid]['name']
+                            link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
+
+                            msg = "Follow-on issuance metadata for {0}".format(link)
+                            msg += '<table class="table table-bordered table-condensed">'
+                            for k,v in sorted(fields.items()):
+                                msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                            msg += '</table>'
+                            msgpanelstyle="margin-bottom: -20px;"
+                        # legacy 10006
                         elif opdrop_type == util.OP_DROP_TYPE_STREAM_ITEM:
                             msg = ''
                             script_type, dict = chain.parse_txout_script(row['binscript'])
@@ -1497,6 +1559,9 @@ class Abe:
 # MULTICHAIN END
 
 # MULTICHAIN START
+
+        asset_txid_dict = abe.get_assets_by_txid_fragment(chain)
+
         body += ['<a name="inputs"><h3>Inputs</h3></a>\n<table class="table table-striped">\n',
                  '<tr><th>Index</th><th>Previous output</th><th>Native</th>',
 # MULTICHAIN END
@@ -2350,7 +2415,6 @@ class Abe:
     # Page to show the assets that exist on a chain
     def handle_assets(abe, page):
         chain = page['chain']
-        print "chain.protocol_version = ", chain.protocol_version
         page['content_type'] = 'text/html'
         page['title'] = 'Assets of ' + chain.name
         body = page['body']
