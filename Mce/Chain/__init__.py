@@ -31,8 +31,8 @@ MAX_MULTISIG_KEYS = 3
 SCRIPT_MULTICHAIN_TEMPLATE = [
     opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG, opcodes.OP_PUSHDATA4, opcodes.OP_DROP ]
 
-# Template to match a MultiChain stream permission command
-SCRIPT_MULTICHAIN_STREAM_PERMISSION_TEMPLATE = [
+# Template to match a MultiChain entity permission command
+SCRIPT_MULTICHAIN_ENTITY_PERMISSION_TEMPLATE = [
     opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP ]
 
 # Template to match a MultiChain stream item
@@ -85,7 +85,7 @@ SCRIPT_TYPE_MULTICHAIN_OP_RETURN = 8
 SCRIPT_TYPE_MULTICHAIN_P2SH = 9
 SCRIPT_TYPE_MULTICHAIN_STREAM = 10
 SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM = 11
-SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION = 12
+SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION = 12
 SCRIPT_TYPE_MULTICHAIN_SPKN = 13
 SCRIPT_TYPE_MULTICHAIN_SPKU = 14    # follow on asset issuance metadata
 # MULTICHAIN END
@@ -241,9 +241,9 @@ class BaseChain(object):
     def parse_decoded_txout_script(chain, decoded):
 # MULTICHAIN START
         # Return dict
-        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_PERMISSION_TEMPLATE):
-            dict = {"streamtxid":decoded[5][1], "permissions":decoded[7][1], "pubkey_hash":decoded[2][1]}
-            return SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION, dict
+        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_ENTITY_PERMISSION_TEMPLATE):
+            dict = {"txid":decoded[5][1], "permissions":decoded[7][1], "pubkey_hash":decoded[2][1]}
+            return SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION, dict
 
         # Return script type and address
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):

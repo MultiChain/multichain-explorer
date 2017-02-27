@@ -1646,7 +1646,7 @@ store._ddl['txout_approx'],
         elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
             txout['address_version'] = chain.script_addr_vers
             txout['binaddr'] = data
-        elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+        elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
             txout['binaddr'] = data['pubkey_hash']
         # MULTICHAIN END
         else:
@@ -2134,7 +2134,7 @@ store._ddl['txout_approx'],
                 vers = chain.address_version
                 the_script_type, data = chain.parse_txout_script(binscript)     # data is usually the pubkey_hash but could be dict
 
-                if the_script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+                if the_script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
                     pubkey_hash = data['pubkey_hash']
                 else:
                     pubkey_hash = data
@@ -2821,7 +2821,7 @@ store._ddl['txout_approx'],
         if script_type == Chain.SCRIPT_TYPE_MULTICHAIN:
             return store.pubkey_hash_to_id(data)
 
-        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
             return store.pubkey_hash_to_id(data['pubkey_hash'])
 # MULTICHAIN END
 
@@ -4299,7 +4299,6 @@ store._ddl['txout_approx'],
         if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
             label.append('P2SH')
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
-            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION,
             Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
             label.append('Stream')
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
@@ -4340,6 +4339,8 @@ store._ddl['txout_approx'],
                     #label.append('SPKE')
             else:
                 label.append('Unknown')
+        elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
+            label.append('Permissions')
         return label
 
 def new(args):

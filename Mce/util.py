@@ -299,7 +299,7 @@ OP_DROP_TYPE_PERMISSION = 3
 OP_DROP_TYPE_ISSUE_MORE_ASSET = 4
 OP_DROP_TYPE_CREATE_STREAM = 5
 OP_DROP_TYPE_STREAM_ITEM = 6
-OP_DROP_TYPE_STREAM_PERMISSION = 7
+# OP_DROP_TYPE_STREAM_PERMISSION = 7
 
 OP_DROP_TYPE_SPKN_NEW_ISSUE = 8
 OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA = 9
@@ -326,8 +326,8 @@ def get_op_drop_type_description(t):
         return "Create Stream"
     elif t == OP_DROP_TYPE_STREAM_ITEM:
         return "Stream Item"
-    elif t == OP_DROP_TYPE_STREAM_PERMISSION:
-        return "Stream Permission"
+    # elif t == OP_DROP_TYPE_STREAM_PERMISSION:
+    #     return "Stream Permission"
     # TODO: 10007
     elif t == OP_DROP_TYPE_SPKN_CREATE_STREAM:
         return "Create Stream"

@@ -1061,8 +1061,8 @@ class Abe:
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM:
                         label = 'Stream Item'
 
-                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
-                        label = 'Stream Permission'
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
+                        label = 'Entity Permission'
 
             if label is None:
                 labelclass = ''
@@ -1420,12 +1420,31 @@ class Abe:
                             msg += '</table>'
                             msgpanelstyle="margin-bottom: -20px;"
 
-                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
                     # If this output is not signed by an address with admin (to change activate or write) or activate (to change write) permission for the stream, the transaction is invalid. On the protocol level we will allow permission flags other than admin/activate/write, but these will be forbidden/hidden in the APIs for now. "
                     script_type, dict = chain.parse_txout_script(row['binscript'])
 
-                    opdrop_spke = dict['streamtxid']
-                    opdrop_type, streamtxid = util.parse_op_drop_data(opdrop_spke, chain)
+                    opdrop_spke = dict['txid']
+                    opdrop_type, txidfragment = util.parse_op_drop_data(opdrop_spke, chain)
+
+                    # Figure out if the txid is for an asset or a stream
+                    asset = asset_txid_dict.get(txidfragment, None)
+                    if asset is not None:
+                        assetref = asset['assetref']
+                        entityname = asset.get('name', '')
+                        entitylink = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + entityname.encode('unicode-escape') + '</a>'
+                    else:
+                        try:
+                            resp = abe.store.list_streams(chain)
+                            for stream in resp:
+                                if stream.get('createtxid','').startswith(txidfragment):
+                                    entityname = stream.get('name','')
+                                    entitylink = '<a href="../../' + escape(chain.name) + '/streams/' + entityname + '">' + entityname + '</a>'
+                                    break
+                        except Exception as e:
+                            body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
+                            return
+
 
                     opdrop_spkp = dict['permissions']
                     opdrop_type, val = util.parse_op_drop_data(opdrop_spkp, chain)
@@ -1437,16 +1456,25 @@ class Abe:
 
                     permissions = []
                     if val['admin']:
-                         permissions += ['Admin']
+                        permissions += ['Admin']
                     if val['activate']:
-                         permissions += ['Activate']
+                        permissions += ['Activate']
                     if val['write']:
-                         permissions += ['Write']
+                        permissions += ['Write']
                     if val['create']:
-                         permissions += ['Create']
+                        permissions += ['Create']
+                    if val['issue']:
+                        permissions += ['Issue']
 
                     msg += ', '.join("{0}".format(item) for item in permissions)
-                    msg += ' on stream ' + streamtxid
+
+                    msg += ' on '
+                    if asset is not None:
+                        msg += 'asset '
+                    else:
+                        msg += 'stream '
+                    msg += entitylink
+
 
                     if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                         msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
@@ -1803,7 +1831,7 @@ class Abe:
                             msg = 'Unrecognized MultiChain command'
                             msgtype = 'danger'
 
-                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION:
+                if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
                     # If this output is not signed by an address with admin (to change activate or write) or activate (to change write) permission for the stream, the transaction is invalid. On the protocol level we will allow permission flags other than admin/activate/write, but these will be forbidden/hidden in the APIs for now. "
                     script_type, dict = chain.parse_txout_script(binscript)
 
