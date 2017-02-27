@@ -301,8 +301,10 @@ OP_DROP_TYPE_CREATE_STREAM = 5
 OP_DROP_TYPE_STREAM_ITEM = 6
 OP_DROP_TYPE_STREAM_PERMISSION = 7
 
-OP_DROP_TYPE_NEW_ISSUANCE_METADATA = 8
+OP_DROP_TYPE_SPKN_NEW_ISSUE = 8
 OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA = 9
+OP_DROP_TYPE_SPKN_CREATE_STREAM = 10
+OP_DROP_TYPE_SPKE = 11
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
@@ -326,6 +328,13 @@ def get_op_drop_type_description(t):
         return "Stream Item"
     elif t == OP_DROP_TYPE_STREAM_PERMISSION:
         return "Stream Permission"
+    # TODO: 10007
+    elif t == OP_DROP_TYPE_SPKN_CREATE_STREAM:
+        return "Create Stream"
+    elif t == OP_DROP_TYPE_SPKN_NEW_ISSUE:
+        return "Issue Asset (Metadata)"
+    elif t == OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
+        return "Follow-On Issuance Of Asset (Metadata)"
     return "Unrecognized Command"
 
 def get_op_return_type_description(t):
@@ -335,6 +344,7 @@ def get_op_return_type_description(t):
         return "Issue Asset (More)"
     elif t == OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
         return "Miner Signature"
+    # TODO: 10007
     return "Unrecognized Metadata"
 
 
@@ -359,11 +369,12 @@ def parse_op_drop_data_10007(data):
     if data[0:4]==bytearray.fromhex(u'73706b6e'):
         # spkn
         if ord(data[4]) == 0x01:
-            rettype = OP_DROP_TYPE_NEW_ISSUANCE_METADATA
+            rettype = OP_DROP_TYPE_SPKN_NEW_ISSUE
             retval = parse_new_issuance_metadata_10007(data[5:])
         if ord(data[4]) == 0x02:
-            rettype = OP_DROP_TYPE_CREATE_STREAM
-            retval = ord(data[4])
+            rettype = OP_DROP_TYPE_SPKN_CREATE_STREAM
+            retval = parse_create_stream_10007(data[5:])
+
         return rettype, retval
     elif data[0:4]==bytearray.fromhex(u'73706b71') or data[0:4]==bytearray.fromhex(u'73706b6f'):
         # spkq or spko
@@ -384,10 +395,10 @@ def parse_op_drop_data_10007(data):
         retval = assets
         return rettype, retval
     elif data[0:4]==bytearray.fromhex(u'73706b65'):
-        # spke
+        # spke, the txid fragment value could could be either a stream txid or an asset txid
         pos = 4
         retvalue = long_hex(data[pos:pos+16][::-1])     # reverse the bytes and resulting hex string
-        rettype = OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA  # TODO: Return op_drop type of assetidentifier?
+        rettype = OP_DROP_TYPE_SPKE
         return rettype, retvalue
     elif data[0:4]==bytearray.fromhex(u'73706b75'):
         # spku
@@ -403,6 +414,63 @@ def parse_op_drop_data_10007(data):
 
     # Backwards compatibility: if the op_drop data has not been handled yet, fall through to 10006 parsing
     return parse_op_drop_data_10006(data)
+
+# TODO: Refactor...
+def parse_create_stream_10007(data):
+    pos = 0
+    # Multiple fields follow: field name (null delimited), variable length integer, raw data of field
+    fields = dict()
+
+    # If the property 'Open to all writers' is not present, we treat it as false.
+    opentoall = "Open to all writers"
+    fields[opentoall] = "False"
+
+    while pos<len(data):
+        # Is this a special property with meaning only for MultiChain?
+        if data[pos:pos+1] == "\0":
+            assetproplen = ord(data[pos+2:pos+3])
+            assetprop = data[pos+3:pos+3+assetproplen]
+            proptype = ord(data[pos+1])
+            # Create stream has special properties
+            if proptype==0x01:
+                fname = "Name"
+                fields[fname] = assetprop
+            elif proptype==0x04:
+                fname = opentoall
+                fields[fname] = str(ord(assetprop) == 1)
+                # if ord(assetprop) == 1:
+                #     fields[fname] = "True"
+                # else:
+                #     fields[fname] = "False"
+            else:
+                fname = "Property at offset {0}".format(pos)
+                fields[fname] = long_hex(assetprop)
+            pos = pos + 3 + assetproplen
+            continue
+
+        searchdata = data[pos:]
+        fname = searchdata[:searchdata.index("\0")]
+        pos = pos + len(fname) + 1
+
+        flen = ord(data[pos:pos+1])
+        pos += 1
+        # print "pos of payload: ", pos
+        if flen == 253:
+            (size,) = struct.unpack('<H', data[pos:pos+2])
+            flen = size
+            pos += 2
+        elif flen == 254:
+            (size,) = struct.unpack('<I', data[pos:pos+4])
+            flen = size
+            pos += 4
+        elif flen == 255:
+            (size,) = struct.unpack('<Q', data[pos:pos+8])
+            flen = size
+            pos += 8
+        fields[fname]=data[pos:pos+flen]
+        pos += flen
+    return fields
+
 
 def parse_follow_on_issuance_metadata_10007(data):
     pos = 0

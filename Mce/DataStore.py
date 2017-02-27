@@ -2076,7 +2076,7 @@ store._ddl['txout_approx'],
             elif pubkey_id is None and script_type is Chain.SCRIPT_TYPE_MULTICHAIN_SPKN:
                 # Protocol 10007
                 opdrop_type, val = util.parse_op_drop_data(data, chain)
-                if opdrop_type==util.OP_DROP_TYPE_NEW_ISSUANCE_METADATA:
+                if opdrop_type==util.OP_DROP_TYPE_SPKN_NEW_ISSUE:
                     store.sql("""
                          UPDATE asset
                             SET name = ?, multiplier = ?
@@ -4324,6 +4324,22 @@ store._ddl['txout_approx'],
                 label.append('Asset')
             else:
                 label.append('Metadata')
+        # Protocol 10007
+        elif script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_SPKN, Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
+            data = util.get_multichain_op_drop_data(scriptpubkey)
+            if data is not None:
+                opdrop_type, val = util.parse_op_drop_data(data, chain)
+                if opdrop_type==util.OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
+                    label.append('Asset')
+                elif opdrop_type==util.OP_DROP_TYPE_SPKN_NEW_ISSUE:
+                    label.append('Asset')
+                elif opdrop_type==util.OP_DROP_TYPE_SPKN_CREATE_STREAM:
+                    label.append('Stream')
+                elif opdrop_type==util.OP_DROP_TYPE_SPKE:
+                    pass
+                    #label.append('SPKE')
+            else:
+                label.append('Unknown')
         return label
 
 def new(args):

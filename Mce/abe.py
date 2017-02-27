@@ -1211,7 +1211,7 @@ class Abe:
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,
-                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA]:
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
                     novalidaddress = True
 
             if row['binaddr'] is None and row['o_hash'] is None:
@@ -1244,7 +1244,7 @@ class Abe:
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,
-                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA]:
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
                     if data is not None:
@@ -1328,28 +1328,26 @@ class Abe:
 
                             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                                 msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
-                        elif opdrop_type == util.OP_DROP_TYPE_CREATE_STREAM:
+                        elif opdrop_type in [util.OP_DROP_TYPE_CREATE_STREAM, util.OP_DROP_TYPE_SPKN_CREATE_STREAM]:
                             msg = 'Create stream:'
-                            data = util.get_multichain_op_return_data(row['binscript'])
-                            opreturn_type, val = util.parse_op_return_data(data, chain)
-                            #it should be  OP_RETURN_TYPE_ISSUE_MORE_ASSET, lets rename to OP_RETURN_TYPE_SPKC
-                            if opreturn_type==util.OP_RETURN_TYPE_SPKC:
-                                msg += '<table class="table table-bordered table-condensed">'
-
+                            if chain.protocol_version < 10007:
+                                data = util.get_multichain_op_return_data(row['binscript'])
+                                opreturn_type, val = util.parse_op_return_data(data, chain)
                                 fields = val['fields']
-                                for k,v in sorted(fields.items()):
-                                    try:
-                                        v.decode('ascii')
-                                    except UnicodeDecodeError:
-                                        v = util.long_hex(v)
-                                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
-                                msg += '</table>'
-                                msgpanelstyle="margin-bottom: -20px;"
                             else:
-                                msg = 'Unrecognized Create Stream OP_RETURN payload'
-                                msgtype = 'danger'
+                                fields = val # for 10007, val already contains the fields
+                            msg += '<table class="table table-bordered table-condensed">'
+                            for k,v in sorted(fields.items()):
+                                try:
+                                    v.decode('ascii')
+                                except UnicodeDecodeError:
+                                    v = util.long_hex(v)
+                                msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                            msg += '</table>'
+                            msgpanelstyle="margin-bottom: -20px;"
+
                         # 10007
-                        elif opdrop_type==util.OP_DROP_TYPE_NEW_ISSUANCE_METADATA:
+                        elif opdrop_type==util.OP_DROP_TYPE_SPKN_NEW_ISSUE:
                             msg = 'New Issuance Metadata:'
                             msg += '<table class="table table-bordered table-condensed">'
                             fields = val
@@ -1362,8 +1360,10 @@ class Abe:
                             msg += '</table>'
                             msgpanelstyle="margin-bottom: -20px;"
                             msgtype = 'danger'
+
                         # 10007
-                        elif opdrop_type==util.OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
+                        #elif opdrop_type==util.OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
+                        elif opdrop_type==util.OP_DROP_TYPE_SPKE and script_type==Chain.SCRIPT_TYPE_MULTICHAIN_SPKU:
                             script_type, dict = chain.parse_txout_script(row['binscript'])
                             # dict keys contain opdrop data: assetidentifier, assetdetails
 
@@ -1383,8 +1383,11 @@ class Abe:
                                 msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
                             msg += '</table>'
                             msgpanelstyle="margin-bottom: -20px;"
+
+                        elif (opdrop_type==util.OP_DROP_TYPE_SPKE and script_type==Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM) or opdrop_type == util.OP_DROP_TYPE_STREAM_ITEM:
+
                         # legacy 10006
-                        elif opdrop_type == util.OP_DROP_TYPE_STREAM_ITEM:
+                        #elif opdrop_type == util.OP_DROP_TYPE_STREAM_ITEM:
                             msg = ''
                             script_type, dict = chain.parse_txout_script(row['binscript'])
                             txidfragment = val

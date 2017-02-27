@@ -35,18 +35,17 @@ SCRIPT_MULTICHAIN_TEMPLATE = [
 SCRIPT_MULTICHAIN_STREAM_PERMISSION_TEMPLATE = [
     opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP ]
 
-
-
 # Template to match a MultiChain stream item
+# spke for stream item
 SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
 
-# spke - asset
+# spke for asset
 SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN]
 
 # Template to match a MultiChain create stream command
 SCRIPT_MULTICHAIN_STREAM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
 
-# spkn
+# spkn, for both new issue and create stream
 SCRIPT_MULTICHAIN_SPKN_TEMPLATE = [opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN ]
 
 # Matches all opcodes < PUSHDATA4
@@ -88,7 +87,7 @@ SCRIPT_TYPE_MULTICHAIN_STREAM = 10
 SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM = 11
 SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION = 12
 SCRIPT_TYPE_MULTICHAIN_SPKN = 13
-SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA = 14
+SCRIPT_TYPE_MULTICHAIN_SPKU = 14    # follow on asset issuance metadata
 # MULTICHAIN END
 
 
@@ -264,7 +263,7 @@ class BaseChain(object):
 
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE):
             dict = {"assetidentifier":decoded[0][1], "assetdetails":decoded[2][1]}
-            return SCRIPT_TYPE_MULTICHAIN_SPKE_FOLLOW_ON_ISSUANCE_METADATA, dict
+            return SCRIPT_TYPE_MULTICHAIN_SPKU, dict
 
         #SCRIPT_MULTICHAIN_SPKN_TEMPLATE
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_SPKN_TEMPLATE):
