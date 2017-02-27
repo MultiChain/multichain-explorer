@@ -2062,6 +2062,7 @@ store._ddl['txout_approx'],
             elif pubkey_id is None and script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
                 opreturn_type, val = util.parse_op_return_data(data, chain)
                 # Extract mandatory metadata and update asset column
+                # Legacy protocol 10006
                 if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
                     store.sql("""
                         UPDATE asset
@@ -2072,6 +2073,20 @@ store._ddl['txout_approx'],
                     INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
                     VALUES ( (SELECT asset_id FROM asset WHERE tx_id = ? AND name = ?) , ?, ?)""",
                     (tx_id, unicode(val['name'], 'latin-1'), tx_id, pos))
+            elif pubkey_id is None and script_type is Chain.SCRIPT_TYPE_MULTICHAIN_SPKN:
+                # Protocol 10007
+                opdrop_type, val = util.parse_op_drop_data(data, chain)
+                if opdrop_type==util.OP_DROP_TYPE_NEW_ISSUANCE_METADATA:
+                    store.sql("""
+                         UPDATE asset
+                            SET name = ?, multiplier = ?
+                          WHERE tx_id = ?
+                          """, (unicode(val['Asset Name'], 'latin-1'), val['Quantity Multiple'], tx_id))
+                    store.sql("""
+                         INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
+                         VALUES ( (SELECT asset_id FROM asset WHERE tx_id = ? AND name = ?) , ?, ?)""",
+                         (tx_id, unicode(val['Asset Name'], 'latin-1'), tx_id, pos))
+
 # MULTICHAIN END
 
         # Import transaction inputs.
