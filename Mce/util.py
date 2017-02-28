@@ -305,6 +305,7 @@ OP_DROP_TYPE_SPKN_NEW_ISSUE = 8
 OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA = 9
 OP_DROP_TYPE_SPKN_CREATE_STREAM = 10
 OP_DROP_TYPE_SPKE = 11
+OP_DROP_TYPE_SPKI = 12 #input cache
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
@@ -328,13 +329,18 @@ def get_op_drop_type_description(t):
         return "Stream Item"
     # elif t == OP_DROP_TYPE_STREAM_PERMISSION:
     #     return "Stream Permission"
-    # TODO: 10007
+    elif t == OP_DROP_TYPE_SPKI:
+        return "Input Cache"
     elif t == OP_DROP_TYPE_SPKN_CREATE_STREAM:
         return "Create Stream"
     elif t == OP_DROP_TYPE_SPKN_NEW_ISSUE:
         return "Issue Asset (Metadata)"
     elif t == OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
         return "Follow-On Issuance Of Asset (Metadata)"
+
+    elif t == OP_DROP_TYPE_SPKE:
+        return "Metadata"
+
     return "Unrecognized Command"
 
 def get_op_return_type_description(t):
@@ -376,6 +382,54 @@ def parse_op_drop_data_10007(data):
             retval = parse_create_stream_10007(data[5:])
 
         return rettype, retval
+    if data[0:4]==bytearray.fromhex(u'73706b69'):
+        # spki
+        # example
+        #     "scriptPubKey" : {
+        #         "asm" : "73706b69000000001976a914dc27f1aeb36b1ec1b94f6f55ffe53fad1f1b0aa588ac OP_DROP OP_RETURN",
+        #         "hex" : "2273706b69000000001976a914dc27f1aeb36b1ec1b94f6f55ffe53fad1f1b0aa588ac756a",
+        #         "type" : "nulldata"
+        #     },
+        #     "inputcache" : [
+        #         {
+        #             "vin" : 0,
+        #             "asm" : "OP_DUP OP_HASH160 dc27f1aeb36b1ec1b94f6f55ffe53fad1f1b0aa5 OP_EQUALVERIFY OP_CHECKSIG",
+        #             "hex" : "76a914dc27f1aeb36b1ec1b94f6f55ffe53fad1f1b0aa588ac"
+        #         }
+        #     ],
+        cache = {}
+        pos = 4
+        while pos<len(data):
+            (index,) = struct.unpack("<L", data[pos:pos+4])
+            pos += 4
+
+            flen = ord(data[pos:pos+1])
+            pos += 1
+            # print "pos of payload: ", pos
+            if flen == 253:
+                (size,) = struct.unpack('<H', data[pos:pos+2])
+                flen = size
+                pos += 2
+            elif flen == 254:
+                (size,) = struct.unpack('<I', data[pos:pos+4])
+                flen = size
+                pos += 4
+            elif flen == 255:
+                (size,) = struct.unpack('<Q', data[pos:pos+8])
+                flen = size
+                pos += 8
+
+            scriptpubkey = data[pos:pos+flen]
+
+            cache[str(index)] = scriptpubkey
+
+            pos += flen
+
+        rettype = OP_DROP_TYPE_SPKI
+        retval = cache
+
+        return rettype, retval
+
     elif data[0:4]==bytearray.fromhex(u'73706b71') or data[0:4]==bytearray.fromhex(u'73706b6f'):
         # spkq or spko
         # prefix: if txid begins ce8a..., 0x8ace = 35534 is the correct prefix.

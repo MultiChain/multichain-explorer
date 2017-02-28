@@ -1264,7 +1264,7 @@ class Abe:
                                    Chain.SCRIPT_TYPE_MULTICHAIN_P2SH,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
-                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,  # also matches template used for input cache opdrop
                                    Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
                     # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
                     data = util.get_multichain_op_drop_data(row['binscript'])
@@ -1378,6 +1378,22 @@ class Abe:
                                 # except UnicodeDecodeError:
                                 #     v = util.long_hex(v)
                                 msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                            msg += '</table>'
+                            msgpanelstyle="margin-bottom: -20px;"
+                            msgtype = 'danger'
+
+                        # 10007
+                        elif opdrop_type==util.OP_DROP_TYPE_SPKI:
+                            msg = 'Input Cache:'
+                            msg += '<table class="table table-bordered table-condensed">'
+                            fields = val
+                            for k,v in sorted(fields.items()):
+                                decodedscript = escape(decode_script(v))
+                                # try:
+                                #     v.decode('ascii')
+                                # except UnicodeDecodeError:
+                                #     v = util.long_hex(v)
+                                msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(), decodedscript)
                             msg += '</table>'
                             msgpanelstyle="margin-bottom: -20px;"
                             msgtype = 'danger'
