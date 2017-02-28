@@ -1029,7 +1029,7 @@ class Abe:
         for tx in b['transactions']:
 # MULTICHAIN START
             # Describe MultiChain specific transaction
-            label = None
+            labels = []
             labeltype = 'success'
             try:
                 mytx = abe.store.export_tx(tx_hash = tx['hash'], format = 'browser')
@@ -1038,9 +1038,14 @@ class Abe:
 
             if mytx is not None:
                 for txout in mytx['out']:
-                    if label is not None:
-                        # we have found the main purpose of this tx
-                        break
+                    # reset label for each txout, but labeltype we can retain as it impacts entire transaction
+                    label = None
+
+                    # Commenting out below as we do we want to see what all outputs are upto
+                    # if label is not None:
+                    #     # we have found the main purpose of this tx
+                    #     break
+
                     script_type, data = chain.parse_txout_script(txout['binscript'])
                     if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
                         data = util.get_multichain_op_drop_data(txout['binscript'])
@@ -1064,7 +1069,19 @@ class Abe:
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
                         label = 'Entity Permission'
 
-            if label is None:
+                    elif script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_SPKN, Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
+                        data = util.get_multichain_op_drop_data(txout['binscript'])
+                        if data is not None:
+                            opdrop_type, val = util.parse_op_drop_data(data, chain)
+                            label = util.get_op_drop_type_description(opdrop_type)
+                        else:
+                            label = 'Unknown MultiChain command'
+                            labeltype = 'danger'
+
+                    if label is not None:
+                        labels.append(label)
+
+            if len(labels) == 0:
                 labelclass = ''
             else:
                 labelclass='class="' + labeltype + '"'
@@ -1072,8 +1089,12 @@ class Abe:
                      tx['hash'], '</a>']
                      # tx['hash'][:16], '...</a>']
 
-            if label is not None:
-                body += ['<div><span class="label label-' + labeltype + '">', label, '</span></div>']
+            if len(labels)>0:
+                body += ['<div>']
+                for label in labels:
+                    body += ['<span class="label label-' + labeltype + '">', label, '</span>&nbsp;']
+                body += ['</div>']
+
             body += [
                      #'</td><td>', format_satoshis(tx['fees'], chain),
 # MULTICHAIN END

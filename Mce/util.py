@@ -321,7 +321,7 @@ def get_op_drop_type_description(t):
     elif t == OP_DROP_TYPE_PERMISSION:
         return "Permission"
     elif t == OP_DROP_TYPE_ISSUE_MORE_ASSET:
-        return "Issue Asset (More)"
+        return "Issue Asset (Follow On)"
     elif t == OP_DROP_TYPE_CREATE_STREAM:
         return "Create Stream"
     elif t == OP_DROP_TYPE_STREAM_ITEM:
@@ -341,7 +341,7 @@ def get_op_return_type_description(t):
     if t == OP_RETURN_TYPE_ISSUE_ASSET:
         return "Issue Asset"
     elif t == OP_RETURN_TYPE_SPKC:
-        return "Issue Asset (More)"
+        return "Issue Asset (Follow On)"
     elif t == OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
         return "Miner Signature"
     # TODO: 10007
