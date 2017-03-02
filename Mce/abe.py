@@ -1209,7 +1209,7 @@ class Abe:
 
 # MULTICHAIN START
 
-    def show_tx_row_to_html_impl(abe, chain, body, asset_txid_dict, binscript, script_type):
+    def show_tx_row_to_html_impl(abe, chain, body, asset_txid_dict, binscript, script_type, data):
         body += ['<td style="max-width: 400px;">', escape(decode_script(binscript)) ]
         msg = None
         msgtype = 'success'
@@ -1592,7 +1592,7 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type)
+                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data)
 
             body += ['</tr>\n']
 
@@ -1746,7 +1746,7 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type)
+                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data)
 
             body += ['</tr>\n']
 
