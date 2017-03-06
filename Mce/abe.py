@@ -2649,7 +2649,7 @@ class Abe:
             # }
             txid = item['txid']  # data['txid'] should be the same
             data = item['data']
-            vout = 0
+            vout = item['vout']
             size = 0
             printdata = False
             if type(data) is dict:
@@ -4027,7 +4027,7 @@ def redirect(page):
     uri = wsgiref.util.request_uri(page['env'])
     page['start_response'](
         '301 Moved Permanently',
-        [('Location', uri),
+        [('Location', str(uri)),
          ('Content-Type', 'text/html')])
     return ('<html><head><title>Moved</title></head>\n'
             '<body><h1>Moved</h1><p>This page has moved to '
