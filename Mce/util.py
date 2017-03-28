@@ -366,6 +366,9 @@ def parse_op_drop_data(data, chain):
     #print "func = ", func
     return func(data)
 
+def parse_op_drop_data_10008(data):
+    parse_op_drop_data_10007(data)
+
 def parse_op_drop_data_10007(data):
     rettype = OP_DROP_TYPE_UNKNOWN
     retval = None
@@ -727,6 +730,9 @@ def parse_op_return_data(data, chain):
     func = getattr(sys.modules[__name__], func_name, func_not_found)
     #print "func = ", func
     return func(data)
+
+def parse_op_return_data_10008(data):
+    return parse_op_return_data_10007(data)
 
 def parse_op_return_data_10007(data):
     return parse_op_return_data_10006(data)
