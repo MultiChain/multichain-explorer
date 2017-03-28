@@ -725,7 +725,7 @@ def parse_op_return_data(data, chain):
     def func_not_found(data): # just in case we dont have the function
          print "No function found to parse data for protocol version " + str(version)
     func = getattr(sys.modules[__name__], func_name, func_not_found)
-    print "func = ", func
+    #print "func = ", func
     return func(data)
 
 def parse_op_return_data_10007(data):
