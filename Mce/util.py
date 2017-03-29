@@ -359,7 +359,7 @@ def parse_op_drop_data(data, chain):
     if version <= 10006:
         func_name = 'parse_op_drop_data_10006'
     else:
-        func_name = 'parse_op_drop_data_' + str(version)
+        func_name = 'parse_op_drop_data_10007'
     def func_not_found(data): # just in case we dont have the function
          print "No function found to parse data for protocol version " + str(version)
     func = getattr(sys.modules[__name__], func_name, func_not_found)
@@ -721,7 +721,7 @@ def parse_op_return_data(data, chain):
     if version <= 10006:
         func_name = 'parse_op_return_data_10006'
     else:
-        func_name = 'parse_op_return_data_' + str(version)
+        func_name = 'parse_op_return_data_10007'
     def func_not_found(data): # just in case we dont have the function
          print "No function found to parse data for protocol version " + str(version)
     func = getattr(sys.modules[__name__], func_name, func_not_found)

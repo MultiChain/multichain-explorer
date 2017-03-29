@@ -2958,11 +2958,12 @@ store._ddl['txout_approx'],
             try:
                 return rpc("getblockhash", height)
             except util.JsonrpcException, e:
-                if e.code in (-1, -5, -8):
+                if e.code in (-1, -5, -8, -711):
                     # Block number out of range...
                     #  -1 is legacy code (pre-10.0), generic error
                     #  -8 (RPC_INVALID_PARAMETER) first seen in bitcoind 10.x
                     #  -5 (RPC_NOT_FOUND): Been suggested in #bitcoin-dev as more appropriate
+                    #-711 (RPC_BLOCK_NOT_FOUND): MultiChain block not found error
                     return None
                 raise
 
@@ -2974,7 +2975,7 @@ store._ddl['txout_approx'],
                 rpc_tx_hex = rpc("getrawtransaction", rpc_tx_hash)
 
             except util.JsonrpcException, e:
-                if e.code != -5:  # -5: transaction not in index.
+                if e.code != -5 and e.code!= -710:  # -5 or -710: transaction not in index.
                     raise
                 if height != 0:
                     return None
