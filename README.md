@@ -50,11 +50,11 @@ On CentOS, you will need to install the following dependencies:
 MultiChain Compatibility
 ------------------------
 
-The explorer currently supports protocol version `10007` or earlier, but not the `10008` protocol which is the default in MultiChain 1.0 alpha 29 or later. If you want to need to create a legacy chain, either use MultiChain 1.0 alpha 28 or create a chain using protocol `10007`:
+The explorer currently supports protocol versions up to `10008`, which is the default in MultiChain 1.0 alpha 29. If you want or need to create a legacy chain, create a chain using protocol `10008`:
 
-    multichain-util create [chain-name] 10007
+    multichain-util create [chain-name] 10008
 
-You can check the protocol version of an existing chain using the `getinfo` command. Support for the new protocol will be available shortly.
+You can check the protocol version of an existing chain using the `getinfo` command.
 
 
 Installation
