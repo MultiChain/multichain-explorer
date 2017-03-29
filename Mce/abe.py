@@ -3029,6 +3029,7 @@ class Abe:
         q = (page['params'].get('q') or [''])[0]
 # MULTICHAIN START
         q = q.strip()
+        q = q.decode("utf-8")
         page['chain'] = abe.store.get_chain_by_id(1)
 # MULTICHAIN END
         if q == '':
