@@ -2075,7 +2075,7 @@ class Abe:
 
         # get asset information and issue tx as json
         try:
-            resp = util.jsonrpc(multichain_name, url, "listassets", assetref, 1) # verbose to get 'issues' field
+            resp = util.jsonrpc(multichain_name, url, "listassets", assetref, True) # verbose to get 'issues' field
             asset = resp[0]
             issuetxid = asset['issuetxid']
             resp = util.jsonrpc(multichain_name, url, "getrawtransaction", issuetxid, 1)
