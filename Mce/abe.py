@@ -1389,7 +1389,7 @@ class Abe:
                         for stream in resp:
                             if stream.get('createtxid','').startswith(txidfragment):
                                 streamname = stream.get('name','')
-                                streamlink = '<a href="../../' + escape(chain.name) + '/streams/' + streamname + '">' + streamname + '</a>'
+                                streamlink = '<a href="../../' + escape(chain.name) + '/stream/' + streamname + '">' + streamname + '</a>'
                                 break
 
                     except Exception as e:
