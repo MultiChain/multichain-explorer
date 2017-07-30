@@ -715,10 +715,10 @@ class Abe:
         body += ['<div class="container"><div class="row"><div class="col-md-6">']
         body += ['<h3>Summary</h3>']
         body += ['<table class="table table-bordered table-striped table-condensed">']
-        body += ['<td>Blocks</td>','<td><a href="/', escape(chain.name), '/blocks/">', info_resp['blocks'], '</a></td>']
+        body += ['<td>Blocks</td>', '<td><a href="', page['dotdot'], escape(chain.name), '/blocks/">', info_resp['blocks'], '</a></td>']
         #body += html_keyvalue_tablerow('Blocks', info_resp['blocks'])
         body += html_keyvalue_tablerow('Transactions', num_txs)
-        body += ['<td>Assets</td>', '<td><a href="/{0}/assets">'.format(escape(chain.name)), num_assets, '</a></td>']
+        body += ['<td>Assets</td>', '<td><a href="', page['dotdot'], escape(chain.name), '/assets">', num_assets, '</a></td>']
         #body += html_keyvalue_tablerow('Assets', num_assets)
         body += html_keyvalue_tablerow('Addresses', num_addresses)
         body += ['</table>']
