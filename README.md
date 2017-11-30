@@ -102,6 +102,10 @@ All you need to do is add the RPC port number. Copy the ````default-rpc-port````
     # Make a note of the default-rpc-port value, let's say it's 1234, and add it to multichain.conf
     echo "rpcport=1234" >> multichain.conf
 
+You may need to set the ip to connect to if you run multichain-explorer on another host though. In this case just add another entry to ````multichain.conf```` as follows:
+
+    echo "rpcconnect=192.168.99.100" >> multichain.conf   
+
 
 Configure the Explorer
 ----------------------
