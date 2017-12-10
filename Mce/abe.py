@@ -2634,7 +2634,7 @@ class Abe:
                 publisher = item['publishers'][0]
                 publisher_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
             else:
-		publisher_address = ''
+                publisher_address = ''
                 for publisher in item['publishers']:
                     publisher_link = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
                     publisher_address += '{0}<br/>'.format(publisher_link)
