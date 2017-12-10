@@ -2693,7 +2693,13 @@ class Abe:
             sizelink += '/txoutdata/' + txid + '/' + str(vout) + '">' + str(size) + ' bytes</a>'
 
             keylink = '<a href="' + page['dotdot'] + '/' + escape(chain.name)
-            keylink += '/keyitems/' + streamname + '/' + item['key'] + '">' + item['key'] + '</a>'
+
+            if chain.protocol_version < 20001:
+                tmpkey = item['key']
+            else:
+                # TODO: How to best handle multiple keys?
+                tmpkey = item['keys'][0]
+            keylink += '/keyitems/' + streamname + '/' + tmpkey + '">' + tmpkey + '</a>'
 
             body += [
                 '<tr>'
