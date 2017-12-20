@@ -2081,7 +2081,7 @@ store._ddl['txout_approx'],
                          UPDATE asset
                             SET name = ?, multiplier = ?
                           WHERE tx_id = ?
-                          """, (unicode(val.get('Asset Name',''), 'latin-1'), val['Quantity Multiple'], tx_id))
+                          """, (unicode(val.get('Asset Name',''), 'latin-1'), val.get('Quantity Multiple',1), tx_id))
                     store.sql("""
                          INSERT INTO asset_txid (asset_id, tx_id, txout_pos)
                          VALUES ( (SELECT asset_id FROM asset WHERE tx_id = ? AND name = ?) , ?, ?)""",
