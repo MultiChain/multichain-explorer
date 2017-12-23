@@ -2092,7 +2092,7 @@ class Abe:
         blockhash = issuetx['blockhash']
         name = issuetx['vout'][0]['assets'][0].get('name','')
         address_to = issuetx['vout'][0]['scriptPubKey']['addresses'][0]
-        address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
+        address_from = asset['issues'][0]['issuers'][0]
         native_amount = issuetx['vout'][0]['value']
 
         issues = asset.get('issues', [])
