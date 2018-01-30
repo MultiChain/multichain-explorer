@@ -2092,7 +2092,7 @@ class Abe:
         blockhash = issuetx['blockhash']
         name = issuetx['vout'][0]['assets'][0].get('name','')
         address_to = issuetx['vout'][0]['scriptPubKey']['addresses'][0]
-        address_from = issuetx['vout'][2]['scriptPubKey']['addresses'][0]
+        address_from = asset['issues'][0]['issuers'][0]
         native_amount = issuetx['vout'][0]['value']
 
         issues = asset.get('issues', [])
@@ -2634,7 +2634,7 @@ class Abe:
                 publisher = item['publishers'][0]
                 publisher_address = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
             else:
-		publisher_address = ''
+                publisher_address = ''
                 for publisher in item['publishers']:
                     publisher_link = '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/publisheritems/' + streamname + '/' + publisher + '">' + publisher + '</a>'
                     publisher_address += '{0}<br/>'.format(publisher_link)
@@ -2693,7 +2693,13 @@ class Abe:
             sizelink += '/txoutdata/' + txid + '/' + str(vout) + '">' + str(size) + ' bytes</a>'
 
             keylink = '<a href="' + page['dotdot'] + '/' + escape(chain.name)
-            keylink += '/keyitems/' + streamname + '/' + item['key'] + '">' + item['key'] + '</a>'
+
+            if chain.protocol_version < 20001:
+                tmpkey = item['key']
+            else:
+                # TODO: How to best handle multiple keys?
+                tmpkey = item['keys'][0]
+            keylink += '/keyitems/' + streamname + '/' + tmpkey + '">' + tmpkey + '</a>'
 
             body += [
                 '<tr>'
