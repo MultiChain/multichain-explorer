@@ -329,7 +329,10 @@ class Abe:
                 '<p class="error">'
                 'Sorry, I don\'t know about that chain!</p>\n']
         except Redirect:
-            return redirect(page)
+            content=redirect(page)
+            if isinstance(content, unicode):
+                content = content.encode('latin-1') # Convert Unicode escaped bytes$
+            return content
         except Streamed:
             return ''
         except Exception:
