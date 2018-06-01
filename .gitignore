@@ -1,7 +1,11 @@
 *.pyc
-*abe.sqlite*
+*.sqlite*
 tmpd
 MANIFEST
 build
 dist
 .idea
+venv*/
+*.log
+*.conf
+.directory

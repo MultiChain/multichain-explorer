@@ -2516,6 +2516,33 @@ class Abe:
 
     def do_streamitems(abe, page, streamname, publisher = None, streamkey = None):
         chain = page['chain']
+        page['myheader'].append(
+"""
+    <style>
+        .ellipses {
+            border: 1px black solid;
+            padding: 3px;
+            border-radius: 5px;
+        }
+    </style>
+    
+    <script>
+        $(function () {
+            $('html').click(function(e) {
+                $('[data-toggle="popover"]').popover('hide');
+            });
+            
+            $('[data-toggle="popover"]').popover({
+                html: true,
+                trigger: 'manual'
+            }).click(function(e) {
+                $(this).popover('toggle');
+                e.stopPropagation();
+            });                        
+        });
+    </script>
+"""
+        )
 
         page['title'] = 'Stream Items'
         page['h1'] = 'Stream: <a href="' + page['dotdot'] + '/' + escape(chain.name) + '/streams/">' + streamname + '</a>'
@@ -2655,10 +2682,18 @@ class Abe:
             vout = item['vout']
             size = 0
             printdata = False
+            mydata = None
             if type(data) is dict:
-                mydata = 'Too large to show'
-                vout = data['vout']
-                size = data['size']
+                if 'text' in data:
+                    mydata = data['text']
+                    printdata = True
+                elif 'json' in data:
+                    mydata = json.dumps(data['json'])
+                    printdata = True
+                else:
+                    mydata = 'Too large to show'
+                    vout = data['vout']
+                    size = data['size']
             else:
                 size = len(data) / 2
 
@@ -2678,8 +2713,12 @@ class Abe:
                         mydata += '... '
                     printdata = True
 
-            if printdata is True:
-                datahtml =  mydata
+            if printdata:
+                numchars = 40
+                datahtml = escape(mydata[:numchars], quote=True)
+                if len(mydata) > numchars:
+                    datahtml = '{}, <span class="ellipses" data-toggle="popover" data-content="{}">...</span>'.format(
+                        datahtml, '...' + escape(mydata[numchars:], quote=True))
                 #datahtml = ['<strong>', mydata, '</strong>']
                 #datahtml = ['<div class="well well-sm">', mydata, '</div>']
                 #datahtml = ['<div class="panel panel-default panel-info"><div class="panel-body" style="word-break:break-all;">' + mydata +'</div></div>']
@@ -2695,19 +2734,28 @@ class Abe:
             sizelink ='<a href="' + page['dotdot'] + '/' + escape(chain.name)
             sizelink += '/txoutdata/' + txid + '/' + str(vout) + '">' + str(size) + ' bytes</a>'
 
-            keylink = '<a href="' + page['dotdot'] + '/' + escape(chain.name)
+            # Get keys for the item
+            keys = []
+            if chain.protocol_version < 20001:  # Older protocols have only one key
+                keys = [item['key']]
+            elif streamkey:  # Single key provided in the request
+                keys = [streamkey]
+            else:  # Get all keys
+                keys = item['keys']
 
-            if chain.protocol_version < 20001:
-                tmpkey = item['key']
-            else:
-                # TODO: How to best handle multiple keys?
-                tmpkey = item['keys'][0]
-            keylink += '/keyitems/' + streamname + '/' + tmpkey + '">' + tmpkey + '</a>'
+            # Create a list of key links
+            prefix = '{}/{}/keyitems/{}'.format(page['dotdot'], escape(chain.name), streamname)
+            keylinks = ['<a href="{0}/{1}">{1}</a>'.format(prefix, key) for key in keys]
+            keyshtml = ', '.join(keylinks[:3])
+            # If list is too long, display only first few keys, and enable a popover with the full list
+            if len(keylinks) >= 3:
+                keyshtml = '{}, <span class="ellipses" data-toggle="popover" data-content="{}">...</span>'.format(
+                    keyshtml, escape('..., ' + ', '.join(keylinks[3:]), quote=True))
 
             body += [
                 '<tr>'
                 '</td><td>', timestamp_label,
-                '</td><td>', keylink,
+                '</td><td>', keyshtml,
                 '</td><td>', datahtml,
                 '</td><td>', sizelink,
                 '</td><td>', publisher_address,
