@@ -20,6 +20,8 @@
 #
 
 import re
+from cgi import escape
+
 import base58
 import Crypto.Hash.SHA256 as SHA256
 # MULTICHAIN START
@@ -306,6 +308,7 @@ OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA = 9
 OP_DROP_TYPE_SPKN_CREATE_STREAM = 10
 OP_DROP_TYPE_SPKE = 11
 OP_DROP_TYPE_SPKI = 12 #input cache
+OP_DROP_TYPE_SPKF = 13
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
@@ -465,6 +468,10 @@ def parse_op_drop_data_10007(data):
             rettype = OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA  # TODO: Return op_drop type of assetdetails?
             return rettype, retvalue
         # If not 0x01, unknown type of spku
+    elif data[:4] == bytearray.fromhex(u'73706b66'):
+        rettype = OP_DROP_TYPE_SPKF
+        retvalue = None
+        return rettype, retvalue
 
     # Backwards compatibility: if the op_drop data has not been handled yet, fall through to 10006 parsing
     return parse_op_drop_data_10006(data)
@@ -935,3 +942,23 @@ def is_printable(s):
             return False
     return True
 # MULTICHAIN END
+
+
+def render_long_data_with_popover(data, limit=40, classes=""):
+    """
+    Render a string, potentially truncating and enabling a popover with the remainder triggered by clicking
+    on the ellipses at the end of the value.
+
+    If @p classes are given, wrap the value in a span.
+    :param data:    The string to render.
+    :param limit:   The length at which to truncate the data.
+    :param classes: Additional CSS classes for the returned tag.
+    :return:        The HTML to render for the data.
+    """
+    datahtml = escape(data[:limit], quote=True)
+    if len(data) > limit:
+        datahtml = '{}<span class="ellipses" data-toggle="popover" data-content="{}">...</span>'.format(
+            datahtml, '...' + escape(data[limit:], quote=True))
+    if classes:
+        datahtml = '<span class="{}">{}</span>'.format(classes, datahtml)
+    return datahtml

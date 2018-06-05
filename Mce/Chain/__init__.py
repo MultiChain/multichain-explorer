@@ -89,6 +89,7 @@ SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM = 11
 SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION = 12
 SCRIPT_TYPE_MULTICHAIN_SPKN = 13
 SCRIPT_TYPE_MULTICHAIN_SPKU = 14    # follow on asset issuance metadata
+SCRIPT_TYPE_MULTICHAIN_SPKF = 15
 # MULTICHAIN END
 
 
@@ -229,6 +230,7 @@ class BaseChain(object):
         * SCRIPT_TYPE_MULTICHAIN_STREAM_PERMISSION - Data is a dictionary containing stream creation txid, permissions, pubkey_hash
         * SCRIPT_TYPE_MULTICHAIN_SPKN
         * SCRIPT_TYPE MULTICHAIN_SPKE
+        * SCRIPT_TYPE_MULTICHAIN_SPKF - DATA is the formatted metadata
 # MULTICHAIN END
         """
         if script is None:
@@ -259,8 +261,13 @@ class BaseChain(object):
 
         # Return dict
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
-            dict = {"op_drop":decoded[0][1], "op_return":decoded[3][1]}
-            return SCRIPT_TYPE_MULTICHAIN_STREAM, dict
+            drop_data = decoded[0][1]
+            if drop_data[:4] == "spkf":
+                script_type = SCRIPT_TYPE_MULTICHAIN_SPKF
+            else:
+                script_type = SCRIPT_TYPE_MULTICHAIN_STREAM
+            dict = {"op_drop": drop_data, "op_return": decoded[3][1]}
+            return script_type, dict
 
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE):
             dict = {"assetidentifier":decoded[0][1], "assetdetails":decoded[2][1]}

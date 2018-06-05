@@ -77,11 +77,13 @@ DEFAULT_TEMPLATE = """
     <!-- Bootstrap and Theme -->
     <link href="%(dotdot)s%(STATIC_PATH)scss/bootstrap.min.css" rel="stylesheet">
     <link href="%(dotdot)s%(STATIC_PATH)scss/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="%(dotdot)s%(STATIC_PATH)sabe.css" rel="stylesheet">
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="%(dotdot)s%(STATIC_PATH)sjs/jquery-1.11.3.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="%(dotdot)s%(STATIC_PATH)sjs/bootstrap.min.js"></script>
+    <script src="%(dotdot)s%(STATIC_PATH)sabe.js"></script>
 
     %(myheader)s
 </head>
@@ -1081,6 +1083,9 @@ class Abe:
                             label = 'Unknown MultiChain command'
                             labeltype = 'danger'
 
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
+                        label = "Data"
+
                     if label is not None:
                         labels.append(label)
 
@@ -1212,7 +1217,7 @@ class Abe:
 
 # MULTICHAIN START
 
-    def show_tx_row_to_html_impl(abe, chain, body, asset_txid_dict, binscript, script_type, data):
+    def show_tx_row_to_html_impl(abe, chain, body, asset_txid_dict, binscript, script_type, data, v_json):
         body += ['<td style="max-width: 400px;">', escape(decode_script(binscript)) ]
         msg = None
         msgtype = 'success'
@@ -1222,6 +1227,7 @@ class Abe:
                            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                            Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,  # also matches template used for input cache opdrop
+                           Chain.SCRIPT_TYPE_MULTICHAIN_SPKF,
                            Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
             # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
             data = util.get_multichain_op_drop_data(binscript)
@@ -1528,6 +1534,13 @@ class Abe:
                 msgtype = 'info'
                 msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
 
+        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
+            msgparts = []
+            for metadata in v_json["data"]:
+                text_data = metadata.get("text", "") or json.dumps(metadata.get("json", ""))
+                msgparts.append(util.render_long_data_with_popover(text_data))
+            msg = "</br>".join(msgparts)
+
         # Add MultiChain HTML
         if msg is not None:
             body += ['<div style="height:5px;"></div><div class="panel panel-default panel-'+msgtype+'"><div class="panel-body" style="' + msgpanelstyle + '">'+msg+'</div></div>']
@@ -1539,10 +1552,8 @@ class Abe:
         body = page['body']
         asset_txid_dict = {}    # map: txid fragment (first 16 bytes as hex string) --> asset obj
 
-        def row_to_html(row, this_ch, other_ch, no_link_text):
+        def row_to_html(v, row, this_ch, other_ch, no_link_text):
             txid = row['o_hash']
-            if txid is not None:
-                vout = row['o_pos']
             urlprefix = ''
             binscript = row['binscript']
 
@@ -1555,8 +1566,8 @@ class Abe:
                 body += [no_link_text]
             else:
                 body += [
-                    '<a href="', urlprefix, txid, '#', other_ch, vout,
-                    '">', txid[:10], '...:', vout, '</a>']
+                    '<a href="', urlprefix, txid, '#', other_ch, v,
+                    '">', txid[:10], '...:', v, '</a>']
             body += ['</td>']
 
             # Decode earlier as we need to use script type
@@ -1595,7 +1606,9 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data)
+                tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", tx["hash"], 1)
+                v_json = tx_json['vout'][int(v)]
+                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json)
 
             body += ['</tr>\n']
 
@@ -1627,6 +1640,8 @@ class Abe:
         if chain is None:
             abe.log.warning('Assuming default chain for Transaction ' + tx['hash'])
             chain = abe.get_default_chain()
+        chain_name = abe.store.get_multichain_name_by_id(chain.id)
+        chain_url = abe.store.get_url_by_chain(chain)
 # MULTICHAIN START
         body += html_keyvalue_tablerow('Number of inputs', len(tx['in']),
             ' &ndash; <a href="#inputs">jump to inputs</a>')
@@ -1658,8 +1673,8 @@ class Abe:
         if abe.store.keep_scriptsig:
             body += ['<th>ScriptSig</th>']
         body += ['</tr>\n']
-        for txin in tx['in']:
-            row_to_html(txin, 'i', 'o',
+        for vin, txin in enumerate(tx['in']):
+            row_to_html(vin, txin, 'i', 'o',
                         'Generation' if is_coinbase else 'Unknown')
         body += ['</table>\n',
 # MULTICHAIN START
@@ -1667,8 +1682,8 @@ class Abe:
                  '<tr><th>Index</th><th>Redeemed at input</th><th>Native</th>',
 # MULTICHAIN END
                  '<th>To address</th><th>ScriptPubKey</th></tr>\n']
-        for txout in tx['out']:
-            row_to_html(txout, 'o', 'i', 'Not yet redeemed')
+        for vout, txout in enumerate(tx['out']):
+            row_to_html(vout, txout, 'o', 'i', 'Not yet redeemed')
 
         body += ['</table>\n']
 
@@ -1717,13 +1732,14 @@ class Abe:
             addressLabel = 'None'
             value = 0
 
+            tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", txid, 1)
+            v_json = tx_json['vout'][int(vout)]
+
             if novalidaddress is False:
                 if this_ch is 'i':
                     try:
-                        resp = util.jsonrpc(chain_name, chain_url, "getrawtransaction", txid, 1)
-                        n = int(vout)
-                        addressLabel = resp['vout'][n]['scriptPubKey']['addresses'][0]
-                        value = resp['vout'][n]['value']
+                        addressLabel = v_json['scriptPubKey']['addresses'][0]
+                        value = v_json['value']
                     except Exception as e:
                         pass
                 else:
@@ -1749,7 +1765,7 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data)
+                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json)
 
             body += ['</tr>\n']
 
@@ -2516,33 +2532,6 @@ class Abe:
 
     def do_streamitems(abe, page, streamname, publisher = None, streamkey = None):
         chain = page['chain']
-        page['myheader'].append(
-"""
-    <style>
-        .ellipses {
-            border: 1px black solid;
-            padding: 3px;
-            border-radius: 5px;
-        }
-    </style>
-    
-    <script>
-        $(function () {
-            $('html').click(function(e) {
-                $('[data-toggle="popover"]').popover('hide');
-            });
-            
-            $('[data-toggle="popover"]').popover({
-                html: true,
-                trigger: 'manual'
-            }).click(function(e) {
-                $(this).popover('toggle');
-                e.stopPropagation();
-            });                        
-        });
-    </script>
-"""
-        )
 
         page['title'] = 'Stream Items'
         page['h1'] = 'Stream: <a href="' + page['dotdot'] + '/' + escape(chain.name) + '/streams/">' + streamname + '</a>'
@@ -2714,11 +2703,7 @@ class Abe:
                     printdata = True
 
             if printdata:
-                numchars = 40
-                datahtml = escape(mydata[:numchars], quote=True)
-                if len(mydata) > numchars:
-                    datahtml = '{}, <span class="ellipses" data-toggle="popover" data-content="{}">...</span>'.format(
-                        datahtml, '...' + escape(mydata[numchars:], quote=True))
+                datahtml = util.render_long_data_with_popover(mydata)
                 #datahtml = ['<strong>', mydata, '</strong>']
                 #datahtml = ['<div class="well well-sm">', mydata, '</div>']
                 #datahtml = ['<div class="panel panel-default panel-info"><div class="panel-body" style="word-break:break-all;">' + mydata +'</div></div>']
@@ -2750,7 +2735,7 @@ class Abe:
             # If list is too long, display only first few keys, and enable a popover with the full list
             if len(keylinks) >= 3:
                 keyshtml = '{}, <span class="ellipses" data-toggle="popover" data-content="{}">...</span>'.format(
-                    keyshtml, escape('..., ' + ', '.join(keylinks[3:]), quote=True))
+                    keyshtml, escape('...' + ', '.join(keylinks[3:]), quote=True))
 
             body += [
                 '<tr>'
