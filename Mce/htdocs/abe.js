@@ -6,7 +6,12 @@ $(function () {
     $('[data-toggle="popover"]').popover({
         html: true,
         trigger: 'manual'
-    }).click(function(e) {
+    });
+    $('[data-toggle="popover"]').not(".hover").popover().click(function(e) {
+        $(this).popover('toggle');
+        e.stopPropagation();
+    });
+    $('.hover[data-toggle="popover"]').popover().hover(function(e) {
         $(this).popover('toggle');
         e.stopPropagation();
     });

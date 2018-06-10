@@ -1217,7 +1217,7 @@ class Abe:
 
 # MULTICHAIN START
 
-    def show_tx_row_to_html_impl(abe, chain, body, asset_txid_dict, binscript, script_type, data, v_json):
+    def show_tx_row_to_html_impl(abe, chain, body, asset_txid_dict, binscript, script_type, data, v_json, data_ref):
         body += ['<td style="max-width: 400px;">', escape(decode_script(binscript)) ]
         msg = None
         msgtype = 'success'
@@ -1528,18 +1528,16 @@ class Abe:
                 msgtype = 'info'
                 msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
             else:
-                msg = 'Metadata'
-                msg += '<p/>'
-                msg += util.long_hex(data)
-                msgtype = 'info'
-                msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
+                msg = "Metadata:</p><p>{}</p>".format(util.render_long_data_with_link(binascii.hexlify(data), data_ref))
+                msgpanelstyle="word-break:break-word;"
 
         if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
             msgparts = []
             for metadata in v_json["data"]:
                 text_data = metadata.get("text", "") or json.dumps(metadata.get("json", ""))
                 msgparts.append(util.render_long_data_with_popover(text_data))
-            msg = "</br>".join(msgparts)
+            msg = "Metadata:</p><p>{}</p>".format("</br>".join(msgparts))
+            msgpanelstyle = "word-break:normal;"
 
         # Add MultiChain HTML
         if msg is not None:
@@ -1608,7 +1606,8 @@ class Abe:
             if binscript is not None:
                 tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", tx["hash"], 1)
                 v_json = tx_json['vout'][int(v)]
-                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json)
+                dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), tx["hash"], v)
+                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json, dataref)
 
             body += ['</tr>\n']
 
@@ -1765,7 +1764,8 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json)
+                dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, vout)
+                abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json, dataref)
 
             body += ['</tr>\n']
 
@@ -2639,8 +2639,11 @@ class Abe:
         body += ['<p>', nav, '</p>\n',
                  '<table class="table table-striped"><tr>'
                  '<th>Time</th>'
-                 '<th>Key</th><th>Value</th><th>Raw Data</th>',
-                 '<th>Publisher</th><th>Transaction</th>'
+                 '<th>Key</th>'
+                 '<th>Value</th>'
+                 # '<th>Raw Data</th>',
+                 '<th>Publisher</th>'
+                 '<th>Transaction</th>'
                  '</tr>\n']
 
         # sort streamitems in descending order, so most recent timestamp is at top of page
@@ -2684,17 +2687,17 @@ class Abe:
                     vout = data['vout']
                     size = data['size']
             else:
+                mydata = data
                 size = len(data) / 2
 
                 # try to decode hex data as ascii, and also check length
                 try:
-                    rawdata = binascii.unhexlify(data)
-                    if util.is_printable(rawdata) is True:
-                        mydata = rawdata
+                    ascdata = binascii.unhexlify(data)
+                    if util.is_printable(ascdata) is True:
+                        mydata = ascdata
                         printdata = True
-                    else:
-                        #rawdata.decode('utf-8')
-                        mydata = 'Binary data'
+                    # else:
+                    #     mydata = 'Binary data'
                 except UnicodeDecodeError:
                     numchars = 20
                     mydata = data[:numchars * 2]
@@ -2702,22 +2705,21 @@ class Abe:
                         mydata += '... '
                     printdata = True
 
+            data_ref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, vout)
+            sizelink ='<a href="' + data_ref + '">' + str(size) + ' bytes</a>'
+
             if printdata:
-                datahtml = util.render_long_data_with_popover(mydata)
-                #datahtml = ['<strong>', mydata, '</strong>']
-                #datahtml = ['<div class="well well-sm">', mydata, '</div>']
-                #datahtml = ['<div class="panel panel-default panel-info"><div class="panel-body" style="word-break:break-all;">' + mydata +'</div></div>']
+                data_html = util.render_long_data_with_popover(mydata)
+                # data_html = mydata
             else:
-                datahtml = ['<em>', mydata, '</em>']
+                data_html = util.render_long_data_with_link(mydata, data_ref, limit=20)
+                # data_html = ['<em>', mydata, '</em>']
 
             blocktime = int(item.get('blocktime', -1))
             if blocktime == -1:
                 timestamp_label = 'Unconfirmed'
             else:
                 timestamp_label = format_time(blocktime)
-
-            sizelink ='<a href="' + page['dotdot'] + '/' + escape(chain.name)
-            sizelink += '/txoutdata/' + txid + '/' + str(vout) + '">' + str(size) + ' bytes</a>'
 
             # Get keys for the item
             keys = []
@@ -2731,18 +2733,19 @@ class Abe:
             # Create a list of key links
             prefix = '{}/{}/keyitems/{}'.format(page['dotdot'], escape(chain.name), streamname)
             keylinks = ['<a href="{0}/{1}">{1}</a>'.format(prefix, key) for key in keys]
-            keyshtml = ', '.join(keylinks[:3])
+            keyshtml = ', '.join(keylinks)
             # If list is too long, display only first few keys, and enable a popover with the full list
-            if len(keylinks) >= 3:
+            key_limit = 5
+            if len(keylinks) >= key_limit:
                 keyshtml = '{}, <span class="ellipses" data-toggle="popover" data-content="{}">...</span>'.format(
-                    keyshtml, escape('...' + ', '.join(keylinks[3:]), quote=True))
+                    ', '.join(keylinks[:key_limit]), escape(', '.join(keylinks), quote=True))
 
             body += [
                 '<tr>'
                 '</td><td>', timestamp_label,
                 '</td><td>', keyshtml,
-                '</td><td>', datahtml,
-                '</td><td>', sizelink,
+                '</td><td>', data_html,
+                # '</td><td>', sizelink,
                 '</td><td>', publisher_address,
                 '</td><td>', '<a href="' + page['dotdot'] + '/' + escape(chain.name) + '/tx/' + txid + '">', txid[0:10], '...</a>',
                 '</td></tr>\n']
