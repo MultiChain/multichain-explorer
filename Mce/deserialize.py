@@ -298,7 +298,7 @@ def decode_script(bytes):
 
 def match_decoded(decoded, to_match):
   if len(decoded) != len(to_match):
-    return False;
+    return False
   for i in range(len(decoded)):
     if to_match[i] == opcodes.OP_PUSHDATA4 and decoded[i][0] <= opcodes.OP_PUSHDATA4:
       continue  # Opcodes below OP_PUSHDATA4 all just push data onto stack, and are equivalent.

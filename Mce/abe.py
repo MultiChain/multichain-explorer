@@ -18,6 +18,7 @@
 import sys
 import os
 import re
+import types
 from cgi import escape
 import posixpath
 import wsgiref.util
@@ -704,6 +705,12 @@ class Abe:
             num_assets = -1
             num_peers = -1
 
+        try:
+            num_streams = abe.store.get_number_of_streams(chain)
+        except Exception as e:
+            abe.log.warning(e)
+            num_streams = -1
+
         info_resp = None
         params_resp = None
         try:
@@ -726,6 +733,8 @@ class Abe:
         body += ['<td>Assets</td>', '<td><a href="', page['dotdot'], escape(chain.name), '/assets">', num_assets, '</a></td>']
         #body += html_keyvalue_tablerow('Assets', num_assets)
         body += html_keyvalue_tablerow('Addresses', num_addresses)
+        body += ['<td>Streams</td>', '<td><a href="', page['dotdot'], escape(chain.name), '/streams">', num_streams, '</a></td>']
+        #body += html_keyvalue_tablerow('Streams', num_streams)
         body += ['</table>']
         body += ['<h3>General Information</h3>']
         body += ['<table class="table table-bordered table-striped table-condensed">']
@@ -1410,13 +1419,17 @@ class Abe:
                     msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Stream', streamlink)
                     msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Key', itemkey)
 
-                    itemdata = dict['itemdata']
-                    itemdata = util.long_hex(itemdata)
-                    # try:
-                    #     itemdata.decode('ascii')
-                    # except UnicodeDecodeError:
-                    #     itemdata = util.long_hex(itemdata)
-                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Data', itemdata )
+                    itemdata = v_json["items"][int(v_json["n"])]["data"]
+                    if isinstance(itemdata, types.DictType):
+                        text_data = itemdata.get("text", "") or json.dumps(itemdata.get("json", ""))
+                        data_html = util.render_long_data_with_popover(text_data)
+                    else:
+                        try:
+                            text_data = itemdata.decode('hex').decode('ascii')
+                            data_html = util.render_long_data_with_popover(text_data)
+                        except Exception:
+                            data_html = util.render_long_data_with_link(itemdata, data_ref)
+                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Data', data_html)
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
 
@@ -2405,7 +2418,7 @@ class Abe:
         body += ['<table class="table table-striped">'
                  '<tr><th>Stream Name</th>'
                  '<th>Stream Items</th>'
-                 '<th>Anybody Can Publish</th>'
+                 '<th>Restrict</th>'
                  '<th>Creator</th>'
                  '<th>Creation Transaction</th>'
                  '</tr>']
@@ -2419,9 +2432,14 @@ class Abe:
             else:
                 streamitems_cell = 'Not subscribed'
 
+            if "restrict" in stream:
+                restrict = stream["restrict"]
+            else:
+                restrict = {"write": not stream["open"]}
+            restrict_str = ','.join(k for k, v in restrict.items() if v)
             body += ['<tr><td><a href="../../' + escape(chain.name) + '/stream/' + streamname + '">' + streamname.encode('unicode-escape') + '</a>',
                      '</td><td>', streamitems_cell,
-                     '</td><td>', stream['open'],
+                     '</td><td>', restrict_str,
                      '</td><td><a href="../../' + escape(chain.name) + '/address/' + stream['creators'][0] + '">', stream['creators'][0], '</a>',
                      '</td><td><a href="../../' + escape(chain.name) + '/tx/' + stream['createtxid'] + '">',
                      stream['createtxid'][:20], '...</a>',

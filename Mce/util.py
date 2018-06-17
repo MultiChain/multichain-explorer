@@ -935,6 +935,8 @@ def get_multichain_op_drop_data(script):
         data = decoded[3][1]  # 4th element contains the OP_DROP data.
     elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE):
         data = decoded[0][1]  # 1st element contains the creation txid OP_DROP data
+    elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_FORMATTED_ITEM_TEMPLATE):
+        data = decoded[0][1]  # 1st element contains the creation txid OP_DROP data
     elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
         data = decoded[0][1]  # 1st element contains the OP_DROP data.
     elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_SPKN_TEMPLATE):
@@ -1017,11 +1019,9 @@ def render_long_data_with_popover(data, limit=40, classes="", hover=True):
     """
     data_html = escape(data[:limit], quote=True)
     if len(data) > limit:
-        popover_classes = "ellipses"
-        if hover:
-            popover_classes += " hover"
-        data_html = '{}<span class="{}" data-toggle="popover" data-content="{}">...</span>'.format(
-            data_html, popover_classes, escape(data, quote=True))
+        trigger = "hover" if hover else "focus"
+        data_html = '{}<span class="ellipses" data-toggle="popover" data-trigger="{}" data-content=" {} ">...</span>'.format(
+            data_html, trigger, escape(data, quote=True))
     if classes:
         data_html = '<span class="{}">{}</span>'.format(classes, data_html)
     return data_html

@@ -38,6 +38,8 @@ SCRIPT_MULTICHAIN_ENTITY_PERMISSION_TEMPLATE = [
 # Template to match a MultiChain stream item
 # spke for stream item
 SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
+# spkf for stream item
+SCRIPT_MULTICHAIN_STREAM_FORMATTED_ITEM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
 
 # spke for asset
 SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN]
