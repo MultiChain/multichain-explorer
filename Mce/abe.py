@@ -1414,10 +1414,11 @@ class Abe:
                         body += ['<div class="alert alert-danger" role="warning">', e ,'</div>']
                         return
 
-                    itemkey = dict['itemkey'][4:] # we don't need prefix 'spkk' or 0x73 0x70 0x6b 0x6b
+                    # itemkey = dict['itemkey'][4:] # we don't need prefix 'spkk' or 0x73 0x70 0x6b 0x6b
+                    itemkeys = [itemkey[4:] for itemkey in dict['itemkeys']]
                     msg += '<table class="table table-bordered table-condensed">'
                     msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Stream', streamlink)
-                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Key', itemkey)
+                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Key', ', '.join(itemkeys))
 
                     itemdata = v_json["items"][int(v_json["n"])]["data"]
                     if isinstance(itemdata, types.DictType):
@@ -1544,13 +1545,31 @@ class Abe:
                 msg = "Metadata:</p><p>{}</p>".format(util.render_long_data_with_link(binascii.hexlify(data), data_ref))
                 msgpanelstyle="word-break:break-word;"
 
-        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
-            msgparts = []
-            for metadata in v_json["data"]:
-                text_data = metadata.get("text", "") or json.dumps(metadata.get("json", ""))
-                msgparts.append(util.render_long_data_with_popover(text_data))
-            msg = "Metadata:</p><p>{}</p>".format("</br>".join(msgparts))
-            msgpanelstyle = "word-break:normal;"
+        if v_json and not msg and "items" in v_json:
+            msg = ""
+            for item in (x for x in v_json["items"] if x["type"] == "stream"):
+                stream_name = item["name"]
+                keys = [item["key"]] if "key" in item else item["keys"]
+                data = item["data"]
+                if any(x in data for x in ("text", "json")):
+                    if "text" in data:
+                        data = data["text"]
+                    else:
+                        data = json.dumps(data["json"])
+                    data_html = util.render_long_data_with_popover(data)
+                else:
+                    data_html = util.render_long_data_with_link(data, data_ref)
+                stream_link = '<a href="../../{0}/stream/{1}">{1}</a>'.format(escape(chain.name), stream_name)
+                keys_html = ', '.join(keys)
+                data_html = util.render_long_data_with_popover(data)
+                msg += """
+                    <table class="table table-bordered table-condensed">
+                        <tr><td>Stream</td><td>{}</td></tr>
+                        <tr><td>Keys</td><td>{}</td></tr>
+                        <tr><td>Data</td><td>{}</td></tr>
+                    </table>
+                """.format(stream_link, keys_html, data_html)
+            msgpanelstyle = "margin-bottom: -20px;"
 
         # Add MultiChain HTML
         if msg is not None:
@@ -1617,9 +1636,12 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", tx["hash"], 1)
-                v_json = tx_json['vout'][int(v)]
-                dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), tx["hash"], v)
+                if this_ch == 'o':
+                    tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", tx["hash"], 1)
+                    v_json = tx_json['vout'][int(v)]
+                    dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), tx["hash"], v)
+                else:
+                    v_json = dataref = None
                 abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json, dataref)
 
             body += ['</tr>\n']
@@ -1777,7 +1799,10 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, vout)
+                if other_ch == 'o':
+                    dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, vout)
+                else:
+                    v_json = dataref = None
                 abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json, dataref)
 
             body += ['</tr>\n']

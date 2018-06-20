@@ -257,9 +257,20 @@ class BaseChain(object):
                 return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
 
         # Return dict
-        if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE):
-            dict = {"streamtxid":decoded[0][1], "itemkey":decoded[2][1], "itemdata":decoded[5][1]}
-            return SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM, dict
+        # if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE):
+        #     dict = {"streamtxid":decoded[0][1], "itemkey":decoded[2][1], "itemdata":decoded[5][1]}
+        #     return SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM, dict
+
+        if len(decoded) >= 6 and decoded[2][1].startswith("spkk"):
+            txid = decoded[0][1]
+            itemkeys = []
+            pos = 2
+            while decoded[pos][1] and decoded[pos][1].startswith("spkk"):
+                itemkeys.append(decoded[pos][1])
+                pos += 2
+            itemdata = decoded[:-1][1]
+            d = {"streamtxid": txid, "itemkeys": itemkeys, "itemdata":itemdata}
+            return SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM, d
 
         # Return dict
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_TEMPLATE):
