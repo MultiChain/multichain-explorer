@@ -1095,6 +1095,9 @@ class Abe:
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
                         label = "Data"
 
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_APPROVE:
+                        label = "Approve Upgrade"
+
                     if label is not None:
                         labels.append(label)
 
@@ -1237,7 +1240,8 @@ class Abe:
                            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                            Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,  # also matches template used for input cache opdrop
                            Chain.SCRIPT_TYPE_MULTICHAIN_SPKF,
-                           Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
+                           Chain.SCRIPT_TYPE_MULTICHAIN_SPKU,
+                           Chain.SCRIPT_TYPE_MULTICHAIN_APPROVE]:
             # NOTE: data returned above is pubkeyhash, due to common use to get address, so we extract data ourselves.
             data = util.get_multichain_op_drop_data(binscript)
             if data is not None:
@@ -1339,6 +1343,23 @@ class Abe:
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
 
+                # 20001
+                elif opdrop_type == util.OP_DROP_TYPE_SPKN_CREATE_UPGRADE:
+                    msg = "Create upgrade"
+                    try:
+                        resp = abe.store.list_upgrades(chain)
+                        for upgrade in resp:
+                            if upgrade["name"] == val["Name"]:
+                                msg += '<table class="table table-bordered table-condensed">'
+                                msg += '<tr><td>Name</td><td>{0}</td>'.format(upgrade["name"])
+                                for k, v in upgrade["params"].items():
+                                    msg += '<tr><td>{0}</td><td>{1}</td>'.format(k, v)
+                                msg += '</table>'
+                                break
+                    except Exception as e:
+                        pass
+                    msgpanelstyle="margin-bottom: -20px;"
+
                 # 10007
                 elif opdrop_type==util.OP_DROP_TYPE_SPKN_NEW_ISSUE:
                     msg = 'New Issuance Metadata:'
@@ -1433,6 +1454,25 @@ class Abe:
                     msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Data', data_html)
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
+
+                elif opdrop_type == util.OP_DROP_TYPE_SPKE and script_type == Chain.SCRIPT_TYPE_MULTICHAIN_APPROVE:
+                    msg = "Approve upgrade"
+                    msg += '<table class="table table-bordered table-condensed">'
+                    try:
+                        resp = abe.store.list_upgrades(chain)
+                        for upgrade in resp:
+                            if upgrade.get("createtxid", "").startswith(val):
+                                msg += '<tr><td>Name</td><td>{0}</td>'.format(upgrade["name"])
+                                for k, v in upgrade["params"].items():
+                                    msg += '<tr><td>{0}</td><td>{1}</td>'.format(k, v)
+                                break
+                    except Exception as e:
+                        pass
+                    parts = v_json["scriptPubKey"]["asm"].split()
+                    approval = parts[2][8:10]
+                    msg += '<tr><td>Approval</td><td>{0}</td>'.format(approval == '01')
+                    msg += '</table>'
+                    msgpanelstyle = "margin-bottom: -20px;"
 
         if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
             # If this output is not signed by an address with admin (to change activate or write) or activate (to change write) permission for the stream, the transaction is invalid. On the protocol level we will allow permission flags other than admin/activate/write, but these will be forbidden/hidden in the APIs for now. "
@@ -2460,7 +2500,7 @@ class Abe:
             if "restrict" in stream:
                 restrict = stream["restrict"]
             else:
-                restrict = {"write": not stream["open"]}
+                restrict = {"write": stream["open"]}
             restrict_str = ','.join(k for k, v in restrict.items() if v)
             body += ['<tr><td><a href="../../' + escape(chain.name) + '/stream/' + streamname + '">' + streamname.encode('unicode-escape') + '</a>',
                      '</td><td>', streamitems_cell,

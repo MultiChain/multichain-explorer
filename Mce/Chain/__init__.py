@@ -92,6 +92,7 @@ SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION = 12
 SCRIPT_TYPE_MULTICHAIN_SPKN = 13
 SCRIPT_TYPE_MULTICHAIN_SPKU = 14    # follow on asset issuance metadata
 SCRIPT_TYPE_MULTICHAIN_SPKF = 15
+SCRIPT_TYPE_MULTICHAIN_APPROVE = 16
 # MULTICHAIN END
 
 
@@ -283,8 +284,13 @@ class BaseChain(object):
             return script_type, dict
 
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE):
-            dict = {"assetidentifier":decoded[0][1], "assetdetails":decoded[2][1]}
-            return SCRIPT_TYPE_MULTICHAIN_SPKU, dict
+            # Could also be upgrade approval.
+            if decoded[2][1].startswith("spka"):
+                dict = {"upgradeid": decoded[0][1], "approved": decoded[2][1]}
+                return SCRIPT_TYPE_MULTICHAIN_APPROVE, dict
+            else:
+                dict = {"assetidentifier":decoded[0][1], "assetdetails":decoded[2][1]}
+                return SCRIPT_TYPE_MULTICHAIN_SPKU, dict
 
         #SCRIPT_MULTICHAIN_SPKN_TEMPLATE
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_SPKN_TEMPLATE):

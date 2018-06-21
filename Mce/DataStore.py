@@ -4240,6 +4240,18 @@ store._ddl['txout_approx'],
             raise e
         return resp
 
+    def list_upgrades(store, chain):
+        url = store.get_url_by_chain(chain)
+        multichain_name = store.get_multichain_name_by_id(chain.id)
+        resp = None
+        try:
+            resp = util.jsonrpc(multichain_name, url, "listupgrades")
+        except util.JsonrpcException as e:
+            raise Exception("JSON-RPC error({0}): {1}".format(e.code, e.message))
+        except IOError as e:
+            raise e
+        return resp
+
     def get_rawmempool(store, chain):
         """
         Get the result of getrawmempool json-rpc command as json object

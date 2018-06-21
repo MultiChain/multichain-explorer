@@ -346,6 +346,8 @@ OP_DROP_TYPE_SPKN_CREATE_STREAM = 10
 OP_DROP_TYPE_SPKE = 11
 OP_DROP_TYPE_SPKI = 12  # input cache
 OP_DROP_TYPE_SPKF = 13
+OP_DROP_TYPE_SPKN_CREATE_UPGRADE = 14
+OP_DROP_TYPE_SPKN_APPROVE_UPGRADE = 15
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
@@ -375,6 +377,10 @@ def get_op_drop_type_description(t):
         return "Input Cache"
     elif t == OP_DROP_TYPE_SPKN_CREATE_STREAM:
         return "Create Stream"
+    elif t == OP_DROP_TYPE_SPKN_CREATE_UPGRADE:
+        return "Create Upgrade"
+    elif t == OP_DROP_TYPE_SPKN_APPROVE_UPGRADE:
+        return "Approve Upgrade"
     elif t == OP_DROP_TYPE_SPKN_NEW_ISSUE:
         return "Issue Asset (Metadata)"
     elif t == OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
@@ -425,6 +431,9 @@ def parse_op_drop_data_10007(data):
             retval = parse_new_issuance_metadata_10007(data[5:])
         if ord(data[4]) == 0x02:
             rettype = OP_DROP_TYPE_SPKN_CREATE_STREAM
+            retval = parse_create_stream_10007(data[5:])
+        if ord(data[4]) == 0x10:
+            rettype = OP_DROP_TYPE_SPKN_CREATE_UPGRADE
             retval = parse_create_stream_10007(data[5:])
 
         return rettype, retval
@@ -514,6 +523,12 @@ def parse_op_drop_data_10007(data):
     elif data[:4] == bytearray.fromhex(u'73706b66'):
         rettype = OP_DROP_TYPE_SPKF
         retvalue = None
+        return rettype, retvalue
+
+    elif data[:4] == bytearray.fromhex(u'73706b61'):
+        # spka
+        rettype = OP_DROP_TYPE_SPKN_APPROVE_UPGRADE
+        retvalue = bool(data[4])
         return rettype, retvalue
 
     # Backwards compatibility: if the op_drop data has not been handled yet, fall through to 10006 parsing
