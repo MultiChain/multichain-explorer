@@ -1585,31 +1585,46 @@ class Abe:
                 msg = "Metadata:</p><p>{}</p>".format(util.render_long_data_with_link(binascii.hexlify(data), data_ref))
                 msgpanelstyle="word-break:break-word;"
 
-        if v_json and not msg and "items" in v_json:
+        if v_json and not msg:
             msg = ""
-            for item in (x for x in v_json["items"] if x["type"] == "stream"):
-                stream_name = item["name"]
-                keys = [item["key"]] if "key" in item else item["keys"]
-                data = item["data"]
-                if any(x in data for x in ("text", "json")):
-                    if "text" in data:
-                        data = data["text"]
+            if "items" in v_json:
+                for item in (x for x in v_json["items"] if x["type"] == "stream"):
+                    stream_name = item["name"]
+                    keys = [item["key"]] if "key" in item else item["keys"]
+                    data = item["data"]
+                    if any(x in data for x in ("text", "json")):
+                        if "text" in data:
+                            data = data["text"]
+                        else:
+                            data = json.dumps(data["json"])
+                        data_html = util.render_long_data_with_popover(data)
                     else:
-                        data = json.dumps(data["json"])
-                    data_html = util.render_long_data_with_popover(data)
-                else:
-                    data_html = util.render_long_data_with_link(data, data_ref)
-                stream_link = '<a href="../../{0}/stream/{1}">{1}</a>'.format(escape(chain.name), stream_name)
-                keys_html = ', '.join(keys)
-                data_html = util.render_long_data_with_popover(data)
-                msg += """
-                    <table class="table table-bordered table-condensed">
-                        <tr><td>Stream</td><td>{}</td></tr>
-                        <tr><td>Keys</td><td>{}</td></tr>
-                        <tr><td>Data</td><td>{}</td></tr>
-                    </table>
-                """.format(stream_link, keys_html, data_html)
-            msgpanelstyle = "margin-bottom: -20px;"
+                        data_html = util.render_long_data_with_link(data, data_ref)
+                    stream_link = '<a href="../../{0}/stream/{1}">{1}</a>'.format(escape(chain.name), stream_name)
+                    keys_html = ', '.join(keys)
+                    # data_html = util.render_long_data_with_popover(data)
+                    msg += """
+                        <table class="table table-bordered table-condensed">
+                            <tr><td>Stream</td><td>{}</td></tr>
+                            <tr><td>Keys</td><td>{}</td></tr>
+                            <tr><td>Data</td><td>{}</td></tr>
+                        </table>
+                    """.format(stream_link, keys_html, data_html)
+                msgpanelstyle = "margin-bottom: -20px;"
+            elif "data" in v_json:
+                msg += '<table class="table table-bordered table-condensed">'
+                for item in v_json["data"]:
+                    if any(x in item for x in ("text", "json")):
+                        if "text" in item:
+                            data = item["text"]
+                        else:
+                            data = json.dumps(item["json"])
+                        item_html = util.render_long_data_with_popover(data)
+                    else:
+                        item_html = util.render_long_data_with_link(item, data_ref)
+                    msg += "<tr><td>{}</td></tr>".format(item_html)
+                msg += "</table>"
+                msgpanelstyle = "margin-bottom: -20px;"
 
         # Add MultiChain HTML
         if msg is not None:
@@ -1648,6 +1663,7 @@ class Abe:
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_SPKF,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
                     novalidaddress = True
 
