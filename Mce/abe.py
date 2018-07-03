@@ -1251,7 +1251,7 @@ class Abe:
                     try:
                         asset = abe.store.get_asset_by_name(chain, tx['hash'])
                         display_amount = util.format_display_quantity(asset, val)
-                        assetref = asset['assetref']
+                        assetref = asset['assetref'] or asset['name']
                         link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
                         msg = "Issue {0} units of new asset {1}".format(display_amount, link)
                     except Exception as e:
@@ -1260,9 +1260,10 @@ class Abe:
                     dict = val[0]
                     quantity = dict['quantity']
                     if chain.protocol_version < 10007:
-                        assetref = dict['assetref']
+                        assetref = dict['assetref'] or dict['name']
                     else:
-                        assetref = asset_txid_dict[dict['assetref']]['assetref']
+                        asset_dict = asset_txid_dict[dict['assetref']]
+                        assetref = asset_dict['assetref'] or asset_dict['name']
                     link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
                     try:
                         asset = abe.store.get_asset_by_name(chain, assetref)
@@ -1278,9 +1279,10 @@ class Abe:
                     for dict in val:
                         quantity = dict['quantity']
                         if chain.protocol_version < 10007:
-                            assetref = dict['assetref']
+                            assetref = dict['assetref'] or dict['name']
                         else:
-                            assetref = asset_txid_dict[dict['assetref']]['assetref']
+                            asset_dict = asset_txid_dict[dict['assetref']]
+                            assetref = asset_dict['assetref'] or asset_dict['name']
 
                         # link shows asset ref
                         link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
@@ -1403,8 +1405,9 @@ class Abe:
                     opdrop_spku = dict['assetdetails']
                     opdrop_type, fields = util.parse_op_drop_data(opdrop_spku, chain)
 
-                    assetref = asset_txid_dict[assettxid]['assetref']
-                    assetname = asset_txid_dict[assettxid]['name']
+                    asset_dict = asset_txid_dict[assettxid]
+                    assetref = asset_dict['assetref'] or asset_dict['name']
+                    assetname = asset_dict['name']
                     link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetname.encode('unicode-escape') + '</a>'
 
                     msg = "Follow-on issuance metadata for {0}".format(link)
@@ -1484,7 +1487,7 @@ class Abe:
             # Figure out if the txid is for an asset or a stream
             asset = asset_txid_dict.get(txidfragment, None)
             if asset is not None:
-                assetref = asset['assetref']
+                assetref = asset['assetref'] or asset['name']
                 entityname = asset.get('name', '')
                 entitylink = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + entityname.encode('unicode-escape') + '</a>'
             else:
@@ -1545,6 +1548,7 @@ class Abe:
                 assetLink = assetName
                 try:
                     asset = abe.store.get_asset_by_name(chain, assetName)
+                    assetref = asset['assetref'] or asset['name']
                     assetLink = '<a href="../assetref/{0}">{1}</a>'.format(asset['assetref'], assetName)
                 except Exception:
                     pass
@@ -1657,6 +1661,7 @@ class Abe:
 
             # Decode earlier as we need to use script type
             novalidaddress=False
+            script_type = data = None
             if binscript is not None:
                 script_type, data = chain.parse_txout_script(binscript)
                 if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN,
@@ -1782,10 +1787,8 @@ class Abe:
 
         asset_txid_dict = {}    # map: txid fragment (first 16 bytes as hex string) --> asset obj
 
-        def row_to_html(row, this_ch, other_ch, no_link_text):
-            txid = row.get('txid', None)
-            if txid is not None:
-                vout = row['vout']
+        def row_to_html(v, row, this_ch, other_ch, no_link_text, tx):
+            txid = row.get('txid') or tx["txid"]
             # if input tx is in the database, show the correct url
             urlprefix = '../tx/' if abe.store.does_transaction_exist(txid) else ''
             # binscript
@@ -1803,12 +1806,13 @@ class Abe:
                 body += [no_link_text]
             else:
                 body += [
-                    '<a href="', urlprefix, txid, '#', other_ch, vout,
-                    '">', txid[:10], '...:', vout, '</a>']
+                    '<a href="', urlprefix, txid, '#', other_ch, v,
+                    '">', txid[:10], '...:', v, '</a>']
             body += ['</td>']
 
             # Decode earlier as we need to use script type
             novalidaddress=False
+            script_type = data = None
             if binscript is not None:
                 script_type, data = chain.parse_txout_script(binscript)
                 if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN,
@@ -1822,8 +1826,13 @@ class Abe:
             addressLabel = 'None'
             value = 0
 
-            tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", txid, 1)
-            v_json = tx_json['vout'][int(vout)]
+            # tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", txid, 1)
+            # v_json = tx_json['vout'][int(vout)]
+            if this_ch == 'o':
+                tx_json = util.jsonrpc(chain_name, chain_url, "getrawtransaction", txid, 1)
+                v_json = tx_json['vout'][int(v)]
+            else:
+                v_json = None
 
             if novalidaddress is False:
                 if this_ch is 'i':
@@ -1856,9 +1865,9 @@ class Abe:
 
             if binscript is not None:
                 if other_ch == 'o':
-                    dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, vout)
+                    dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, v)
                 else:
-                    v_json = dataref = None
+                    dataref = None
                 abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json, dataref)
 
             body += ['</tr>\n']
@@ -1892,23 +1901,19 @@ class Abe:
         #if abe.store.keep_scriptsig:
         body += ['<th>ScriptSig</th>']
         body += ['</tr>\n']
-        pos = 0
-        for txin in tx['vin']:
-            txin['pos'] = pos
-            pos += 1
-            row_to_html(txin, 'i', 'o',
-                        'Generation' if is_coinbase else 'Unknown')
+        for vin, txin in enumerate(tx['vin']):
+            txin['pos'] = vin
+            row_to_html(vin, txin, 'i', 'o',
+                        'Generation' if is_coinbase else 'Unknown', tx)
 
         body += ['</table>\n',
                  '<a name="outputs"><h3>Outputs</h3></a>\n<table class="table table-striped">\n',
                  '<tr><th>Index</th><th>Redeemed at input</th><th>Native</th>',
                  '<th>To address</th><th>ScriptPubKey</th></tr>\n']
         
-        pos = 0
-        for txout in tx['vout']:
-            txout['pos'] = pos
-            pos += 1
-            row_to_html(txout, 'o', 'i', 'Not yet redeemed')
+        for vout, txout in enumerate(tx['vout']):
+            txout['pos'] = vout
+            row_to_html(vout, txout, 'o', 'i', 'Not yet redeemed', tx)
 
         body += ['</table>\n']
 # MULTICHAIN END
@@ -2083,7 +2088,7 @@ class Abe:
         body += ['<table class="table table-condensed"><tr>'
                  '<th>Transaction</th>'
                  '<th>Block</th>'
-                 '<th>Net Change</th>'
+                 # '<th>Net Change</th>'
                  '</tr>\n']
 
 
@@ -2148,19 +2153,19 @@ class Abe:
                 qty = get_asset_amount_from_txinout(txobj, 'i', 'o', asset, chain)
                 in_amount = in_amount + qty
 
-            net_amount = out_amount - in_amount
-            net_amount_label = util.format_display_quantity(asset, net_amount)
-            if net_amount == 0:
-                context = ""
-            elif net_amount > 0:
-                context = "success"
-            else:
-                context = "danger"
+            # net_amount = out_amount - in_amount
+            # net_amount_label = util.format_display_quantity(asset, net_amount)
+            # if net_amount == 0:
+            #     context = ""
+            # elif net_amount > 0:
+            #     context = "success"
+            # else:
+            #     context = "danger"
 
-            contextclass='class="' + context + '"'
+            # contextclass='class="' + context + '"'
             body += ['<tr><td><a href="../../../' + escape(chain.name) + '/tx/' + tx['hash'] + '">', tx['hash'], '</a>',    # shorten via tx['hash'][:16]
                      '</td><td><a href="../../../' + escape(chain.name) + '/block/', tx['blockhash'], '">', tx['height'], '</a>',
-                     '</td><td ' + contextclass + '>', net_amount_label,
+                     # '</td><td ' + contextclass + '>', net_amount_label,
                      '</td></tr>']
         body += ['</table>']
 
@@ -2184,7 +2189,7 @@ class Abe:
 
         # get block height from assetref
         m = re.search('^(\d+)-\d+-\d+$', assetref)
-        height = int(m.group(1))
+        height = int(m.group(1)) if m else None
 
         # get asset information and issue tx as json
         try:
@@ -2218,7 +2223,8 @@ class Abe:
         body += ['<h3>Asset Summary "' + name + '"</h3>\n']
         body += ['<table class="table table-bordered table-condensed">']
 
-        body += html_keyvalue_tablerow('Issue Block Height', '<a href="../../' + escape(chain.name) + '/block/', blockhash, '">', height, '</a>')
+        if height:
+            body += html_keyvalue_tablerow('Issue Block Height', '<a href="../../' + escape(chain.name) + '/block/', blockhash, '">', height, '</a>')
 #                                                                                                                '' b['height'] if b['height'] is not None else '')
         body += html_keyvalue_tablerow('Issue Block Time', blocktime , ' (' , format_time(blocktime) , ')')
         body += html_keyvalue_tablerow('Issue TXID', '<a href="../../' + escape(chain.name) + '/tx/' + issuetxid + '">', issuetxid, '</a>')
