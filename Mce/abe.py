@@ -2270,10 +2270,13 @@ class Abe:
                 if issue_num_details > 0:
                     body += ['<table class="table table-bordered table-striped table-condensed">']
                     for k,v in sorted(issue_details.items()):
-                        try:
-                            v.decode('ascii')
-                        except UnicodeDecodeError:
-                            v = util.long_hex(v)
+                        if isinstance(v, bytes):
+                            try:
+                                v.decode('ascii')
+                            except UnicodeDecodeError:
+                                v = util.long_hex(v)
+                        else:
+                            v = json.dumps(v)
                         body += html_keyvalue_tablerow(k, v)
                     body += ['</table>']
                 body += ['</td>'
@@ -2573,6 +2576,8 @@ class Abe:
                 v = '<a href="../../' + escape(chain.name) + '/streamitems/' + streamname + '">' + str(v) + '</a>'
             elif k in ('createtxid'):
                 v = '<a href="../../' + escape(chain.name) + '/tx/' + v + '">' + v + '</a>'
+            elif k in ('restrict'):
+                v = ','.join(key for key, val in v.items() if val)
             body += html_keyvalue_tablerow_wrap(50, 300, k, v)
         body += ['</table>']
 
@@ -2830,8 +2835,6 @@ class Abe:
             keys = []
             if chain.protocol_version < 20001:  # Older protocols have only one key
                 keys = [item['key']]
-            elif streamkey:  # Single key provided in the request
-                keys = [streamkey]
             else:  # Get all keys
                 keys = item['keys']
 

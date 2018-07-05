@@ -18,7 +18,6 @@
 #
 # Misc util routines
 #
-
 import re
 import string
 # MULTICHAIN START
@@ -27,6 +26,7 @@ import sys
 from cgi import escape
 
 import Crypto.Hash.SHA256 as SHA256
+import ubjson
 
 import Chain
 import base58
@@ -562,6 +562,38 @@ def parse_create_stream_10007(data):
                 #     fields[fname] = "True"
                 # else:
                 #     fields[fname] = "False"
+            elif proptype == 0x05:  # JSON_DETAILS
+                fname = "JSON Data"
+                try:
+                    fields[fname] = ubjson.loadb(assetprop)
+                except ValueError:
+                    fields[fname] = long_hex(assetprop)
+            elif proptype == 0x06:  # PERMISSIONS
+                permission_code, = struct.unpack("<b", assetprop)
+                if permission_code != 0:
+                    fname = "Permisions"
+                    permissions = []
+                    if permission_code & 0x01:
+                        permissions.append("connect")
+                    if permission_code & 0x02:
+                        permissions.append("send")
+                    if permission_code & 0x04:
+                        permissions.append("receive")
+                    if permission_code & 0x08:
+                        permissions.append("write")
+                    if permission_code & 0x10:
+                        permissions.append("issue")
+                    fields[fname] = ','.join(permissions)
+            elif proptype == 0x07:  # RESTRICTIONS
+                fname = "Restrictions"
+                restriction_code, = struct.unpack("<b", assetprop)
+                if restriction_code != 0:
+                    restrictions = []
+                    if restriction_code == 0x01:
+                        restrictions.append("onchain")
+                    if restriction_code == 0x02:
+                        restrictions.append("offchain")
+                    fields[fname] = ','.join(restrictions)
             else:
                 fname = "Property at offset {0}".format(pos)
                 fields[fname] = long_hex(assetprop)
@@ -659,6 +691,28 @@ def parse_new_issuance_metadata_10007(data):
                 #     fields[fname] = "True"
                 # else:
                 #     fields[fname] = "False"
+            elif proptype == 0x05:  # JSON_DETAILS
+                fname = "JSON Data"
+                try:
+                    fields[fname] = ubjson.loadb(assetprop)
+                except ValueError:
+                    fields[fname] = long_hex(assetprop)
+            elif proptype == 0x06:  # PERMISSIONS
+                permission_code, = struct.unpack("<b", assetprop)
+                if permission_code != 0:
+                    fname = "Permisions"
+                    permissions = []
+                    if permission_code & 0x01:
+                        permissions.append("connect")
+                    if permission_code & 0x02:
+                        permissions.append("send")
+                    if permission_code & 0x04:
+                        permissions.append("receive")
+                    if permission_code & 0x08:
+                        permissions.append("write")
+                    if permission_code & 0x10:
+                        permissions.append("issue")
+                    fields[fname] = ','.join(permissions)
             elif proptype == 0x41:
                 fname = "Quantity Multiple"
                 (multiplier,) = struct.unpack("<L", assetprop)
