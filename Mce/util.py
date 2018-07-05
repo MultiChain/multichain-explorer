@@ -18,7 +18,6 @@
 #
 # Misc util routines
 #
-
 import re
 import string
 # MULTICHAIN START
@@ -27,6 +26,7 @@ import sys
 from cgi import escape
 
 import Crypto.Hash.SHA256 as SHA256
+import ubjson
 
 import Chain
 import base58
@@ -348,6 +348,7 @@ OP_DROP_TYPE_SPKI = 12  # input cache
 OP_DROP_TYPE_SPKF = 13
 OP_DROP_TYPE_SPKN_CREATE_UPGRADE = 14
 OP_DROP_TYPE_SPKN_APPROVE_UPGRADE = 15
+OP_DROP_TYPE_RAW_DATA = 16  # spkd
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
@@ -531,6 +532,12 @@ def parse_op_drop_data_10007(data):
         retvalue = bool(data[4])
         return rettype, retvalue
 
+    elif data[:4] == bytearray.fromhex(u'73706b64'):
+        # spkd
+        rettype = OP_DROP_TYPE_RAW_DATA
+        retvalue = data[4:]
+        return rettype, retvalue
+
     # Backwards compatibility: if the op_drop data has not been handled yet, fall through to 10006 parsing
     return parse_op_drop_data_10006(data)
 
@@ -562,6 +569,38 @@ def parse_create_stream_10007(data):
                 #     fields[fname] = "True"
                 # else:
                 #     fields[fname] = "False"
+            elif proptype == 0x05:  # JSON_DETAILS
+                fname = "JSON Data"
+                try:
+                    fields[fname] = ubjson.loadb(assetprop)
+                except ValueError:
+                    fields[fname] = long_hex(assetprop)
+            elif proptype == 0x06:  # PERMISSIONS
+                permission_code, = struct.unpack("<b", assetprop)
+                if permission_code != 0:
+                    fname = "Permisions"
+                    permissions = []
+                    if permission_code & 0x01:
+                        permissions.append("connect")
+                    if permission_code & 0x02:
+                        permissions.append("send")
+                    if permission_code & 0x04:
+                        permissions.append("receive")
+                    if permission_code & 0x08:
+                        permissions.append("write")
+                    if permission_code & 0x10:
+                        permissions.append("issue")
+                    fields[fname] = ','.join(permissions)
+            elif proptype == 0x07:  # RESTRICTIONS
+                fname = "Restrictions"
+                restriction_code, = struct.unpack("<b", assetprop)
+                if restriction_code != 0:
+                    restrictions = []
+                    if restriction_code == 0x01:
+                        restrictions.append("onchain")
+                    if restriction_code == 0x02:
+                        restrictions.append("offchain")
+                    fields[fname] = ','.join(restrictions)
             else:
                 fname = "Property at offset {0}".format(pos)
                 fields[fname] = long_hex(assetprop)
@@ -659,6 +698,28 @@ def parse_new_issuance_metadata_10007(data):
                 #     fields[fname] = "True"
                 # else:
                 #     fields[fname] = "False"
+            elif proptype == 0x05:  # JSON_DETAILS
+                fname = "JSON Data"
+                try:
+                    fields[fname] = ubjson.loadb(assetprop)
+                except ValueError:
+                    fields[fname] = long_hex(assetprop)
+            elif proptype == 0x06:  # PERMISSIONS
+                permission_code, = struct.unpack("<b", assetprop)
+                if permission_code != 0:
+                    fname = "Permisions"
+                    permissions = []
+                    if permission_code & 0x01:
+                        permissions.append("connect")
+                    if permission_code & 0x02:
+                        permissions.append("send")
+                    if permission_code & 0x04:
+                        permissions.append("receive")
+                    if permission_code & 0x08:
+                        permissions.append("write")
+                    if permission_code & 0x10:
+                        permissions.append("issue")
+                    fields[fname] = ','.join(permissions)
             elif proptype == 0x41:
                 fname = "Quantity Multiple"
                 (multiplier,) = struct.unpack("<L", assetprop)

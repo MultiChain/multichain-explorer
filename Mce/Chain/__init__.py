@@ -248,8 +248,13 @@ class BaseChain(object):
 # MULTICHAIN START
         # Return dict
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_ENTITY_PERMISSION_TEMPLATE):
-            dict = {"txid":decoded[5][1], "permissions":decoded[7][1], "pubkey_hash":decoded[2][1]}
-            return SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION, dict
+            if decoded[7][1].startswith("spkp"):
+                dict = {"txid":decoded[5][1], "permssions":decoded[7][1], "pubkey_hash":decoded[2][1]}
+                return SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION, dict
+            elif decoded[7][1].startswith("spkq"):
+                pubkey_hash = decoded[2][1]
+                if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
+                    return SCRIPT_MULTICHAIN_P2SH_TEMPLATE, pubkey_hash
 
         # Return script type and address
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
