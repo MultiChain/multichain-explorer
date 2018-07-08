@@ -1594,6 +1594,29 @@ class Abe:
 
         if v_json and not msg:
             msg = ""
+            if "assets" in v_json:
+                msgparts = []
+                for item in (x for x in v_json["assets"] if x["type"] == "transfer"):
+                    quantity = item['qty']
+                    assetref = item.get('assetref') or item.get('name')
+
+                    # link shows asset ref
+                    link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
+
+                    # Not the most efficient way, but will suffice for now until assets are stored in a database table.
+                    try:
+                        asset = abe.store.get_asset_by_name(chain, assetref)
+                        display_amount = util.format_display_quantity(asset, quantity)
+                        # update link to display name, if not anonymous, instead of assetref
+                        assetname = item.get('name', assetref)
+                        if assetname:
+                            link = '<a href="../../' + escape(
+                                chain.name) + '/assetref/' + assetref + '">' + assetname.encode(
+                                'unicode-escape') + '</a>'
+                        msgparts.append("{0} units of asset {1}".format(display_amount, link))
+                    except Exception as e:
+                        msgparts.append("{0} raw units of asset {1}".format(quantity, link))
+                msg += '<br>'.join(msgparts)
             if "items" in v_json:
                 for item in (x for x in v_json["items"] if x["type"] == "stream"):
                     stream_name = item["name"]
@@ -1618,7 +1641,7 @@ class Abe:
                         </table>
                     """.format(stream_link, keys_html, data_html)
                 msgpanelstyle = "margin-bottom: -20px;"
-            elif "data" in v_json:
+            if "data" in v_json:
                 msg += '<table class="table table-bordered table-condensed">'
                 for item in v_json["data"]:
                     if any(x in item for x in ("text", "json")):
