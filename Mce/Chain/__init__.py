@@ -45,6 +45,7 @@ SCRIPT_MULTICHAIN_STREAM_FORMATTED_ITEM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcod
 SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN]
 
 # Template to match a MultiChain create stream command
+# or spkf for asset item
 SCRIPT_MULTICHAIN_STREAM_TEMPLATE = [ opcodes.OP_PUSHDATA4, opcodes.OP_DROP, opcodes.OP_RETURN, opcodes.OP_PUSHDATA4 ]
 
 # TODO: Rename as the template also matches spki for input cache

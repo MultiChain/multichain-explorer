@@ -4318,21 +4318,22 @@ store._ddl['txout_approx'],
         script_type, data = chain.parse_txout_script(scriptpubkey)
         if script_type is Chain.SCRIPT_TYPE_MULTICHAIN_P2SH:
             label.append('P2SH')
-        if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
-            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
+        if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_STREAM, Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
             label.append('Stream')
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
             data = util.get_multichain_op_drop_data(scriptpubkey)
             if data is not None:
                 opdrop_type, val = util.parse_op_drop_data(data, chain)
                 if opdrop_type==util.OP_DROP_TYPE_ISSUE_ASSET:
-                    label.append('Asset')
+                    label.append('Issue Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                     label.append('Asset')
+                    if "spkf" in scriptpubkey:
+                        label.append('data')
                 elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                     label.append('Permissions')
                 elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
-                    label.append('Asset')
+                    label.append('Reissue Asset')
                 else:
                     label.append('OP_DROP')
             else:
@@ -4340,7 +4341,9 @@ store._ddl['txout_approx'],
         elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN:
             opreturn_type, val = util.parse_op_return_data(data, chain)
             if opreturn_type==util.OP_RETURN_TYPE_ISSUE_ASSET:
-                label.append('Asset')
+                label.append('Issue Asset')
+            elif opreturn_type == util.OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
+                label.append("Miner Sig")
             else:
                 label.append('Metadata')
         # Protocol 10007
@@ -4351,9 +4354,13 @@ store._ddl['txout_approx'],
                 if opdrop_type==util.OP_DROP_TYPE_FOLLOW_ON_ISSUANCE_METADATA:
                     label.append('Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_SPKN_NEW_ISSUE:
-                    label.append('Asset')
+                    label.append('Issue Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_SPKN_CREATE_STREAM:
-                    label.append('Stream')
+                    label.append('Create Stream')
+                elif opdrop_type == util.OP_DROP_TYPE_SPKN_CREATE_UPGRADE:
+                    label.append("Create Upgrade")
+                elif opdrop_type == util.OP_DROP_TYPE_SPKN_APPROVE_UPGRADE:
+                    label.append("Approve Upgrade")
                 elif opdrop_type==util.OP_DROP_TYPE_SPKE:
                     pass
                     #label.append('SPKE')
@@ -4361,6 +4368,11 @@ store._ddl['txout_approx'],
                 label.append('Unknown')
         elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
             label.append('Permissions')
+        elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_APPROVE:
+            label.append("Approve Upgrade")
+        elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
+            label.append("Data")
+
         return label
 
 def new(args):
