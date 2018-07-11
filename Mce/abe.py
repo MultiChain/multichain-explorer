@@ -1622,17 +1622,22 @@ class Abe:
                     stream_name = item["name"]
                     keys = [item["key"]] if "key" in item else item["keys"]
                     data = item["data"]
-                    if any(x in data for x in ("text", "json")):
-                        if "text" in data:
-                            data = data["text"]
-                        else:
-                            data = json.dumps(data["json"])
-                        data_html = util.render_long_data_with_popover(data)
+                    if item.get("offchain", False):
+                        item_data = item["data"]
+                        n_chunks = len(item["chunks"])
+                        data_html = '<a href="{}">{} bytes of off-chain {} data in {} chunk{}</a>'.format(
+                            data_ref, item_data["size"], item_data["format"], n_chunks, "s" if n_chunks > 1 else "")
                     else:
-                        data_html = util.render_long_data_with_link(data, data_ref)
+                        if any(x in data for x in ("text", "json")):
+                            if "text" in data:
+                                data = data["text"]
+                            else:
+                                data = json.dumps(data["json"])
+                            data_html = util.render_long_data_with_popover(data)
+                        else:
+                            data_html = util.render_long_data_with_link(data, data_ref)
                     stream_link = '<a href="../../{0}/stream/{1}">{1}</a>'.format(escape(chain.name), stream_name)
                     keys_html = ', '.join(keys)
-                    # data_html = util.render_long_data_with_popover(data)
                     msg += """
                         <table class="table table-bordered table-condensed">
                             <tr><td>Stream</td><td>{}</td></tr>
