@@ -1592,8 +1592,10 @@ class Abe:
                 msg = "Metadata:</p><p>{}</p>".format(util.render_long_data_with_link(binascii.hexlify(data), data_ref))
                 msgpanelstyle="word-break:break-word;"
 
-        if v_json and not msg:
-            msg = ""
+        # if v_json and not msg:
+        if v_json:
+            if not msg:
+                msg = ""
             if "assets" in v_json:
                 msgparts = []
                 for item in (x for x in v_json["assets"] if x["type"] == "transfer"):

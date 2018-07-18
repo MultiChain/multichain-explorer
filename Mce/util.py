@@ -157,6 +157,10 @@ def hash_to_address_multichain(version, hash, checksum):
     :param checksum:
     :return:
     """
+    # if not isinstance(version, str):
+    #     raise TypeError("version is a " + type(version).__name__)
+    # if not isinstance(hash, str):
+    #     raise TypeError("hash is a " + type(hash).__name__)
     n = len(version)
     pos = 0
     i = 0
@@ -1019,6 +1023,8 @@ def get_multichain_op_drop_data(script):
         data = decoded[0][1]  # 1st element contains the OP_DROP data.
     elif deserialize.match_decoded(decoded, Chain.SCRIPT_MULTICHAIN_FOLLOW_ON_ISSUANCE_METADATA_TEMPLATE):
         data = decoded[0][1]  # 1st element contains the OP_DROP data.
+    elif len(decoded) >= 3 and decoded[-2][1] and decoded[-2][1].startswith("spkq"):
+        data = decoded[-2][1] # element before last contains the OP_DROP data.
     return data
 
 

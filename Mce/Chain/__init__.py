@@ -252,10 +252,14 @@ class BaseChain(object):
             if decoded[7][1].startswith("spkp"):
                 dict = {"txid":decoded[5][1], "permssions":decoded[7][1], "pubkey_hash":decoded[2][1]}
                 return SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION, dict
-            elif decoded[7][1].startswith("spkq"):
-                pubkey_hash = decoded[2][1]
-                if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
-                    return SCRIPT_MULTICHAIN_P2SH_TEMPLATE, pubkey_hash
+            # elif decoded[-2][1].startswith("spkq"):
+            #     pubkey_hash = decoded[2][1]
+            #     if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
+            #         return SCRIPT_MULTICHAIN_P2SH_TEMPLATE, pubkey_hash
+        if len(decoded) >= 3 and decoded[-2][1] and decoded[-2][1].startswith("spkq"):
+            pubkey_hash = decoded[2][1]
+            if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
+                return SCRIPT_TYPE_MULTICHAIN_P2SH, pubkey_hash
 
         # Return script type and address
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
@@ -304,9 +308,9 @@ class BaseChain(object):
             return SCRIPT_TYPE_MULTICHAIN_SPKN, metadata
 
         # Return script type and metadata byte array
-        elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):
-            metadata = decoded[1][1]
-            return SCRIPT_TYPE_MULTICHAIN_OP_RETURN, metadata
+        # elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):
+        #     metadata = decoded[1][1]
+        #     return SCRIPT_TYPE_MULTICHAIN_OP_RETURN, metadata
 
         # Return script type and script hash
         elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_P2SH_TEMPLATE):
