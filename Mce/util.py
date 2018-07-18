@@ -405,8 +405,7 @@ def get_op_return_type_description(t):
     elif t == OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
         return "Miner Signature"
     # TODO: 10007
-    return "Unrecognized Metadata"
-
+    return ""
 
 def parse_op_drop_data(data, chain):
     version = chain.protocol_version
@@ -581,20 +580,8 @@ def parse_create_stream_10007(data):
                     fields[fname] = long_hex(assetprop)
             elif proptype == 0x06:  # PERMISSIONS
                 permission_code, = struct.unpack("<b", assetprop)
-                if permission_code != 0:
-                    fname = "Permisions"
-                    permissions = []
-                    if permission_code & 0x01:
-                        permissions.append("connect")
-                    if permission_code & 0x02:
-                        permissions.append("send")
-                    if permission_code & 0x04:
-                        permissions.append("receive")
-                    if permission_code & 0x08:
-                        permissions.append("write")
-                    if permission_code & 0x10:
-                        permissions.append("issue")
-                    fields[fname] = ','.join(permissions)
+                fname = opentoall
+                fields[fname] = str(permission_code == 0)
             elif proptype == 0x07:  # RESTRICTIONS
                 fname = "Restrictions"
                 restriction_code, = struct.unpack("<b", assetprop)
