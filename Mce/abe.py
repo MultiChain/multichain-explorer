@@ -1447,17 +1447,18 @@ class Abe:
                     msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Stream', streamlink)
                     msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Key', ', '.join(itemkeys))
 
-                    itemdata = v_json["items"][int(v_json["n"])]["data"]
-                    if isinstance(itemdata, types.DictType):
-                        text_data = itemdata.get("text", "") or json.dumps(itemdata.get("json", ""))
-                        data_html = util.render_long_data_with_popover(text_data)
-                    else:
-                        try:
-                            text_data = itemdata.decode('hex').decode('ascii')
+                    for item in v_json.get("items", []):
+                        itemdata = item["data"]
+                        if isinstance(itemdata, types.DictType):
+                            text_data = itemdata.get("text", "") or json.dumps(itemdata.get("json", ""))
                             data_html = util.render_long_data_with_popover(text_data)
-                        except Exception:
-                            data_html = util.render_long_data_with_link(itemdata, data_ref)
-                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Data', data_html)
+                        else:
+                            try:
+                                text_data = itemdata.decode('hex').decode('ascii')
+                                data_html = util.render_long_data_with_popover(text_data)
+                            except Exception:
+                                data_html = util.render_long_data_with_link(itemdata, data_ref)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format('Data', data_html)
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
 
@@ -1584,70 +1585,16 @@ class Abe:
 
             elif opreturn_type==util.OP_RETURN_TYPE_MINER_BLOCK_SIGNATURE:
                 msg = 'Miner block signature'
-                msg += '<p/>'
-                msg += util.long_hex(data)
                 msgtype = 'info'
                 msgpanelstyle="margin-bottom: -20px; word-break:break-all;"
             else:
-                msg = "Metadata:</p><p>{}</p>".format(util.render_long_data_with_link(binascii.hexlify(data), data_ref))
                 msgpanelstyle="word-break:break-word;"
 
         # if v_json and not msg:
         if v_json:
+            has_msg = bool(msg)
             if not msg:
                 msg = ""
-            if "assets" in v_json:
-                msgparts = []
-                for item in (x for x in v_json["assets"] if x["type"] == "transfer"):
-                    quantity = item['qty']
-                    assetref = item.get('assetref') or item.get('name')
-
-                    # link shows asset ref
-                    link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
-
-                    # Not the most efficient way, but will suffice for now until assets are stored in a database table.
-                    try:
-                        asset = abe.store.get_asset_by_name(chain, assetref)
-                        display_amount = util.format_display_quantity(asset, quantity)
-                        # update link to display name, if not anonymous, instead of assetref
-                        assetname = item.get('name', assetref)
-                        if assetname:
-                            link = '<a href="../../' + escape(
-                                chain.name) + '/assetref/' + assetref + '">' + assetname.encode(
-                                'unicode-escape') + '</a>'
-                        msgparts.append("{0} units of asset {1}".format(display_amount, link))
-                    except Exception as e:
-                        msgparts.append("{0} raw units of asset {1}".format(quantity, link))
-                msg += '<br>'.join(msgparts)
-            if "items" in v_json:
-                for item in (x for x in v_json["items"] if x["type"] == "stream"):
-                    stream_name = item["name"]
-                    keys = [item["key"]] if "key" in item else item["keys"]
-                    data = item["data"]
-                    if item.get("offchain", False):
-                        item_data = item["data"]
-                        n_chunks = len(item["chunks"])
-                        data_html = '<a href="{}">{} bytes of off-chain {} data in {} chunk{}</a>'.format(
-                            data_ref, item_data["size"], item_data["format"], n_chunks, "s" if n_chunks > 1 else "")
-                    else:
-                        if any(x in data for x in ("text", "json")):
-                            if "text" in data:
-                                data = data["text"]
-                            else:
-                                data = json.dumps(data["json"])
-                            data_html = util.render_long_data_with_popover(data)
-                        else:
-                            data_html = util.render_long_data_with_link(data, data_ref)
-                    stream_link = '<a href="../../{0}/stream/{1}">{1}</a>'.format(escape(chain.name), stream_name)
-                    keys_html = ', '.join(keys)
-                    msg += """
-                        <table class="table table-bordered table-condensed">
-                            <tr><td>Stream</td><td>{}</td></tr>
-                            <tr><td>Keys</td><td>{}</td></tr>
-                            <tr><td>Data</td><td>{}</td></tr>
-                        </table>
-                    """.format(stream_link, keys_html, data_html)
-                msgpanelstyle = "margin-bottom: -20px;"
             if "data" in v_json:
                 msg += '<table class="table table-bordered table-condensed">'
                 for item in v_json["data"]:
@@ -1658,10 +1605,65 @@ class Abe:
                             data = json.dumps(item["json"])
                         item_html = util.render_long_data_with_popover(data)
                     else:
+                        if bytearray.fromhex(item[:6]) in (b"spk", b"SPK"):
+                            item = item[8:]
                         item_html = util.render_long_data_with_link(item, data_ref)
                     msg += "<tr><td>{}</td></tr>".format(item_html)
                 msg += "</table>"
                 msgpanelstyle = "margin-bottom: -20px;"
+            if not has_msg:
+                if "assets" in v_json:
+                    msgparts = []
+                    for item in (x for x in v_json["assets"] if x["type"] == "transfer"):
+                        quantity = item['qty']
+                        assetref = item.get('assetref') or item.get('name')
+
+                        # link shows asset ref
+                        link = '<a href="../../' + escape(chain.name) + '/assetref/' + assetref + '">' + assetref + '</a>'
+
+                        # Not the most efficient way, but will suffice for now until assets are stored in a database table.
+                        try:
+                            asset = abe.store.get_asset_by_name(chain, assetref)
+                            display_amount = util.format_display_quantity(asset, quantity)
+                            # update link to display name, if not anonymous, instead of assetref
+                            assetname = item.get('name', assetref)
+                            if assetname:
+                                link = '<a href="../../' + escape(
+                                    chain.name) + '/assetref/' + assetref + '">' + assetname.encode(
+                                    'unicode-escape') + '</a>'
+                            msgparts.append("{0} units of asset {1}".format(display_amount, link))
+                        except Exception as e:
+                            msgparts.append("{0} raw units of asset {1}".format(quantity, link))
+                    msg += '<br>'.join(msgparts)
+                if "items" in v_json:
+                    for item in (x for x in v_json["items"] if x["type"] == "stream"):
+                        stream_name = item["name"]
+                        keys = [item["key"]] if "key" in item else item["keys"]
+                        data = item["data"]
+                        if item.get("offchain", False):
+                            item_data = item["data"]
+                            n_chunks = len(item["chunks"])
+                            data_html = '<a href="{}">{} bytes of off-chain {} data in {} chunk{}</a>'.format(
+                                data_ref, item_data["size"], item_data["format"], n_chunks, "s" if n_chunks > 1 else "")
+                        else:
+                            if any(x in data for x in ("text", "json")):
+                                if "text" in data:
+                                    data = data["text"]
+                                else:
+                                    data = json.dumps(data["json"])
+                                data_html = util.render_long_data_with_popover(data)
+                            else:
+                                data_html = util.render_long_data_with_link(data, data_ref)
+                        stream_link = '<a href="../../{0}/stream/{1}">{1}</a>'.format(escape(chain.name), stream_name)
+                        keys_html = ', '.join(keys)
+                        msg += """
+                            <table class="table table-bordered table-condensed">
+                                <tr><td>Stream</td><td>{}</td></tr>
+                                <tr><td>Keys</td><td>{}</td></tr>
+                                <tr><td>Data</td><td>{}</td></tr>
+                            </table>
+                        """.format(stream_link, keys_html, data_html)
+                    msgpanelstyle = "margin-bottom: -20px;"
 
         # Add MultiChain HTML
         if msg is not None:

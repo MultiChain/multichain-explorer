@@ -308,9 +308,9 @@ class BaseChain(object):
             return SCRIPT_TYPE_MULTICHAIN_SPKN, metadata
 
         # Return script type and metadata byte array
-        # elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):
-        #     metadata = decoded[1][1]
-        #     return SCRIPT_TYPE_MULTICHAIN_OP_RETURN, metadata
+        elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_OP_RETURN_TEMPLATE):
+            metadata = decoded[1][1]
+            return SCRIPT_TYPE_MULTICHAIN_OP_RETURN, metadata
 
         # Return script type and script hash
         elif deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_P2SH_TEMPLATE):
