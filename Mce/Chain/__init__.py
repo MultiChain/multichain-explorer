@@ -259,6 +259,12 @@ class BaseChain(object):
             if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
                 return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
 
+        # Send asset (perhaps with data)
+        if len(decoded) >= 3 and decoded[-2][1] and decoded[-2][1].startswith("spkq"):
+            pubkey_hash = decoded[2][1]
+            if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
+                return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
+
         # Return dict
         # if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_STREAM_ITEM_TEMPLATE):
         #     dict = {"streamtxid":decoded[0][1], "itemkey":decoded[2][1], "itemdata":decoded[5][1]}
