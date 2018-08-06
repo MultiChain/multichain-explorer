@@ -18,6 +18,7 @@
 #
 # Misc util routines
 #
+import json
 import re
 import string
 # MULTICHAIN START
@@ -568,14 +569,15 @@ def parse_create_stream_10007(data):
             elif proptype == 0x04:
                 fname = opentoall
                 fields[fname] = str(ord(assetprop) == 1)
-                # if ord(assetprop) == 1:
-                #     fields[fname] = "True"
-                # else:
-                #     fields[fname] = "False"
             elif proptype == 0x05:  # JSON_DETAILS
                 fname = "JSON Data"
                 try:
-                    fields[fname] = ubjson.loadb(assetprop)
+                    json_data = ubjson.loadb(assetprop)
+                    for k in ('text', 'json'):
+                        if k in json_data:
+                            json_data = json_data[k]
+                            break
+                    fields[fname] = render_long_data_with_popover(json.dumps(json_data))
                 except ValueError:
                     fields[fname] = long_hex(assetprop)
             elif proptype == 0x06:  # PERMISSIONS
@@ -632,8 +634,20 @@ def parse_follow_on_issuance_metadata_10007(data):
             assetproplen = ord(data[pos + 2:pos + 3])
             assetprop = data[pos + 3:pos + 3 + assetproplen]
             proptype = ord(data[pos + 1])
-            fname = "MultiChain special property at offset {0}".format(pos)
-            fields[fname] = long_hex(assetprop)
+            if proptype == 0x05:  # JSON_DETAILS
+                fname = "JSON Data"
+                try:
+                    json_data = ubjson.loadb(assetprop)
+                    for k in ('text', 'json'):
+                        if k in json_data:
+                            json_data = json_data[k]
+                            break
+                    fields[fname] = render_long_data_with_popover(json.dumps(json_data))
+                except ValueError:
+                    fields[fname] = long_hex(assetprop)
+            else:
+                fname = "MultiChain special property at offset {0}".format(pos)
+                fields[fname] = long_hex(assetprop)
             pos = pos + 3 + assetproplen
             continue
 
@@ -685,32 +699,27 @@ def parse_new_issuance_metadata_10007(data):
             elif proptype == 0x02:
                 fname = opentoissuance
                 fields[fname] = bool(ord(assetprop) == 1)
-                # if ord(assetprop) == 1:
-                #     fields[fname] = "True"
-                # else:
-                #     fields[fname] = "False"
             elif proptype == 0x05:  # JSON_DETAILS
                 fname = "JSON Data"
                 try:
-                    fields[fname] = ubjson.loadb(assetprop)
+                    json_data = ubjson.loadb(assetprop)
+                    for k in ('text', 'json'):
+                        if k in json_data:
+                            json_data = json_data[k]
+                            break
+                    fields[fname] = render_long_data_with_popover(json.dumps(json_data))
                 except ValueError:
                     fields[fname] = long_hex(assetprop)
-            elif proptype == 0x06:  # PERMISSIONS
-                permission_code, = struct.unpack("<b", assetprop)
-                if permission_code != 0:
-                    fname = "Permisions"
-                    permissions = []
-                    if permission_code & 0x01:
-                        permissions.append("connect")
-                    if permission_code & 0x02:
-                        permissions.append("send")
-                    if permission_code & 0x04:
-                        permissions.append("receive")
-                    if permission_code & 0x08:
-                        permissions.append("write")
-                    if permission_code & 0x10:
-                        permissions.append("issue")
-                    fields[fname] = ','.join(permissions)
+            elif proptype == 0x06:  # RESTRICTIONS
+                restriction_code, = struct.unpack("<b", assetprop)
+                if restriction_code != 0:
+                    fname = "Restrictions"
+                    restrictions = []
+                    if restriction_code & 0x02:
+                        restrictions.append("send")
+                    if restriction_code & 0x04:
+                        restrictions.append("receive")
+                    fields[fname] = ','.join(restrictions)
             elif proptype == 0x41:
                 fname = "Quantity Multiple"
                 (multiplier,) = struct.unpack("<L", assetprop)

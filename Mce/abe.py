@@ -1344,7 +1344,8 @@ class Abe:
                             v.decode('ascii')
                         except UnicodeDecodeError:
                             v = util.long_hex(v)
-                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        # msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k, v)
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
 
@@ -1375,7 +1376,8 @@ class Abe:
                         #     v.decode('ascii')
                         # except UnicodeDecodeError:
                         #     v = util.long_hex(v)
-                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        # msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k, v)
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
                     msgtype = 'danger'
@@ -1391,7 +1393,8 @@ class Abe:
                         #     v.decode('ascii')
                         # except UnicodeDecodeError:
                         #     v = util.long_hex(v)
-                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(), decodedscript)
+                        # msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(), decodedscript)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k, decodedscript)
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
                     msgtype = 'danger'
@@ -1416,7 +1419,8 @@ class Abe:
                     msg = "Follow-on issuance metadata for {0}".format(link)
                     msg += '<table class="table table-bordered table-condensed">'
                     for k,v in sorted(fields.items()):
-                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        # msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k, v)
                     msg += '</table>'
                     msgpanelstyle="margin-bottom: -20px;"
 
@@ -1565,7 +1569,8 @@ class Abe:
                         v.decode('ascii')
                     except UnicodeDecodeError:
                         v = util.long_hex(v)
-                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                    # msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k, v)
                 msg += '</table>'
                 msgpanelstyle="margin-bottom: -20px;"
 
@@ -1579,7 +1584,8 @@ class Abe:
                         v.decode('ascii')
                     except UnicodeDecodeError:
                         v = util.long_hex(v)
-                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                    # msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                    msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k, v)
                 msg += '</table>'
                 msgpanelstyle="margin-bottom: -20px;"
 
@@ -2299,10 +2305,11 @@ class Abe:
                 issue_display_qty = util.format_display_quantity(asset, issue_raw)
                 body += ['<td>', issue_display_qty, '</td>']
 
-                issue_details = issue.get('details', [])
-                issue_num_details = len(issue_details)
+                issue_details = issue.get('details', {})
+                if "json" in issue_details:
+                    issue_details = issue_details["json"]
                 body += ['<td>']
-                if issue_num_details > 0:
+                if issue_details:
                     body += ['<table class="table table-bordered table-striped table-condensed">']
                     for k,v in sorted(issue_details.items()):
                         if isinstance(v, bytes):
