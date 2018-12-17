@@ -4320,6 +4320,8 @@ store._ddl['txout_approx'],
             label.append('P2SH')
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_STREAM, Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM]:
             label.append('Stream')
+        if script_type == Chain.SCRIPT_TYPE_MULTICHAIN_FILTER:
+            label.append('Filter')
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN, Chain.SCRIPT_TYPE_MULTICHAIN_P2SH]:
             data = util.get_multichain_op_drop_data(scriptpubkey)
             if data is not None:
@@ -4357,6 +4359,8 @@ store._ddl['txout_approx'],
                     label.append('Issue Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_SPKN_CREATE_STREAM:
                     label.append('Create Stream')
+                elif opdrop_type == util.OP_DROP_TYPE_SPKN_CREATE_FILTER:
+                    label.append('Create Filter')
                 elif opdrop_type == util.OP_DROP_TYPE_SPKN_CREATE_UPGRADE:
                     label.append("Create Upgrade")
                 elif opdrop_type == util.OP_DROP_TYPE_SPKN_APPROVE_UPGRADE:

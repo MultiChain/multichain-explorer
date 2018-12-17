@@ -9,3 +9,4 @@ venv*/
 *.log
 *.conf
 .directory
+!chain1.example.conf

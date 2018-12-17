@@ -1077,6 +1077,9 @@ class Abe:
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM:
                         label = 'Create Stream'
 
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_FILTER:
+                        label = 'Create Filter'
+
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM:
                         label = 'Stream Item'
 
@@ -1236,6 +1239,7 @@ class Abe:
         msgpanelstyle = ''
         if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN,
                            Chain.SCRIPT_TYPE_MULTICHAIN_P2SH,
+                           Chain.SCRIPT_TYPE_MULTICHAIN_FILTER,
                            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                            Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                            Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,  # also matches template used for input cache opdrop
@@ -1338,6 +1342,20 @@ class Abe:
                         fields = val['fields']
                     else:
                         fields = val # for 10007, val already contains the fields
+                    msg += '<table class="table table-bordered table-condensed">'
+                    for k,v in sorted(fields.items()):
+                        try:
+                            v.decode('ascii')
+                        except UnicodeDecodeError:
+                            v = util.long_hex(v)
+                        # msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k.capitalize(),v)
+                        msg += '<tr><td>{0}</td><td>{1}</td></tr>'.format(k, v)
+                    msg += '</table>'
+                    msgpanelstyle="margin-bottom: -20px;"
+
+                elif opdrop_type == util.OP_DROP_TYPE_SPKN_CREATE_FILTER:
+                    msg = "Create filter"
+                    fields = val
                     msg += '<table class="table table-bordered table-condensed">'
                     for k,v in sorted(fields.items()):
                         try:
@@ -1706,6 +1724,7 @@ class Abe:
             if binscript is not None:
                 script_type, data = chain.parse_txout_script(binscript)
                 if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_FILTER,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,
@@ -1857,6 +1876,7 @@ class Abe:
             if binscript is not None:
                 script_type, data = chain.parse_txout_script(binscript)
                 if script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_OP_RETURN,
+                                   Chain.SCRIPT_TYPE_MULTICHAIN_FILTER,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_STREAM_ITEM,
                                    Chain.SCRIPT_TYPE_MULTICHAIN_SPKN,

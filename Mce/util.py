@@ -354,6 +354,7 @@ OP_DROP_TYPE_SPKF = 13
 OP_DROP_TYPE_SPKN_CREATE_UPGRADE = 14
 OP_DROP_TYPE_SPKN_APPROVE_UPGRADE = 15
 OP_DROP_TYPE_RAW_DATA = 16  # spkd
+OP_DROP_TYPE_SPKN_CREATE_FILTER = 17
 
 OP_RETURN_TYPE_UNKNOWN = 0
 OP_RETURN_TYPE_ISSUE_ASSET = 1
@@ -383,6 +384,8 @@ def get_op_drop_type_description(t):
         return "Input Cache"
     elif t == OP_DROP_TYPE_SPKN_CREATE_STREAM:
         return "Create Stream"
+    elif t == OP_DROP_TYPE_SPKN_CREATE_FILTER:
+        return "Create Filter"
     elif t == OP_DROP_TYPE_SPKN_CREATE_UPGRADE:
         return "Create Upgrade"
     elif t == OP_DROP_TYPE_SPKN_APPROVE_UPGRADE:
@@ -439,6 +442,9 @@ def parse_op_drop_data_10007(data):
             retval = parse_create_stream_10007(data[5:])
         if ord(data[4]) == 0x10:
             rettype = OP_DROP_TYPE_SPKN_CREATE_UPGRADE
+            retval = parse_create_stream_10007(data[5:])
+        if ord(data[4]) == 0x11:
+            rettype = OP_DROP_TYPE_SPKN_CREATE_FILTER
             retval = parse_create_stream_10007(data[5:])
 
         return rettype, retval
@@ -555,6 +561,7 @@ def parse_create_stream_10007(data):
     # If the property 'Open to all writers' is not present, we treat it as false.
     opentoall = "Open to all writers"
     fields[opentoall] = "False"
+    filter_restrictions = []
 
     while pos < len(data):
         # Is this a special property with meaning only for MultiChain?
@@ -564,11 +571,9 @@ def parse_create_stream_10007(data):
             proptype = ord(data[pos + 1])
             # Create stream has special properties
             if proptype == 0x01:
-                fname = "Name"
-                fields[fname] = assetprop
+                fields["Name"] = assetprop
             elif proptype == 0x04:
-                fname = opentoall
-                fields[fname] = str(ord(assetprop) == 1)
+                fields[opentoall] = str(ord(assetprop) == 1)
             elif proptype == 0x05:  # JSON_DETAILS
                 fname = "JSON Data"
                 try:
@@ -582,10 +587,8 @@ def parse_create_stream_10007(data):
                     fields[fname] = long_hex(assetprop)
             elif proptype == 0x06:  # PERMISSIONS
                 permission_code, = struct.unpack("<b", assetprop)
-                fname = opentoall
-                fields[fname] = str(permission_code == 0)
-            elif proptype == 0x07:  # RESTRICTIONS
-                fname = "Restrictions"
+                fields[opentoall] = str(permission_code == 0)
+            elif proptype in [0x07]:  # RESTRICTIONS
                 restriction_code, = struct.unpack("<b", assetprop)
                 if restriction_code != 0:
                     restrictions = []
@@ -593,10 +596,25 @@ def parse_create_stream_10007(data):
                         restrictions.append("onchain")
                     if restriction_code == 0x02:
                         restrictions.append("offchain")
-                    fields[fname] = ','.join(restrictions)
+                    fields["Restrictions"] = ','.join(restrictions)
+
+            # Filter
+            elif proptype == 0x45:  # RESTRICTIONS
+                filter_restrictions.append(short_hex(assetprop))
+            elif proptype == 0x46:  # FILTER CODE
+                fields["Code"] = render_long_data_with_popover("<pre>{}</pre>".format(assetprop))
+            elif proptype == 0x47:  # TYPE
+                fname = "Type"
+                filter_type = ord(assetprop[0])
+                if filter_type == 0x00:
+                    fields[fname] = "Transaction"
+                elif filter_type == 0x01:
+                    fields[fname] = "Stream"
+                else:
+                    fields[fname] = "Invalid ({})".format(filter_type)
+
             else:
-                fname = "Property at offset {0}".format(pos)
-                fields[fname] = long_hex(assetprop)
+                fields["Property at offset {0}".format(pos)] = long_hex(assetprop)
             pos = pos + 3 + assetproplen
             continue
 
@@ -621,6 +639,9 @@ def parse_create_stream_10007(data):
             pos += 8
         fields[fname] = data[pos:pos + flen]
         pos += flen
+
+    if filter_restrictions:
+        fields["Restrictions"] = "[{}]".format(', '.join(filter_restrictions))
     return fields
 
 
@@ -1089,6 +1110,7 @@ def render_long_data_with_popover(data, limit=40, classes="", hover=True):
     on the ellipses at the end of the value.
 
     If @p classes are given, wrap the value in a span.
+
     :param data:    The string to render.
     :param limit:   The length at which to truncate the data.
     :param classes: Additional CSS classes for the returned tag.
@@ -1111,8 +1133,9 @@ def render_long_data_with_link(data, data_ref, limit=40, classes=""):
     on the ellipses at the end of the value.
 
     If @p classes are given, wrap the value in a span.
+
     :param data:     The hex string to render.
-    :param data_ref: The link to the fill data.
+    :param data_ref: The link to the full data.
     :param limit:    The length at which to truncate the data.
     :param classes:  Additional CSS classes for the returned tag.
     :return:         The HTML to render for the data.
