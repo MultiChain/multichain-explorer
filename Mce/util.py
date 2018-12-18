@@ -446,6 +446,7 @@ def parse_op_drop_data_10007(data):
         if ord(data[4]) == 0x11:
             rettype = OP_DROP_TYPE_SPKN_CREATE_FILTER
             retval = parse_create_stream_10007(data[5:])
+            del retval["Open to all writers"]
 
         return rettype, retval
     if data[0:4] == bytearray.fromhex(u'73706b69'):
@@ -838,11 +839,12 @@ def parse_op_drop_data_10006(data):
         mine = (bitmap & 256) > 0
         admin = (bitmap & 4096) > 0
         activate = (bitmap & 8192) > 0
+        filter = (bitmap & 67108864) > 0
         # allsum = 1+2+4+8+16+32+256+4096+8192
         # all = (bitmap & allsum) == allsum
         rettype = OP_DROP_TYPE_PERMISSION
         retval = {'connect': connect, 'send': send, 'receive': receive, 'issue': issue, 'mine': mine, 'admin': admin,
-                  'activate': activate,
+                  'activate': activate, 'filter': filter,
                   # 'all':all,
                   'create': create, 'write': write,
                   'type': 'revoke' if revoke is True else 'grant',

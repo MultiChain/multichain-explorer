@@ -1548,6 +1548,8 @@ class Abe:
                 permissions += ['Create']
             if val['issue']:
                 permissions += ['Issue']
+            if val['filter']:
+                permissions += ['Filter']
 
             msg += ', '.join("{0}".format(item) for item in permissions)
 
