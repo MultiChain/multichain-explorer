@@ -1084,10 +1084,7 @@ class Abe:
                         label = 'Stream Item'
 
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
-                        label = 'Entity Permission'
-
-                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_FILTER:
-                        label = 'Filter Approval'
+                        label = 'Approval or Entity Permission'
 
                     elif script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_SPKN, Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
                         data = util.get_multichain_op_drop_data(txout['binscript'])

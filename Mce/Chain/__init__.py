@@ -254,6 +254,7 @@ class BaseChain(object):
                 dict = {"txid":decoded[5][1], "permissions":decoded[7][1], "pubkey_hash":decoded[2][1]}
                 return SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION, dict
 
+
         # Return script type and address
         if deserialize.match_decoded(decoded, SCRIPT_MULTICHAIN_TEMPLATE):
             pubkey_hash = decoded[2][1]
