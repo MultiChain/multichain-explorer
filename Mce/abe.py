@@ -1086,6 +1086,9 @@ class Abe:
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
                         label = 'Entity Permission'
 
+                    elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_FILTER:
+                        label = 'Filter Approval'
+
                     elif script_type in [Chain.SCRIPT_TYPE_MULTICHAIN_SPKN, Chain.SCRIPT_TYPE_MULTICHAIN_SPKU]:
                         data = util.get_multichain_op_drop_data(txout['binscript'])
                         if data is not None:
@@ -1308,29 +1311,32 @@ class Abe:
                     msg = "Data: " + util.render_long_data_with_popover(val)
 
                 elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
-                    msg = val['type'].capitalize() + " "
-                    permissions = []
-                    if val['connect']:
-                        permissions += ['Connect']
-                    if val['send']:
-                        permissions += ['Send']
-                    if val['receive']:
-                        permissions += ['Receive']
-                    if val['issue']:
-                        permissions += ['Issue']
-                    if val['mine']:
-                        permissions += ['Mine']
-                    if val['admin']:
-                        permissions += ['Admin']
-                    if val['activate']:
-                        permissions += ['Activate']
-                    if val['create']:
-                        permissions += ['Create']
-                    if val['write']:
-                        permissions += ['Write']
+                    if val['filter']:
+                        msg = "{} Filter".format("Approve" if val['type'] == 'grant' else "Reject")
+                    else:
+                        msg = val['type'].capitalize() + " "
+                        permissions = []
+                        if val['connect']:
+                            permissions += ['Connect']
+                        if val['send']:
+                            permissions += ['Send']
+                        if val['receive']:
+                            permissions += ['Receive']
+                        if val['issue']:
+                            permissions += ['Issue']
+                        if val['mine']:
+                            permissions += ['Mine']
+                        if val['admin']:
+                            permissions += ['Admin']
+                        if val['activate']:
+                            permissions += ['Activate']
+                        if val['create']:
+                            permissions += ['Create']
+                        if val['write']:
+                            permissions += ['Write']
 
-                    msg += ' permission to '
-                    msg += ', '.join("{0}".format(item) for item in permissions)
+                        msg += ' permission to '
+                        msg += ', '.join("{0}".format(item) for item in permissions)
 
                     if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                         msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])
@@ -1532,26 +1538,27 @@ class Abe:
             opdrop_spkp = dict['permissions']
             opdrop_type, val = util.parse_op_drop_data(opdrop_spkp, chain)
 
-            if val['type'] is 'grant':
-                msg = 'Grant permission to '
-            else:
-                msg = 'Revoke permission to '
-
-            permissions = []
-            if val['admin']:
-                permissions += ['Admin']
-            if val['activate']:
-                permissions += ['Activate']
-            if val['write']:
-                permissions += ['Write']
-            if val['create']:
-                permissions += ['Create']
-            if val['issue']:
-                permissions += ['Issue']
             if val['filter']:
-                permissions += ['Filter']
+                msg = "{} Filter".format("Approve" if val['type'] == 'grant' else "Reject")
+            else:
+                if val['type'] is 'grant':
+                    msg = 'Grant permission to '
+                else:
+                    msg = 'Revoke permission to '
 
-            msg += ', '.join("{0}".format(item) for item in permissions)
+                permissions = []
+                if val['admin']:
+                    permissions += ['Admin']
+                if val['activate']:
+                    permissions += ['Activate']
+                if val['write']:
+                    permissions += ['Write']
+                if val['create']:
+                    permissions += ['Create']
+                if val['issue']:
+                    permissions += ['Issue']
+
+                msg += ', '.join("{0}".format(item) for item in permissions)
 
             msg += ' on '
             if asset is not None:
@@ -1559,7 +1566,6 @@ class Abe:
             else:
                 msg += 'stream '
             msg += entitylink
-
 
             if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
                 msg += ' (blocks {0} - {1} only)'.format(val['startblock'], val['endblock'])

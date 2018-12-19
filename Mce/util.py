@@ -562,7 +562,6 @@ def parse_create_stream_10007(data):
     # If the property 'Open to all writers' is not present, we treat it as false.
     opentoall = "Open to all writers"
     fields[opentoall] = "False"
-    filter_restrictions = []
 
     while pos < len(data):
         # Is this a special property with meaning only for MultiChain?
@@ -601,9 +600,9 @@ def parse_create_stream_10007(data):
 
             # Filter
             elif proptype == 0x45:  # RESTRICTIONS
-                filter_restrictions.append(short_hex(assetprop))
+                pass
             elif proptype == 0x46:  # FILTER CODE
-                fields["Code"] = render_long_data_with_popover("<pre>{}</pre>".format(assetprop))
+                fields["Code"] = render_long_data_with_popover("<pre>{}</pre>".format(assetprop), hover=False)
             elif proptype == 0x47:  # TYPE
                 fname = "Type"
                 filter_type = ord(assetprop[0])
@@ -640,9 +639,6 @@ def parse_create_stream_10007(data):
             pos += 8
         fields[fname] = data[pos:pos + flen]
         pos += flen
-
-    if filter_restrictions:
-        fields["Restrictions"] = "[{}]".format(', '.join(filter_restrictions))
     return fields
 
 
@@ -1119,11 +1115,18 @@ def render_long_data_with_popover(data, limit=40, classes="", hover=True):
     :param hover:   Popover activated by hover or click.
     :return:        The HTML to render for the data.
     """
-    data_html = escape(data[:limit], quote=True)
-    if len(data) > limit:
+    data_html = data
+    if data_html.startswith("<pre>"):
+        data_html = data_html[5:]
+    if data_html.endswith("</pre>"):
+        data_html = data_html[:-6]
+    data_len = len(data_html)
+    data_html = escape(data_html[:limit], quote=True)
+    if data_len > limit:
         trigger = "hover" if hover else "focus"
-        data_html = '{}<span class="ellipses" data-toggle="popover" data-trigger="{}" data-content=" {} ">...</span>'.format(
-            data_html, trigger, escape(data, quote=True))
+        tabindex = None if hover else ' tabindex="0"'
+        data_html = '{}<span class="ellipses" data-toggle="popover" data-trigger="{}"{} data-content=" {} ">...</span>'.format(
+            data_html, trigger, tabindex, escape(data, quote=True))
     if classes:
         data_html = '<span class="{}">{}</span>'.format(classes, data_html)
     return data_html

@@ -1647,7 +1647,7 @@ store._ddl['txout_approx'],
             txout['address_version'] = chain.script_addr_vers
             txout['binaddr'] = data
         elif script_type == Chain.SCRIPT_TYPE_MULTICHAIN_ENTITY_PERMISSION:
-            txout['binaddr'] = data['pubkey_hash']
+            txout['binaddr'] = data.get('pubkey_hash')
         # MULTICHAIN END
         else:
             txout['binaddr'] = None
