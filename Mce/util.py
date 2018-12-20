@@ -826,23 +826,27 @@ def parse_op_drop_data_10006(data):
         # print "op_drop payload is ", long_hex(data[4:])
         # print "bitmap %s, %d-%d, time %d" % (str(bin(bitmap))[2:], block_from, block_to, timestamp)
         # literal d = {'x':obj}
-        connect = (bitmap & 1) > 0
-        send = (bitmap & 2) > 0
-        receive = (bitmap & 4) > 0
-        write = (bitmap & 8) > 0
-        issue = (bitmap & 16) > 0
-        create = (bitmap & 32) > 0
-        mine = (bitmap & 256) > 0
-        admin = (bitmap & 4096) > 0
-        activate = (bitmap & 8192) > 0
-        filter = (bitmap & 67108864) > 0
-        # allsum = 1+2+4+8+16+32+256+4096+8192
-        # all = (bitmap & allsum) == allsum
+        connect = (bitmap & 0x00000001) > 0
+        send = (bitmap & 0x00000002) > 0
+        receive = (bitmap & 0x00000004) > 0
+        write = (bitmap & 0x00000008) > 0
+        issue = (bitmap & 0x00000010) > 0
+        create = (bitmap & 0x00000020) > 0
+        mine = (bitmap & 0x00000100) > 0
+        high1 = (bitmap & 0x00000200) > 0
+        high2 = (bitmap & 0x00000400) > 0
+        high3 = (bitmap & 0x00000800) > 0
+        admin = (bitmap & 0x00001000) > 0
+        activate = (bitmap & 0x00002000) > 0
+        upgrade = (bitmap & 0x00010000) > 0
+        low1 = (bitmap & 0x00020000) > 0
+        low2 = (bitmap & 0x00040000) > 0
+        low3 = (bitmap & 0x00080000) > 0
+        filter = (bitmap & 0x04000000) > 0
         rettype = OP_DROP_TYPE_PERMISSION
-        retval = {'connect': connect, 'send': send, 'receive': receive, 'issue': issue, 'mine': mine, 'admin': admin,
-                  'activate': activate, 'filter': filter,
-                  # 'all':all,
-                  'create': create, 'write': write,
+        retval = {'connect': connect, 'send': send, 'receive': receive, 'write': write, 'issue': issue,
+                  'create': create, 'mine': mine, 'high1': high1, 'high2': high2, 'high3': high3, 'admin': admin,
+                  'activate': activate, 'upgrade': upgrade, 'low1': low1, 'low2': low2, 'low3': low3,  'filter': filter,
                   'type': 'revoke' if revoke is True else 'grant',
                   'startblock': block_from, 'endblock': block_to}
     elif data[0:4] == bytearray.fromhex(u'73706b6e'):

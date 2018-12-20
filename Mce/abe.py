@@ -1311,28 +1311,12 @@ class Abe:
                     if val['filter']:
                         msg = "{} Filter".format("Approve" if val['type'] == 'grant' else "Reject")
                     else:
-                        msg = val['type'].capitalize() + " "
-                        permissions = []
-                        if val['connect']:
-                            permissions += ['Connect']
-                        if val['send']:
-                            permissions += ['Send']
-                        if val['receive']:
-                            permissions += ['Receive']
-                        if val['issue']:
-                            permissions += ['Issue']
-                        if val['mine']:
-                            permissions += ['Mine']
-                        if val['admin']:
-                            permissions += ['Admin']
-                        if val['activate']:
-                            permissions += ['Activate']
-                        if val['create']:
-                            permissions += ['Create']
-                        if val['write']:
-                            permissions += ['Write']
+                        permissions = [permission_type for permission_type in (
+                            'connect', 'send', 'receive', 'write', 'issue', 'create', 'mine', 'high1', 'high2', 'high3',
+                            'admin', 'activate', 'upgrade', 'low1', 'low2', 'low3') if val[permission_type]]
 
-                        msg += ' permission to '
+                        msg = val['type'].capitalize() + " "
+                        msg += ' permission for '
                         msg += ', '.join("{0}".format(item) for item in permissions)
 
                     if val['type'] is 'grant' and not (val['startblock']==0 and val['endblock']==4294967295):
