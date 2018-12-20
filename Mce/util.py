@@ -371,7 +371,7 @@ def get_op_drop_type_description(t):
         # A user may not have sent an asset, could be part of change txout.
         return "Asset"
     elif t == OP_DROP_TYPE_PERMISSION:
-        return "Aproval or Permission"
+        return "Approval or Permission"
     elif t == OP_DROP_TYPE_ISSUE_MORE_ASSET:
         return "Issue Asset (Follow On)"
     elif t == OP_DROP_TYPE_CREATE_STREAM:
