@@ -1,7 +1,7 @@
 MultiChain Explorer
 ===================
 
-MultiChain Explorer is a free block chain browser for [MultiChain](http://www.multichain.com/) blockchains.
+MultiChain Explorer is a free blockchain browser for [MultiChain](http://www.multichain.com/) blockchains.
 
 https://github.com/MultiChain/multichain-explorer
 
@@ -18,7 +18,7 @@ This software reads the MultiChain block file, transforms and loads the
 data into a database, and presents a web interface similar to that
 popularized by Bitcoin block explorers like http://blockexplorer.com/.
 
-MultiChain Explorer is a fork of the popular [Abe](https://github.com/bitcoin-abe/bitcoin-abe) project to add support for MultiChain blockchains with assets and permissions.  MultiChain nodes must be online for all explorer functions to work.
+MultiChain Explorer is a fork of the popular [Abe](https://github.com/bitcoin-abe/bitcoin-abe) project to add support for MultiChain blockchains with permissions, assets, streams, filters and upgrades.  MultiChain nodes must be online for all explorer functions to work.
 
 MultiChain Explorer is still under development, so things may break or change!
 
@@ -26,7 +26,7 @@ MultiChain Explorer is still under development, so things may break or change!
 System Requirements
 -------------------
 
-You must have Python 2.x installed on your system to run the explorer.
+You must have Python 2.x installed on your system to run MultiChain Explorer.
 
 On Ubuntu, you will need to install the following dependencies:
 
@@ -50,9 +50,7 @@ On CentOS, you will need to install the following dependencies:
 MultiChain Compatibility
 ------------------------
 
-The explorer currently supports MultiChain 1.0.x versions (since 1.0 alpha 29) and protocol versions up to `10009`, which is the default for MultiChain 1.0.x. You can check the protocol version of an existing chain using the `getinfo` command.
-
-**Note that this Explorer does not yet support MultiChain 2.0 preview releases.**
+MultiChain Explorer currently supports all MultiChain 1.0.x release versions and all MultiChain 2.0 alpha and beta versions.
 
 Installation
 ------------
@@ -67,10 +65,10 @@ If you have root permission and want to install MultiChain Explorer for all user
     cd multichain-explorer
     sudo python setup.py install
 
-The explorer needs to connect to a local MultiChain node.  Before configuring the explorer, let's make sure you have a MultiChain blockchain up and running.
+The explorer needs to connect to a local MultiChain node using the JSON-RPC API, and it also reads the blockchain's contents from disk. So before configuring the explorer, make sure you have a MultiChain blockchain up and running.
 
 
-Create and launch a MultiChain Blockchain
+Create and launch a MultiChain blockchain
 -----------------------------------------
 
 If you do not yet have a chain you want to explore, [Download MultiChain](http://www.multichain.com/download-install/) to install MultiChain and create a chain named ````chain1```` as follows:
@@ -80,12 +78,12 @@ If you do not yet have a chain you want to explore, [Download MultiChain](http:/
 
 By default the [runtime parameter](http://www.multichain.com/developers/runtime-parameters/) ````txindex```` is enabled so that the node keeps track of all transactions across the blockchain, and not just those for the node's wallet. This is required for the explorer to work correctly.
 
-The explorer supports viewing streams which the node has subscribed to.  Launch MultiChain with the runtime parameter ````autosubscribe=streams```` to automatically subscribe to every stream.
+MultiChain Explorer. supports viewing streams which the node has subscribed to. Launch MultiChain with the runtime parameter ````autosubscribe=streams```` to automatically subscribe to every stream.
 
 _The rest of this document assumes your blockchain is named ````chain1````. If not, please substitute accordingly._
 
 
-Configure MultiChain.conf
+Configure multichain.conf
 -------------------------
 
 The explorer needs to communicate with the blockchain using JSON-RPC.  When you created the blockchain, the JSON-RPC connection details were automatically created by MultiChain and stored in a file named ````multichain.conf````.
@@ -185,4 +183,4 @@ Misc Notes
 ----------
 * Currently it is not recommended to configure multiple chains in one config file as the search function does not search across chains for an address
 
-* You can run two instances of the Explorer with the same config file, with one being passed the ````--no-serve```` argument and the other ````--no-load````, so that one instance only loads data into the database, and the other only serves web pages.
+* You can run two instances of the explorer with the same config file, with one being passed the ````--no-serve```` argument and the other ````--no-load````, so that one instance only loads data into the database, and the other only serves web pages.
