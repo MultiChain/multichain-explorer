@@ -35,6 +35,7 @@ On Ubuntu, you will need to install the following dependencies:
     sudo apt-get install python-pip
     sudo pip install --upgrade pip
     sudo pip install pycrypto
+    sudo pip install py-ubjson
 
 On CentOS, you will need to install the following dependencies:
 
@@ -45,6 +46,7 @@ On CentOS, you will need to install the following dependencies:
     sudo yum install python-devel
     sudo yum groupinstall "Development tools"
     sudo pip install pycrypto
+    sudo pip install py-ubjson
 
 
 MultiChain Compatibility
