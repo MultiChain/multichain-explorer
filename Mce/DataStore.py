@@ -4330,8 +4330,6 @@ store._ddl['txout_approx'],
                     label.append('Issue Asset')
                 elif opdrop_type==util.OP_DROP_TYPE_SEND_ASSET:
                     label.append('Asset')
-                    if "spkf" in scriptpubkey:
-                        label.append('data')
                 elif opdrop_type==util.OP_DROP_TYPE_PERMISSION:
                     label.append('Permissions')
                 elif opdrop_type==util.OP_DROP_TYPE_ISSUE_MORE_ASSET:
@@ -4375,7 +4373,9 @@ store._ddl['txout_approx'],
         elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_APPROVE:
             label.append("Approve Upgrade")
         elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
-            label.append("Data")
+            label.append("Inline Data")
+        if "spkd" in scriptpubkey:
+            label.append("Inline Data")
 
         return label
 

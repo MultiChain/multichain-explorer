@@ -1096,13 +1096,16 @@ class Abe:
                             labeltype = 'danger'
 
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_SPKF:
-                        label = "Data"
+                        label = "Inline Data"
 
                     elif script_type is Chain.SCRIPT_TYPE_MULTICHAIN_APPROVE:
                         label = "Approve Upgrade"
 
                     if label is not None:
                         labels.append(label)
+
+                    if "spkd" in txout['binscript']:
+                        labels.append("Inline Data")
 
             if len(labels) == 0:
                 labelclass = ''
@@ -1914,10 +1917,7 @@ class Abe:
             body += [ '</td>\n']
 
             if binscript is not None:
-                if other_ch == 'o':
-                    dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, v)
-                else:
-                    dataref = None
+                dataref = '{}/{}/txoutdata/{}/{}'.format(page['dotdot'], escape(chain.name), txid, v)
                 abe.show_tx_row_to_html_impl(chain, body, asset_txid_dict, binscript, script_type, data, v_json, dataref)
 
             body += ['</tr>\n']
