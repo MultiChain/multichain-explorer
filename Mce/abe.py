@@ -1739,7 +1739,7 @@ class Abe:
                 addressLabel = abe.format_addresses(row, '../', chain)
             body += [
                 '</td>\n',
-                '<td>', format_satoshis(row['value'], chain), '</td>\n',
+                '<td>', format_satoshis(row['value'], chain, abe), '</td>\n',
                 '<td>', addressLabel]
             if row['address_version'] is chain.script_addr_vers:
                 p2sh_flag = True
@@ -4135,9 +4135,11 @@ def format_time(nTime):
     import time
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(nTime)))
 
-def format_satoshis(satoshis, chain):
+def format_satoshis(satoshis, chain, abe=None):
     decimals = DEFAULT_DECIMALS if chain.decimals is None else chain.decimals
     coin = 10 ** decimals
+    if abe is not None:
+        coin = abe.get_blockchainparams(chain).get('native-currency-multiple', coin)
 
     if satoshis is None:
         return ''
