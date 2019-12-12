@@ -262,12 +262,12 @@ class BaseChain(object):
                 return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
 
         # Send asset (perhaps with data)
-        if len(decoded) >= 3 and decoded[-2][1] and decoded[-2][1].startswith("spkq"):
+        if len(decoded) >= 3 and decoded[-2][1] and decoded[-2][1].startswith("spkq") and decoded[2][1]:
             pubkey_hash = decoded[2][1]
             if len(pubkey_hash) == PUBKEY_HASH_LENGTH:
                 return SCRIPT_TYPE_MULTICHAIN, pubkey_hash
 
-        if len(decoded) >= 6 and decoded[2][1].startswith("spkk"):
+        if len(decoded) >= 6 and decoded[2][1] and decoded[2][1].startswith("spkk"):
             txid = decoded[0][1]
             itemkeys = []
             pos = 2
