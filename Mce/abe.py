@@ -334,7 +334,7 @@ class Abe:
         except Redirect:
             content=redirect(page)
             if isinstance(content, unicode):
-                content = content.encode('latin-1') # Convert Unicode escaped bytes$
+                content = content.encode('utf-8') # Convert Unicode escaped bytes$
             return content
         except Streamed:
             return ''
@@ -359,7 +359,7 @@ class Abe:
 
         content = page['template'] % tvars
         if isinstance(content, unicode):
-            content = content.encode('latin-1') # Convert Unicode escaped bytes into binary.  Used to be UTF-8.
+           content = content.encode('utf-8') # Convert Unicode escaped bytes into binary.  Used to be UTF-8.
         return [content]
 
 # MULTICHAIN START
