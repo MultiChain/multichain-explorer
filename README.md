@@ -1,3 +1,7 @@
+🔴🔴 This version of MultiChain Explorer has been deprecated 🔴🔴
+
+🔴🔴 We recommend upgrading to [MultiChain Explorer 2](https://github.com/MultiChain/multichain-explorer-2) 🔴🔴
+
 MultiChain Explorer
 ===================
 
@@ -52,7 +56,7 @@ On CentOS, you will need to install the following dependencies:
 MultiChain Compatibility
 ------------------------
 
-MultiChain Explorer currently supports all MultiChain 1.0.x release versions and all MultiChain 2.0 alpha and beta versions.
+MultiChain Explorer currently supports all MultiChain 1.0.x release versions and all MultiChain 2 versions.
 
 Installation
 ------------
